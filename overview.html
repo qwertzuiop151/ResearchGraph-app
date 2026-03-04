@@ -18,6 +18,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 .p-done{background:#bfdbfe;color:#1e3a8a}
 .p-wip{background:#fed7aa;color:#7c2d12}
 .p-open{background:#e9d5ff;color:#4c1d95}
+.p-abandoned{background:#fecaca;color:#991b1b}
+.dnd-insert-bar{width:3px;min-height:40px;background:#3b82f6;border-radius:2px;flex-shrink:0}
+.goal-drop-zone,.group-drop-zone{height:6px;transition:height .15s,background .15s;border-radius:3px}
+.goal-dz-active{height:12px;background:#bfdbfe}
+.view-toggle-btn{background:rgba(255,255,255,.12);border:1px solid rgba(0,0,0,.1);color:#475569;font-size:11px;padding:3px 10px;border-radius:6px;cursor:pointer}
+.zoom-bar{position:fixed;bottom:12px;left:12px;z-index:90;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:4px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-size:11px;color:#64748b}
+.zoom-bar input[type=range]{width:100px;height:4px;accent-color:#3b82f6;cursor:pointer}
+.view-toggle-btn:hover{background:rgba(59,130,246,.1)}
+.status-board-section{margin-bottom:16px}
+.status-board-hdr{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-weight:700;font-size:13px;margin-bottom:6px}
+.status-board-cards{display:flex;flex-wrap:wrap;gap:8px;padding:0 4px}
 .goal-block.dimmed{opacity:.25;pointer-events:none;transition:opacity .2s}
 #hdr .spacer{flex:1}
 .hdr-btn{background:rgba(255,255,255,.12);border:none;color:#fff;font-size:11px;font-weight:600;padding:4px 11px;border-radius:6px;cursor:pointer;letter-spacing:.2px}
@@ -351,10 +362,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 
 <div id="hdr">
   <h1>ResearchGraph</h1>
+  <select id="project-selector" onchange="switchProject(this.value)" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer"></select>
+  <button class="hdr-btn" onclick="addProject()" style="padding:3px 8px;font-size:12px" title="New project">+</button>
+  <button class="hdr-btn" onclick="renameProject()" style="padding:3px 8px;font-size:12px" title="Rename project">✎</button>
+  <button class="hdr-btn" onclick="deleteProject()" style="padding:3px 8px;font-size:12px" title="Delete project">×</button>
   <div class="spacer"></div>
-  <span class="pill p-done" id="cnt-done" onclick="toggleStatusFilter('done')">– done</span>
-  <span class="pill p-wip"  id="cnt-wip" onclick="toggleStatusFilter('in_progress')">– in progress</span>
-  <span class="pill p-open" id="cnt-open" onclick="toggleStatusFilter('planned')">– planned</span>
+  <span id="status-pills" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></span>
   <button class="hdr-btn" onclick="openTodo()">📋 Tasks</button>
   <button class="hdr-btn" onclick="exportData()">⬇ Export</button>
   <button class="hdr-btn" onclick="importData()">⬆ Import</button>
@@ -376,8 +389,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 <div id="main">
   <div id="roadmap">
     <div id="roadmap-header">
-      <span>Goals</span>
-      <button class="add-arr-btn" onclick="addGoal()">+ Add Goal</button>
+      <span id="roadmap-title">Goals</span>
+      <button class="add-arr-btn" id="btn-add-goal" onclick="addGoal()">+ Add Goal</button>
+      <div style="flex:1"></div>
+      <button class="view-toggle-btn" id="view-toggle" onclick="toggleView()" title="Switch view">☰ Board</button>
     </div>
     <div id="goal-list"></div>
   </div>
@@ -386,6 +401,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
     <div id="panel-top">
       <h3>Tags</h3>
       <div id="tag-manager"></div>
+      <h3 style="margin-top:12px">Statuses</h3>
+      <div id="status-manager"></div>
     </div>
     <div id="detail-body">
       <p class="hint">Click a goal or element for details.</p>
@@ -415,6 +432,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 
 
 <!-- Phase 7: Element Picker -->
+<div class="zoom-bar">
+  <span>−</span>
+  <input type="range" id="zoom-slider" min="40" max="100" value="100" oninput="setZoom(this.value)">
+  <span>+</span>
+  <span id="zoom-label">100%</span>
+</div>
+
 <div id="el-picker">
   <input class="picker-search" id="picker-search-inp" placeholder="Suchen…" oninput="filterPicker()" onkeydown="if(event.key==='Escape')closePicker()" />
   <div class="picker-list" id="picker-list-inner"></div>
@@ -427,32 +451,89 @@ const _DG = [];
 
 const _DE = [];
 
+// ─── PROJECT SYSTEM ──────────────────────────────────────────────────────────
+function _loadRaw(key,def){try{return JSON.parse(localStorage.getItem(key))||def;}catch{return def;}}
+// Migrate: if no projects exist yet, create default from existing data
+if(!localStorage.getItem('rg_projects')){
+  const pid='proj_default';
+  const projects=[{id:pid,name:'My Research',created:new Date().toISOString()}];
+  localStorage.setItem('rg_projects',JSON.stringify(projects));
+  localStorage.setItem('rg_active_project',pid);
+  // Move existing keys to prefixed keys
+  ['elements','goals','todos','tags','statuses','cGoals','cGrp'].forEach(k=>{
+    const val=localStorage.getItem('rg_'+k);
+    if(val){localStorage.setItem('rg_'+pid+'_'+k,val);localStorage.removeItem('rg_'+k);}
+  });
+}
+let _projects=_loadRaw('rg_projects',[]);
+let _activeProjectId=localStorage.getItem('rg_active_project')||_projects[0]?.id||'proj_default';
+function _pk(key){return 'rg_'+_activeProjectId+'_'+key;}
+function saveProjects(){localStorage.setItem('rg_projects',JSON.stringify(_projects));}
+function updateProjectSelector(){
+  const sel=document.getElementById('project-selector');if(!sel)return;
+  sel.innerHTML=_projects.map(p=>`<option value="${p.id}"${p.id===_activeProjectId?' selected':''}>${p.name}</option>`).join('');
+}
+function switchProject(id){
+  if(id===_activeProjectId)return;
+  // Save current state
+  saveState();saveTags();saveStatuses();
+  // Switch
+  _activeProjectId=id;localStorage.setItem('rg_active_project',id);
+  // Reload page to re-initialize all data
+  location.reload();
+}
+function addProject(){
+  const name=prompt('Project name:');if(!name||!name.trim())return;
+  const pid='proj_'+Date.now();
+  _projects.push({id:pid,name:name.trim(),created:new Date().toISOString()});
+  saveProjects();
+  switchProject(pid);
+}
+function renameProject(){
+  const proj=_projects.find(p=>p.id===_activeProjectId);if(!proj)return;
+  const name=prompt('Rename project:',proj.name);if(!name||!name.trim())return;
+  proj.name=name.trim();saveProjects();updateProjectSelector();
+}
+function deleteProject(){
+  if(_projects.length<=1){alert('Cannot delete the only project.');return;}
+  if(!confirm('Delete this project and all its data?'))return;
+  // Remove prefixed keys
+  ['elements','goals','todos','tags','statuses','cGoals','cGrp'].forEach(k=>{
+    localStorage.removeItem('rg_'+_activeProjectId+'_'+k);
+  });
+  _projects=_projects.filter(p=>p.id!==_activeProjectId);
+  saveProjects();
+  switchProject(_projects[0].id);
+}
+
 // ─── LOAD / SAVE STATE ───────────────────────────────────────────────────────
-function _load(key, def){ try{return JSON.parse(localStorage.getItem(key))||def;}catch{return def;} }
+function _load(key, def){ try{return JSON.parse(localStorage.getItem(_pk(key)))||def;}catch{return def;} }
 function saveState(){
-  localStorage.setItem('rg_elements',JSON.stringify(ELEMENTS));
-  localStorage.setItem('rg_goals',JSON.stringify(GOALS));
+  localStorage.setItem(_pk('elements'),JSON.stringify(ELEMENTS));
+  localStorage.setItem(_pk('goals'),JSON.stringify(GOALS));
 }
 function saveTags(){
-  localStorage.setItem('rg_tags',JSON.stringify(TAGS));
+  localStorage.setItem(_pk('tags'),JSON.stringify(TAGS));
 }
 
 // Migration: alte getrennte Keys → unified ELEMENTS
 const _migratedEls=(function(){
-  const saved=localStorage.getItem('rg_elements');
+  const saved=localStorage.getItem(_pk('elements'));
   if(saved) return JSON.parse(saved);
-  const oldP=localStorage.getItem('rg_plasmids'), oldW=localStorage.getItem('rg_workflows');
-  if(oldP||oldW){
-    const merged=[...(oldP?JSON.parse(oldP):[]),...(oldW?JSON.parse(oldW):[])];
-    localStorage.removeItem('rg_plasmids');localStorage.removeItem('rg_workflows');
-    return merged;
-  }
   return null;
 })();
 const ELEMENTS = _migratedEls || _DE;
-const GOALS    = _load('rg_goals', _DG);
-const TODOS    = _load('rg_todos', []);
-let TAGS = _load('rg_tags', {});
+const GOALS    = _load('goals', _DG);
+const TODOS    = _load('todos', []);
+let TAGS = _load('tags', {});
+const _DEFAULT_STATUSES={
+  planned:{label:'planned',icon:'○',color:'#e9d5ff;#4c1d95'},
+  in_progress:{label:'in progress',icon:'⟳',color:'#fed7aa;#7c2d12'},
+  done:{label:'done',icon:'✓',color:'#bfdbfe;#1e3a8a'},
+  abandoned:{label:'abandoned',icon:'✕',color:'#fecaca;#991b1b'}
+};
+let STATUSES=_load('statuses',null)||JSON.parse(JSON.stringify(_DEFAULT_STATUSES));
+function saveStatuses(){localStorage.setItem(_pk('statuses'),JSON.stringify(STATUSES));}
 
 // ─── MIGRATION: alte ap-basierte Daten → neues Gruppen+Tag-System ─────────────
 (function migrate(){
@@ -479,11 +560,19 @@ let TAGS = _load('rg_tags', {});
 
 // Fehlende Array-Felder auf alten gespeicherten Daten sicherstellen
 [...ELEMENTS,...GOALS].forEach(x=>{ if(!x.custom) x.custom=[]; if(!x.replicates) x.replicates=[]; });
+// Migration: order-Feld auf Elemente
+GOALS.forEach(g=>{
+  if(typeof g.order==='undefined') g.order=GOALS.indexOf(g);
+  (g.groups||[]).forEach(grp=>{
+    const siblings=ELEMENTS.filter(x=>x.groupId===grp.id);
+    siblings.forEach((el,i)=>{if(typeof el.order==='undefined') el.order=i;});
+  });
+});
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 const hiddenTags = new Set();
-const collapsedGoals   = new Set(_load('rg_cGoals',[]));
-const collapsedRgGroups = new Set(_load('rg_cGrp',[]));
+const collapsedGoals   = new Set(_load('cGoals',[]));
+const collapsedRgGroups = new Set(_load('cGrp',[]));
 let selType=null, selId=null;
 let repFormTarget=null, repFormState={type:'bio',result:'success'};
 let todoTab='open';
@@ -501,10 +590,15 @@ let _pickerMode=null,_pickerTarget=null;
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function statusIcon(s){
-  const m={done:{icon:'✓',text:'done'},
-    in_progress:{icon:'⟳',text:'in progress'},planned:{icon:'○',text:'planned'},
-    abandoned:{icon:'✕',text:'abandoned'}};
-  return m[s]||{icon:'·',text:s};
+  const st=STATUSES[s];
+  if(st) return {icon:st.icon,text:st.label};
+  return {icon:'·',text:s};
+}
+function statusColors(s){
+  const st=STATUSES[s];
+  if(!st) return {bg:'#f1f5f9',fg:'#334155'};
+  const [bg,fg]=st.color.split(';');
+  return {bg,fg};
 }
 function getItem(type,id){
   if(type==='element') return ELEMENTS.find(x=>x.id===id);
@@ -512,10 +606,12 @@ function getItem(type,id){
 }
 function goalStatusChips(goalId){
   const items=ELEMENTS.filter(p=>p.goal===goalId&&p.status!=='abandoned');
-  const v=items.filter(x=>x.status==='done').length;
-  const w=items.filter(x=>x.status==='in_progress').length;
-  const o=items.filter(x=>x.status==='planned').length;
-  return [v?`<span class="sc sc-v">✓ ${v}</span>`:'',w?`<span class="sc sc-w">⟳ ${w}</span>`:'',o?`<span class="sc sc-o">○ ${o}</span>`:''].filter(Boolean).join('');
+  return Object.entries(STATUSES).filter(([k])=>k!=='abandoned').map(([key,st])=>{
+    const count=items.filter(x=>x.status===key).length;
+    if(!count)return '';
+    const [bg,fg]=st.color.split(';');
+    return `<span class="sc" style="background:${bg};color:${fg}">${st.icon} ${count}</span>`;
+  }).filter(Boolean).join('');
 }
 function groupSummaryChips(grpId){
   const items=ELEMENTS.filter(p=>p.groupId===grpId&&p.status!=='abandoned');
@@ -700,6 +796,65 @@ function elementTagsHTML(type,id,tags){
     ${available?`<div style="display:flex;flex-wrap:wrap;gap:4px">${available}</div>`:''}
   </div>`;
 }
+// ─── STATUS MANAGER ───────────────────────────────────────────────────────────
+let _smOpenPalette=null;
+const STATUS_PALETTE=['#e9d5ff;#4c1d95','#fed7aa;#7c2d12','#bfdbfe;#1e3a8a','#fecaca;#991b1b','#d1fae5;#065f46','#fef3c7;#92400e','#e0e7ff;#3730a3','#f3e8ff;#6b21a8'];
+function buildStatusManager(){
+  const c=document.getElementById('status-manager');if(!c)return;c.innerHTML='';
+  const wrap=document.createElement('div');wrap.className='tm-pills';
+  Object.entries(STATUSES).forEach(([key,st])=>{
+    const [bg,fg]=st.color.split(';');
+    const pill=document.createElement('span');pill.className='tm-pill';
+    pill.style.background=bg;pill.style.color=fg;
+    pill.innerHTML=`<span>${st.icon}</span>
+      <span class="tm-pill-label" onclick="event.stopPropagation();editStatusLabel('${key}')">${escH(st.label)}</span>
+      <span style="cursor:pointer;font-size:10px" onclick="event.stopPropagation();toggleSmPalette('${key}')" title="Change color">●</span>
+      ${key!=='planned'&&key!=='done'&&key!=='abandoned'?`<button class="tm-del" onclick="event.stopPropagation();deleteStatus('${key}')" title="Delete status">×</button>`:''}`;
+    wrap.appendChild(pill);
+  });
+  c.appendChild(wrap);
+  if(_smOpenPalette&&STATUSES[_smOpenPalette]){
+    const pal=document.createElement('div');pal.className='tm-palette';pal.style.marginTop='6px';
+    STATUS_PALETTE.forEach(col=>{
+      const [bg2]=col.split(';');
+      const sw=document.createElement('div');sw.className='mp-sw'+(STATUSES[_smOpenPalette].color===col?' sel':'');
+      sw.style.background=bg2;
+      sw.onclick=()=>{STATUSES[_smOpenPalette].color=col;_smOpenPalette=null;saveStatuses();buildStatusManager();buildRoadmap();updateCounts();};
+      pal.appendChild(sw);
+    });
+    c.appendChild(pal);
+  }
+  const addSec=document.createElement('div');addSec.style.cssText='display:flex;gap:5px;margin-top:6px';
+  addSec.innerHTML=`<input class="tag-add-inp" id="new-status-inp" placeholder="New status…" onkeydown="if(event.key==='Enter')addNewStatus()" />
+    <input class="tag-add-inp" id="new-status-icon" placeholder="Icon" style="width:36px" maxlength="2" />
+    <button class="tm-add-btn" onclick="addNewStatus()">+</button>`;
+  c.appendChild(addSec);
+}
+function toggleSmPalette(key){_smOpenPalette=(_smOpenPalette===key)?null:key;buildStatusManager();}
+function editStatusLabel(key){
+  const newLabel=prompt('Status label:',STATUSES[key]?.label);
+  if(!newLabel||!newLabel.trim())return;
+  STATUSES[key].label=newLabel.trim();
+  saveStatuses();buildStatusManager();buildRoadmap();updateCounts();
+}
+function deleteStatus(key){
+  if(!confirm('Delete status "'+STATUSES[key].label+'"? Elements with this status will become "planned".'))return;
+  ELEMENTS.forEach(el=>{if(el.status===key)el.status='planned';});
+  GOALS.forEach(g=>{if(g.status===key)g.status='planned';});
+  delete STATUSES[key];
+  saveStatuses();saveState();buildStatusManager();buildRoadmap();renderDetail();updateCounts();
+}
+function addNewStatus(){
+  const inp=document.getElementById('new-status-inp');
+  const iconInp=document.getElementById('new-status-icon');
+  const label=(inp?.value||'').trim();if(!label)return;
+  const icon=(iconInp?.value||'').trim()||'◆';
+  const key=label.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  if(STATUSES[key])return;
+  STATUSES[key]={label,icon,color:STATUS_PALETTE[Object.keys(STATUSES).length%STATUS_PALETTE.length]};
+  saveStatuses();inp.value='';iconInp.value='';buildStatusManager();updateCounts();
+}
+
 let _tagDragIdx=null;
 function onTagDragStart(e,idx){_tagDragIdx=idx;e.dataTransfer.effectAllowed='move';}
 function onTagDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
@@ -724,13 +879,18 @@ function addElementTag(type,id,key){
 // ─── BUILD UI ─────────────────────────────────────────────────────────────────
 
 function buildRoadmap(){
+  if(_viewMode==='board') return buildBoard();
   const r=document.getElementById('goal-list');r.innerHTML='';
-  GOALS.filter(g=>g.status!=='abandoned').forEach((goal,gi,filteredGoals)=>{
+  GOALS.filter(g=>{
+    if(!_statusFilter.size) return g.status!=='abandoned';
+    // Show goal if it matches a selected status OR has elements matching selected statuses
+    return _statusFilter.has(g.status)||ELEMENTS.some(e=>e.goal===g.id&&_statusFilter.has(e.status));
+  }).sort((a,b)=>(a.order||0)-(b.order||0)).forEach((goal,gi,filteredGoals)=>{
     const block=document.createElement('div');block.className='goal-block';
     const collapsed=collapsedGoals.has(goal.id);
     const chips=goalStatusChips(goal.id);
     const gh=document.createElement('div');
-    gh.className=`goal-header ${goal.status==='done'?'goal-done':'goal-wip'}`;
+    gh.className=`goal-header ${goal.status==='done'?'goal-done':goal.status==='abandoned'?'goal-abandoned':'goal-wip'}`;
     gh.dataset.type='goal';gh.dataset.id=goal.id;
     const si=statusIcon(goal.status);
     gh.innerHTML=`
@@ -743,7 +903,7 @@ function buildRoadmap(){
       </div>
       <div class="goal-right">
         <div class="stat-chips">${chips}</div>
-        <span class="pill ${goal.status==='done'?'p-done':'p-wip'}">${si.icon} ${si.text}</span>
+        <span class="pill" style="background:${statusColors(goal.status).bg};color:${statusColors(goal.status).fg}">${si.icon} ${si.text}</span>
         <div class="inline-actions">
           <button class="ia-btn" onclick="event.stopPropagation();inlineEditGoal('${goal.id}')" title="Umbenennen">✎</button>
           <button class="ia-btn" onclick="event.stopPropagation();openAddModal('${goal.id}')" title="Add element">+</button>
@@ -751,6 +911,8 @@ function buildRoadmap(){
         </div>
       </div>`;
     gh.addEventListener('click',()=>select('goal',goal.id));
+    gh.draggable=true;
+    gh.addEventListener('dragstart',e=>{e.stopPropagation();onDragStart(e,'goal',goal.id);});
     block.appendChild(gh);
 
     const body=document.createElement('div');body.className=`goal-body${collapsed?' hidden':''}`;
@@ -764,24 +926,39 @@ function buildRoadmap(){
     addGrpBtn.onclick=()=>addGroupToGoal(goal.id);
     body.appendChild(addGrpBtn);
     block.appendChild(body);
-    // Status-Filter: dimmen wenn Goal keine Elemente mit gefiltertem Status hat
-    if(_statusFilter){
-      const els=ELEMENTS.filter(p=>p.goal===goal.id&&p.status!=='abandoned');
-      const hasMatch=els.some(x=>x.status===_statusFilter)||goal.status===_statusFilter;
-      if(!hasMatch) block.classList.add('dimmed');
-    }
+    // (Goal-level filter handled in GOALS.filter above)
+    // Goal drop zone before this block
+    const dropZone=document.createElement('div');
+    dropZone.className='goal-drop-zone';
+    dropZone.dataset.goalIndex=String(gi);
+    dropZone.addEventListener('dragover',e=>{if(_dragType==='goal'){e.preventDefault();e.dataTransfer.dropEffect='move';dropZone.classList.add('goal-dz-active');}});
+    dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('goal-dz-active'));
+    dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('goal-dz-active');onGoalDrop(gi,filteredGoals);});
+    r.appendChild(dropZone);
     r.appendChild(block);
-    if(gi<filteredGoals.length-1&&!collapsed){
-      const spine=document.createElement('div');spine.className='spine';
-      const line=document.createElement('div');line.className='spine-line';
-      spine.appendChild(line);r.appendChild(spine);
+    if(gi===filteredGoals.length-1){
+      const lastDz=document.createElement('div');lastDz.className='goal-drop-zone';lastDz.dataset.goalIndex=String(gi+1);
+      lastDz.addEventListener('dragover',e=>{if(_dragType==='goal'){e.preventDefault();e.dataTransfer.dropEffect='move';lastDz.classList.add('goal-dz-active');}});
+      lastDz.addEventListener('dragleave',()=>lastDz.classList.remove('goal-dz-active'));
+      lastDz.addEventListener('drop',e=>{e.preventDefault();lastDz.classList.remove('goal-dz-active');onGoalDrop(gi+1,filteredGoals);});
+      r.appendChild(lastDz);
     }
+    // (spine connector removed)
   });
   updateCounts();
   updateSelectionHighlight();
 }
 
+function _groupHasFilterMatch(goal,grp){
+  if(!_statusFilter.size) return true;
+  // Check direct elements
+  if(ELEMENTS.some(e=>e.groupId===grp.id&&_statusFilter.has(e.status))) return true;
+  // Check sub-groups recursively
+  const subs=(goal.groups||[]).filter(g=>g.parentId===grp.id);
+  return subs.some(sub=>_groupHasFilterMatch(goal,sub));
+}
 function renderGroup(goal,grp,container,depth){
+  if(_statusFilter.size&&!_groupHasFilterMatch(goal,grp)) return;
   const groupEl=document.createElement('div');
   groupEl.className='rg-group depth-'+depth;
   groupEl.dataset.groupId=grp.id;
@@ -794,12 +971,20 @@ function renderGroup(goal,grp,container,depth){
     <span class="rg-group-label">${escH(grp.label)}</span>
     <div class="ag-summary">${groupSummaryChips(grp.id)}</div>
     <div class="rg-group-actions">
-      <button class="rg-group-btn" onclick="event.stopPropagation();openAddModal('${goal.id}')" title="Add element">+</button>
+      <button class="rg-group-btn" onclick="event.stopPropagation();openAddModal('${goal.id}','${grp.id}')" title="Add element">+</button>
       <button class="rg-group-btn" onclick="event.stopPropagation();addGroupToGoal('${goal.id}','${grp.id}')" title="Sub-group">+Sub</button>
       <button class="rg-group-btn" onclick="event.stopPropagation();inlineEditGroupLabel('${goal.id}','${grp.id}')">✎</button>
       <button class="rg-group-btn danger" onclick="event.stopPropagation();deleteRgGroup('${goal.id}','${grp.id}')">×</button>
     </div>`;
+  hdr.draggable=true;
+  hdr.addEventListener('dragstart',e=>{e.stopPropagation();onDragStart(e,'group',grp.id);e.dataTransfer.setData('goalId',goal.id);});
   groupEl.appendChild(hdr);
+  // Group drop zone
+  const grpDz=document.createElement('div');grpDz.className='group-drop-zone';
+  grpDz.addEventListener('dragover',e=>{if(_dragType==='group'){e.preventDefault();e.dataTransfer.dropEffect='move';grpDz.classList.add('goal-dz-active');}});
+  grpDz.addEventListener('dragleave',()=>grpDz.classList.remove('goal-dz-active'));
+  grpDz.addEventListener('drop',e=>{e.preventDefault();grpDz.classList.remove('goal-dz-active');onGroupDrop(goal.id,grp);});
+  groupEl.appendChild(grpDz);
   // Elemente-Zeile (Drop-Zone)
   const elRow=document.createElement('div');
   elRow.className='rg-el-row'+(collapsed?' hidden':'');
@@ -808,11 +993,14 @@ function renderGroup(goal,grp,container,depth){
   elRow.addEventListener('dragleave',onDragLeave);
   elRow.addEventListener('drop',onDrop);
   // Elemente dieser Gruppe rendern
-  const elements=ELEMENTS.filter(p=>p.groupId===grp.id&&p.status!=='abandoned');
+  const elements=ELEMENTS.filter(p=>{
+    if(p.groupId!==grp.id) return false;
+    if(_statusFilter.size) return _statusFilter.has(p.status);
+    return p.status!=='abandoned'; // default: hide abandoned
+  }).sort((a,b)=>(a.order||0)-(b.order||0));
   elements.forEach(el=>{
     if((el.tags||[]).some(t=>hiddenTags.has(t))) return;
     const card=makeElementCard(el);
-    if(_statusFilter&&el.status!==_statusFilter) card.classList.add('dimmed');
     card.draggable=true;
     card.addEventListener('dragstart',e=>onDragStart(e,'element',el.id));
     elRow.appendChild(card);
@@ -848,15 +1036,67 @@ function onDragStart(e,type,id){
 function onDragOver(e){
   e.preventDefault();e.dataTransfer.dropEffect='move';
   e.currentTarget.classList.add('dnd-over');
+  // Show insert indicator for element reordering
+  if(_dragType==='element'){
+    e.currentTarget.querySelectorAll('.dnd-insert-bar').forEach(b=>b.remove());
+    const cards=[...e.currentTarget.querySelectorAll('.el-card')];
+    const bar=document.createElement('div');bar.className='dnd-insert-bar';
+    let inserted=false;
+    for(let i=0;i<cards.length;i++){
+      const rect=cards[i].getBoundingClientRect();
+      if(e.clientX<rect.left+rect.width/2){cards[i].before(bar);inserted=true;break;}
+    }
+    if(!inserted) e.currentTarget.appendChild(bar);
+  }
 }
-function onDragLeave(e){e.currentTarget.classList.remove('dnd-over');}
+function onDragLeave(e){e.currentTarget.classList.remove('dnd-over');e.currentTarget.querySelectorAll('.dnd-insert-bar').forEach(b=>b.remove());}
 function onDrop(e){
   e.preventDefault();e.currentTarget.classList.remove('dnd-over');
+  e.currentTarget.querySelectorAll('.dnd-insert-bar').forEach(b=>b.remove());
   const targetGroupId=e.currentTarget.dataset.groupId;
   if(!_dragType||!_dragId||!targetGroupId)return;
-  const data=getItem(_dragType,_dragId);
-  if(data){data.groupId=targetGroupId;saveState();buildRoadmap();renderDetail();}
+  if(_dragType==='element'){
+    const data=ELEMENTS.find(x=>x.id===_dragId);if(!data)return;
+    // Calculate drop position from mouse X relative to cards
+    const cards=[...e.currentTarget.querySelectorAll('.el-card')];
+    let insertIdx=cards.length;
+    for(let i=0;i<cards.length;i++){
+      const rect=cards[i].getBoundingClientRect();
+      if(e.clientX<rect.left+rect.width/2){insertIdx=i;break;}
+    }
+    const siblings=ELEMENTS.filter(x=>x.groupId===targetGroupId&&x.id!==_dragId&&(_statusFilter.has('abandoned')?x.status==='abandoned':x.status!=='abandoned')).sort((a,b)=>(a.order||0)-(b.order||0));
+    data.groupId=targetGroupId;
+    siblings.splice(insertIdx,0,data);
+    siblings.forEach((el,i)=>el.order=i);
+    saveState();buildRoadmap();renderDetail();
+  } else {
+    const data=getItem(_dragType,_dragId);
+    if(data){data.groupId=targetGroupId;saveState();buildRoadmap();renderDetail();}
+  }
   _dragType=null;_dragId=null;
+}
+function onGoalDrop(targetIdx,filteredGoals){
+  if(_dragType!=='goal'||!_dragId)return;
+  const goal=GOALS.find(g=>g.id===_dragId);if(!goal)return;
+  // Remove from filtered list, insert at target position, reassign orders
+  const ordered=filteredGoals.filter(g=>g.id!==_dragId);
+  ordered.splice(targetIdx,0,goal);
+  ordered.forEach((g,i)=>g.order=i);
+  _dragType=null;_dragId=null;
+  saveState();buildRoadmap();
+}
+function onGroupDrop(goalId,beforeGrp){
+  if(_dragType!=='group'||!_dragId)return;
+  const goal=GOALS.find(g=>g.id===goalId);if(!goal)return;
+  const grp=(goal.groups||[]).find(g=>g.id===_dragId);if(!grp)return;
+  const parentId=beforeGrp.parentId;
+  grp.parentId=parentId; // move to same level
+  const siblings=(goal.groups||[]).filter(g=>g.parentId===parentId&&g.id!==_dragId).sort((a,b)=>(a.order||0)-(b.order||0));
+  const targetIdx=siblings.indexOf(beforeGrp);
+  siblings.splice(targetIdx>=0?targetIdx:siblings.length,0,grp);
+  siblings.forEach((g,i)=>g.order=i);
+  _dragType=null;_dragId=null;
+  saveState();buildRoadmap();
 }
 
 // ─── GRUPPEN-VERWALTUNG ────────────────────────────────────────────────────────
@@ -896,12 +1136,12 @@ function inlineEditGroupLabel(goalId,grpId){
 // ─── COLLAPSE ─────────────────────────────────────────────────────────────────
 function toggleGoal(goalId){
   collapsedGoals.has(goalId)?collapsedGoals.delete(goalId):collapsedGoals.add(goalId);
-  localStorage.setItem('rg_cGoals',JSON.stringify([...collapsedGoals]));
+  localStorage.setItem(_pk('cGoals'),JSON.stringify([...collapsedGoals]));
   buildRoadmap();
 }
 function toggleRgGroup(grpId){
   collapsedRgGroups.has(grpId)?collapsedRgGroups.delete(grpId):collapsedRgGroups.add(grpId);
-  localStorage.setItem('rg_cGrp',JSON.stringify([...collapsedRgGroups]));
+  localStorage.setItem(_pk('cGrp'),JSON.stringify([...collapsedRgGroups]));
   buildRoadmap();
 }
 
@@ -1028,6 +1268,10 @@ function addGoal(){
     next:[],blockers:[],custom:[]});
   saveState();buildRoadmap();select('goal',id);
 }
+function restoreGoal(goalId){
+  const g=GOALS.find(x=>x.id===goalId);if(!g)return;
+  g.status='planned';saveState();buildRoadmap();renderDetail();
+}
 function abandonGoal(goalId){
   if(!confirm('Mark goal as abandoned?'))return;
   const g=GOALS.find(x=>x.id===goalId);if(!g)return;
@@ -1111,7 +1355,7 @@ function renderDetail(){
     body.innerHTML=`
       <div class="dh" style="color:#3b82f6">Goal</div>
       ${ed('goal',g.id,'label',g.label,'div','dtitle')}
-      <span class="dbadge" style="background:${g.status==='done'?'#bfdbfe':'#fed7aa'};color:${g.status==='done'?'#1e3a8a':'#7c2d12'}">${si.icon} ${si.text}</span>
+      <span class="dbadge" style="background:${statusColors(g.status).bg};color:${statusColors(g.status).fg}">${si.icon} ${si.text}</span>
       ${ed('goal',g.id,'desc',g.desc,'p','ddesc')}
       <div class="dsec"><div class="dsec-title">Experiment / Method</div>
         ${ed('goal',g.id,'experiment',g.experiment,'div','dsec-content')}</div>
@@ -1135,7 +1379,8 @@ function renderDetail(){
         : `<button class="add-arr-btn" style="margin-top:8px" onclick="addArrItem('goal','${g.id}','blockers')">+ Add blocker</button>`
       }
       ${customSectionsHTML('goal',g.id,g.custom)}
-      <button class="add-sec-btn" onclick="addCustomSection('goal','${g.id}')">+ New section</button>`;
+      <button class="add-sec-btn" onclick="addCustomSection('goal','${g.id}')">+ New section</button>
+      ${g.status==='abandoned'?`<div style="margin-top:12px"><button class="add-sec-btn" style="background:#d1fae5;color:#065f46" onclick="restoreGoal('${g.id}')">Restore Goal</button></div>`:''}`;
   }
 
   else if(selType==='element'){
@@ -1143,11 +1388,11 @@ function renderDetail(){
     const si=statusIcon(el.status);
     const elColor=getElementColor(el);
     const firstTagLabel=el.tags?.[0]?(TAGS[el.tags[0]]?.label||el.tags[0]):'';
-    const statusBtns=['planned','in_progress','done'];
+    const statusBtns=Object.keys(STATUSES).filter(k=>k!=='abandoned');
     body.innerHTML=`
       <div class="dh" style="color:${elColor}">Element${firstTagLabel?' · '+firstTagLabel:''}</div>
       ${ed('element',el.id,'label',el.label,'div','dtitle')}
-      <span class="dbadge" style="background:#f1f5f9;color:#334155;border:2px solid ${elColor}">${si.icon} ${si.text}</span>
+      <span class="dbadge" style="background:${statusColors(el.status).bg};color:${statusColors(el.status).fg};border:2px solid ${elColor}">${si.icon} ${si.text}</span>
       <p class="ddesc editable" contenteditable="true"
         data-type="element" data-id="${el.id}" data-field="desc"
         onblur="saveField(this)">${renderInlineLinks(escH(el.desc))}</p>
@@ -1165,7 +1410,9 @@ function renderDetail(){
       <button class="add-sec-btn" onclick="addCustomSection('element','${el.id}')">+ New section</button>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="add-sec-btn" onclick="duplicateElement('${el.id}')">Duplicate</button>
-        <button class="add-sec-btn danger" onclick="abandonElement('element','${el.id}')">Abandon</button>
+        ${el.status==='abandoned'
+          ?`<button class="add-sec-btn" style="background:#d1fae5;color:#065f46" onclick="changeElStatus('${el.id}','planned')">Restore</button>`
+          :`<button class="add-sec-btn danger" onclick="abandonElement('element','${el.id}')">Abandon</button>`}
       </div>`;
   }
 }
@@ -1236,20 +1483,100 @@ function changeElStatus(elId,newStatus){
   const el=ELEMENTS.find(x=>x.id===elId); if(!el)return;
   el.status=newStatus; saveState(); buildRoadmap(); renderDetail();
 }
-let _statusFilter=null;
+let _statusFilter=new Set(); // Multi-select status filter
+let _viewMode='tree'; // 'tree' or 'board'
+function setZoom(val){
+  const scale=val/100;
+  const gl=document.getElementById('goal-list');
+  gl.style.transform=`scale(${scale})`;
+  gl.style.transformOrigin='top left';
+  gl.style.width=(100/scale)+'%';
+  document.getElementById('zoom-label').textContent=val+'%';
+}
 function updateCounts(){
-  const all=[...ELEMENTS,...GOALS].filter(x=>x.status!=='abandoned');
-  document.getElementById('cnt-done').textContent=`${all.filter(x=>x.status==='done').length} done`;
-  document.getElementById('cnt-wip').textContent=`${all.filter(x=>x.status==='in_progress').length} in progress`;
-  document.getElementById('cnt-open').textContent=`${all.filter(x=>x.status==='planned').length} planned`;
-  // Active-Klasse auf Pills
-  document.getElementById('cnt-done').classList.toggle('pill-active',_statusFilter==='done');
-  document.getElementById('cnt-wip').classList.toggle('pill-active',_statusFilter==='in_progress');
-  document.getElementById('cnt-open').classList.toggle('pill-active',_statusFilter==='planned');
+  const all=[...ELEMENTS,...GOALS];
+  const container=document.getElementById('status-pills');
+  container.innerHTML=Object.keys(STATUSES).map(key=>{
+    const st=STATUSES[key];
+    const [bg,fg]=st.color.split(';');
+    const count=all.filter(x=>x.status===key).length;
+    if(key==='abandoned'&&!count) return '';
+    return `<span class="pill${_statusFilter.has(key)?' pill-active':''}" style="background:${bg};color:${fg}" onclick="toggleStatusFilter('${key}')">${count} ${st.label}</span>`;
+  }).join('');
 }
 function toggleStatusFilter(status){
-  _statusFilter=(_statusFilter===status)?null:status;
+  _statusFilter.has(status)?_statusFilter.delete(status):_statusFilter.add(status);
   buildRoadmap();
+}
+function toggleView(){
+  _viewMode=_viewMode==='tree'?'board':'tree';
+  const btn=document.getElementById('view-toggle');
+  const addBtn=document.getElementById('btn-add-goal');
+  const title=document.getElementById('roadmap-title');
+  if(_viewMode==='board'){
+    btn.textContent='🌳 Tree';title.textContent='Status Board';addBtn.style.display='none';
+  } else {
+    btn.textContent='☰ Board';title.textContent='Goals';addBtn.style.display='';
+  }
+  buildRoadmap();
+}
+function buildBoard(){
+  const r=document.getElementById('goal-list');r.innerHTML='';
+  const allEls=ELEMENTS.filter(e=>e.status!=='abandoned');
+  Object.entries(STATUSES).forEach(([key,st])=>{
+    if(key==='abandoned') return;
+    if(_statusFilter.size&&!_statusFilter.has(key)) return;
+    const items=allEls.filter(e=>e.status===key);
+    if(!items.length) return;
+    const [bg,fg]=st.color.split(';');
+    const sec=document.createElement('div');sec.className='status-board-section';
+    const hdr=document.createElement('div');hdr.className='status-board-hdr';
+    hdr.style.background=bg;hdr.style.color=fg;
+    hdr.innerHTML=`${st.icon} ${st.label} <span style="font-weight:400;font-size:11px;opacity:.7">(${items.length})</span>`;
+    sec.appendChild(hdr);
+    const cards=document.createElement('div');cards.className='status-board-cards';
+    // Sort by tree position: goal order → group order → element order
+    items.sort((a,b)=>{
+      const gA=GOALS.find(g=>g.id===a.goal), gB=GOALS.find(g=>g.id===b.goal);
+      const goalDiff=(gA?.order||0)-(gB?.order||0);
+      if(goalDiff!==0) return goalDiff;
+      const grpA=(gA?.groups||[]).find(g=>g.id===a.groupId), grpB=(gB?.groups||[]).find(g=>g.id===b.groupId);
+      const grpDiff=(grpA?.order||0)-(grpB?.order||0);
+      if(grpDiff!==0) return grpDiff;
+      return (a.order||0)-(b.order||0);
+    }).forEach(el=>{
+      if((el.tags||[]).some(t=>hiddenTags.has(t))) return;
+      const card=makeElementCard(el);
+      // Add goal label as subtitle
+      const goal=GOALS.find(g=>g.id===el.goal);
+      if(goal){
+        const goalTag=document.createElement('div');
+        goalTag.style.cssText='font-size:9px;color:#94a3b8;margin-top:2px';
+        goalTag.textContent=goal.icon+' '+goal.label;
+        card.appendChild(goalTag);
+      }
+      cards.appendChild(card);
+    });
+    sec.appendChild(cards);
+    r.appendChild(sec);
+  });
+  // Abandoned section if filter active
+  if(_statusFilter.has('abandoned')){
+    const abItems=ELEMENTS.filter(e=>e.status==='abandoned');
+    if(abItems.length){
+      const st=STATUSES.abandoned;
+      const [bg,fg]=st.color.split(';');
+      const sec=document.createElement('div');sec.className='status-board-section';
+      const hdr=document.createElement('div');hdr.className='status-board-hdr';
+      hdr.style.background=bg;hdr.style.color=fg;
+      hdr.innerHTML=`${st.icon} ${st.label} (${abItems.length})`;
+      sec.appendChild(hdr);
+      const cards=document.createElement('div');cards.className='status-board-cards';
+      abItems.forEach(el=>{const card=makeElementCard(el);cards.appendChild(card);});
+      sec.appendChild(cards);r.appendChild(sec);
+    }
+  }
+  updateCounts();updateSelectionHighlight();
 }
 
 // ─── ADD NEW NODE ─────────────────────────────────────────────────────────────
@@ -1257,7 +1584,7 @@ function _buildGroupOptions(goalId){
   const g=GOALS.find(x=>x.id===goalId);
   return (g?.groups||[]).map(grp=>`<option value="${grp.id}">${grp.parentId?'↳ ':''}${escH(grp.label)}</option>`).join('');
 }
-function openAddModal(preGoal){
+function openAddModal(preGoal,preGroupId){
   const activeGoal=preGoal||GOALS.filter(g=>g.status!=='abandoned')[0]?.id;
   const body=document.getElementById('add-body');
   body.innerHTML=`
@@ -1271,6 +1598,7 @@ function openAddModal(preGoal){
       <select id="add-grp">${_buildGroupOptions(activeGoal)}</select>
     </div>
     <div class="add-field"><label>Description (optional)</label><textarea id="add-desc" rows="2"></textarea></div>`;
+  if(preGroupId) document.getElementById('add-grp').value=preGroupId;
   document.getElementById('add-modal').style.display='block';
   document.getElementById('add-title').textContent='New Element';
   document.getElementById('add-label').focus();
@@ -1282,12 +1610,13 @@ function confirmAdd(){
   const goal=document.getElementById('add-goal')?.value||GOALS[0]?.id;
   const groupId=document.getElementById('add-grp')?.value||null;
   const desc=(document.getElementById('add-desc')?.value||'').trim();
-  ELEMENTS.push({id:'el_'+Date.now(),label,goal,groupId,status:'planned',desc,tags:[],replicates:[],custom:[]});
+  const order=ELEMENTS.filter(x=>x.groupId===groupId).length;
+  ELEMENTS.push({id:'el_'+Date.now(),label,goal,groupId,status:'planned',desc,tags:[],replicates:[],custom:[],order});
   saveState(); buildRoadmap(); closeAddModal();
 }
 
 // ─── TODO ─────────────────────────────────────────────────────────────────────
-function saveTodos(){localStorage.setItem('rg_todos',JSON.stringify(TODOS));}
+function saveTodos(){localStorage.setItem(_pk('todos'),JSON.stringify(TODOS));}
 function openTodo(){document.getElementById('todo-modal').style.display='block';renderTodo();}
 function closeTodo(){document.getElementById('todo-modal').style.display='none';}
 function switchTodoTab(tab){todoTab=tab;renderTodo();}
@@ -1334,7 +1663,8 @@ function addTodo(){
 
 // ─── EXPORT / IMPORT ─────────────────────────────────────────────────────────
 function exportData(){
-  const data={elements:ELEMENTS,goals:GOALS,tags:TAGS,exported:new Date().toISOString()};
+  const proj=_projects.find(p=>p.id===_activeProjectId);
+  const data={elements:ELEMENTS,goals:GOALS,tags:TAGS,statuses:STATUSES,projectName:proj?.name||'',exported:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -1344,15 +1674,23 @@ function exportData(){
 function importData(){document.getElementById('import-file').click();}
 function handleImport(e){
   const f=e.target.files[0];if(!f)return;
-  if(!confirm('Imported data will overwrite current state. Continue?'))return;
   const r=new FileReader();
   r.onload=()=>{
     try{
       const d=JSON.parse(r.result);
+      const asNew=confirm('Import as new project?\n\nOK = New project\nCancel = Overwrite current');
+      if(asNew){
+        const name=d.projectName||f.name.replace(/\.json$/,'')||'Imported';
+        const pid='proj_'+Date.now();
+        _projects.push({id:pid,name,created:new Date().toISOString()});
+        saveProjects();
+        _activeProjectId=pid;localStorage.setItem('rg_active_project',pid);
+      }
       if(d.elements)ELEMENTS.splice(0,Infinity,...d.elements);
       if(d.goals)GOALS.splice(0,Infinity,...d.goals);
       if(d.tags)Object.keys(TAGS).forEach(k=>delete TAGS[k]),Object.assign(TAGS,d.tags);
-      saveState();saveTags();buildRoadmap();renderDetail();
+      if(d.statuses){Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,d.statuses);saveStatuses();}
+      saveState();saveTags();updateProjectSelector();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
     }catch(err){alert('Invalid JSON file: '+err.message);}
   };
   r.readAsText(f);e.target.value='';
@@ -1423,7 +1761,7 @@ async function ghPoll(deviceCode,interval){
 }
 async function ghSave(){
   if(!ghToken)return;
-  const data=JSON.stringify({elements:ELEMENTS,goals:GOALS,tags:TAGS,saved:new Date().toISOString()},null,2);
+  const data=JSON.stringify({elements:ELEMENTS,goals:GOALS,tags:TAGS,statuses:STATUSES,saved:new Date().toISOString()},null,2);
   const files={'researchgraph_data.json':{content:data}};
   try{
     if(ghGistId){
@@ -1459,7 +1797,8 @@ async function ghLoad(){
     if(parsed.elements)ELEMENTS.splice(0,Infinity,...parsed.elements);
     if(parsed.goals)GOALS.splice(0,Infinity,...parsed.goals);
     if(parsed.tags)Object.keys(TAGS).forEach(k=>delete TAGS[k]),Object.assign(TAGS,parsed.tags);
-    saveState();saveTags();buildRoadmap();renderDetail();
+    if(parsed.statuses){Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,parsed.statuses);saveStatuses();}
+    saveState();saveTags();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
   }catch(e){console.error('Gist load error:',e);}
 }
 function ghLogout(){
@@ -1473,8 +1812,10 @@ saveState=function(){_origSave();ghSave();};
 
 // ─── PHASE 8: FULL RESET ─────────────────────────────────────────────────────
 function resetAll(){
-  if(!confirm('Reset all data? This will delete all saved changes and load defaults.'))return;
-  Object.keys(localStorage).filter(k=>k.startsWith('rg_')).forEach(k=>localStorage.removeItem(k));
+  if(!confirm('Reset current project data? This will delete all saved changes and load defaults.'))return;
+  ['elements','goals','todos','tags','statuses','cGoals','cGrp'].forEach(k=>{
+    localStorage.removeItem(_pk(k));
+  });
   location.reload();
 }
 
@@ -1504,7 +1845,9 @@ function initResizable(){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+updateProjectSelector();
 buildTagManager();
+buildStatusManager();
 buildRoadmap();
 initResizable();
 updateGhBtn();
