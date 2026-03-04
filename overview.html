@@ -377,9 +377,56 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
   <button class="hdr-btn" onclick="openTodo()">📋 Tasks</button>
   <button class="hdr-btn" onclick="exportData()">⬇ Export</button>
   <button class="hdr-btn" onclick="importData()">⬆ Import</button>
+  <button class="hdr-btn" onclick="showHelp()" title="How to use">?</button>
   <button class="hdr-btn" style="background:rgba(220,38,38,.3)" onclick="resetAll()">⟳ Reset</button>
   <button class="hdr-btn" id="gh-btn" style="background:rgba(255,255,255,.22);display:none" onclick="ghAction()">⬡ GitHub</button>
   <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
+</div>
+
+<div id="help-overlay" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
+  <div style="background:#fff;border-radius:16px;padding:32px;max-width:620px;width:100%;color:#1e293b;position:relative">
+    <button onclick="document.getElementById('help-overlay').style.display='none'" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#94a3b8">×</button>
+    <h2 style="margin-bottom:16px;font-size:20px">How to use ResearchGraph</h2>
+    <div style="font-size:13px;line-height:1.7;color:#475569">
+      <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Tree Structure</h3>
+      <ul style="padding-left:18px">
+        <li><b>Nodes</b> organize your work into a tree hierarchy (phases, groups, sub-groups — unlimited depth)</li>
+        <li><b>Elements</b> are the actual items (experiments, constructs, tasks) that live inside nodes</li>
+        <li>Click any node or element to see its details in the right panel</li>
+      </ul>
+      <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Drag & Drop</h3>
+      <ul style="padding-left:18px">
+        <li>Drag <b>elements</b> between nodes to reorganize them</li>
+        <li>Drag <b>nodes</b> to reorder or move them into different parent nodes</li>
+      </ul>
+      <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Adding Items</h3>
+      <ul style="padding-left:18px">
+        <li><b>+ Add Node</b> (top left) creates a new top-level node</li>
+        <li><b>+Sub</b> button on a node creates a child node</li>
+        <li><b>+</b> button on a node or the ghost card opens the Add Element dialog</li>
+      </ul>
+      <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Detail Panel (right side)</h3>
+      <ul style="padding-left:18px">
+        <li>Edit <b>titles and descriptions</b> by clicking on them directly</li>
+        <li>Use <b>@mentions</b> in descriptions to link to other elements (type @ and start typing)</li>
+        <li>Add <b>custom sections</b> for any extra info (protocols, notes, troubleshooting)</li>
+        <li>Track <b>replicates</b> on elements (biological/technical, success/fail)</li>
+      </ul>
+      <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Tags & Statuses</h3>
+      <ul style="padding-left:18px">
+        <li>Create <b>custom tags</b> (right sidebar) — the first tag sets the card color</li>
+        <li>Create <b>custom statuses</b> with icons and colors</li>
+        <li>Filter by status using the <b>pills in the header</b></li>
+      </ul>
+      <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Views & More</h3>
+      <ul style="padding-left:18px">
+        <li>Toggle <b>Board View</b> to see elements grouped by status (Kanban-style)</li>
+        <li><b>Export/Import</b> your data as JSON</li>
+        <li><b>Zoom</b> slider (bottom left) to adjust the view</li>
+        <li>All data is saved in your <b>browser's localStorage</b> — no account needed</li>
+      </ul>
+    </div>
+  </div>
 </div>
 
 <div id="gh-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:center;justify-content:center">
@@ -1832,6 +1879,7 @@ const _origSave=saveState;
 saveState=function(){_origSave();ghSave();};
 
 // ─── PHASE 8: FULL RESET ─────────────────────────────────────────────────────
+function showHelp(){const o=document.getElementById('help-overlay');o.style.display='flex';}
 function resetAll(){
   if(!confirm('Reset current project data? This will delete all saved changes and load defaults.'))return;
   ['elements','nodes','todos','tags','statuses','cNodes'].forEach(k=>{
