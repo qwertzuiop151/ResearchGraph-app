@@ -1382,7 +1382,7 @@ function renderDetail(){
         data-type="node" data-id="${n.id}" data-field="desc"
         onblur="saveField(this)">${renderInlineLinks(escH(n.desc))}</p>
       <div class="dsec"><div class="dsec-title">Elements (${doneC}/${subtreeEls.length} done)</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px">${directEls.map(p=>{
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${subtreeEls.map(p=>{
           const si2=statusIcon(p.status);const col=getElementColor(p);
           return `<span class="dep-tag" onclick="select('element','${p.id}')" style="border-left:3px solid ${col}">${si2.icon} ${p.label}</span>`;
         }).join('')}</div>
