@@ -490,5 +490,6 @@
     "abandoned": {"label": "abandoned", "icon": "✕", "color": "#fecaca;#991b1b"}
   },
   "projectName": "Organelle Engineering (Demo)",
+  "collapsedNodes": ["constructs", "controls_poc", "validation_poc"],
   "exported": "2026-03-04T21:00:00.000Z"
 }
