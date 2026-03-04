@@ -6,11 +6,11 @@
       "parentId": null,
       "order": 0,
       "icon": "🔬",
-      "desc": "Validate the nuclear TEV-shuttle mechanism: can we sort fluorescent proteins from nucleus to mitochondria in planta?",
+      "desc": "Validate the core delivery mechanism: can the engineered carrier protein transport fluorescent reporters to the target organelle?",
       "custom": [
-        {"id": "sec_method_1", "title": "Method", "content": "Confocal fluorescence microscopy (RFP nuclear, mTurquoise2 mitochondrial) in N. benthamiana leaf cells after Agrobacterium infiltration."},
-        {"id": "sec_rationale_1", "title": "Design Rationale", "content": "Must prove nuclear→mito transport works before adding the RepA DNA-binding domain. Two-module system: Module 1 = cargo + shuttle signals, Module 2 = TEV protease + NLS."},
-        {"id": "sec_result_1", "title": "Key Result", "content": "mTurquoise2 successfully relocalized to mitochondria within 48h post-infiltration. RFP remained nuclear. Shuttle mechanism confirmed."}
+        {"id": "sec_method_1", "title": "Method", "content": "Confocal fluorescence microscopy (GFP + mCherry dual-channel) in model organism leaf tissue after transformation."},
+        {"id": "sec_rationale_1", "title": "Design Rationale", "content": "Must confirm subcellular transport works before adding the functional cargo. Two-module system: Module 1 = reporter + signal peptides, Module 2 = protease + localization signal."},
+        {"id": "sec_result_1", "title": "Key Result", "content": "GFP successfully relocalized to target compartment within 48h. mCherry remained in nucleus. Transport mechanism confirmed."}
       ]
     },
     {
@@ -19,25 +19,25 @@
       "parentId": "phase1",
       "order": 0,
       "icon": "",
-      "desc": "Binary vectors for the PoC shuttle system.",
+      "desc": "Expression vectors for the reporter shuttle system.",
       "custom": []
     },
     {
-      "id": "gg_lvl1",
-      "label": "GreenGate Level 1",
+      "id": "assembly_lvl1",
+      "label": "Assembly Level 1",
       "parentId": "constructs",
       "order": 0,
       "icon": "",
-      "desc": "Individual modules assembled via GreenGate cloning.",
+      "desc": "Individual modules assembled via modular cloning.",
       "custom": []
     },
     {
-      "id": "gg_lvl2",
-      "label": "GreenGate Level 2",
+      "id": "assembly_lvl2",
+      "label": "Assembly Level 2",
       "parentId": "constructs",
       "order": 1,
       "icon": "",
-      "desc": "Final binary vectors combining Level 1 modules.",
+      "desc": "Final expression vectors combining Level 1 modules.",
       "custom": []
     },
     {
@@ -46,7 +46,7 @@
       "parentId": "phase1",
       "order": 1,
       "icon": "",
-      "desc": "Negative controls to confirm specificity of the shuttle mechanism.",
+      "desc": "Negative controls to confirm specificity of the transport mechanism.",
       "custom": []
     },
     {
@@ -60,77 +60,77 @@
     },
     {
       "id": "phase2",
-      "label": "Phase 2 — DNA Transport",
+      "label": "Phase 2 — Cargo Delivery",
       "parentId": null,
       "order": 1,
       "icon": "🧬",
-      "desc": "Transport exogenous DNA into plant mitochondria via RepA-mediated covalent binding. Detect successful integration through mitochondrial RNA editing at nad9.",
+      "desc": "Deliver functional cargo to the target compartment via the validated carrier protein. Detect successful delivery through compartment-specific reporter activity.",
       "custom": [
-        {"id": "sec_method_2", "title": "Method", "content": "Co-transformation of RepA shuttle + DNA cargo constructs. RT-PCR to detect C→U RNA editing at nad9 as evidence of mitochondrial transcription."},
-        {"id": "sec_rationale_2", "title": "Design Rationale", "content": "RepA binds ssDNA covalently via catalytic Tyr. After TEV cleavage, mtPre pulls the RepA-DNA complex into mitochondria. Cargo flanked by nad9 homology arms for recombination."},
-        {"id": "sec_next_2", "title": "Next Steps", "content": "Obtain clean positive + negative control results in a single experiment. Test all four DNA cargo variants."}
+        {"id": "sec_method_2", "title": "Method", "content": "Co-transformation of carrier + cargo constructs. qPCR and reporter assays to detect cargo expression in target compartment."},
+        {"id": "sec_rationale_2", "title": "Design Rationale", "content": "Carrier binds cargo covalently via active-site residue. After protease cleavage, signal peptide pulls the carrier-cargo complex into target organelle. Cargo flanked by homology arms for integration."},
+        {"id": "sec_next_2", "title": "Next Steps", "content": "Obtain clean positive + negative control results in a single experiment. Test all four cargo variants."}
       ]
     },
     {
-      "id": "dna_approach",
-      "label": "DNA Approach",
+      "id": "strategy_a",
+      "label": "Strategy A (Direct)",
       "parentId": "phase2",
       "order": 0,
       "icon": "",
-      "desc": "Primary strategy: deliver DNA cargo directly via RepA shuttle.",
+      "desc": "Primary strategy: deliver cargo directly via carrier protein shuttle.",
       "custom": []
     },
     {
-      "id": "dna_cargo",
-      "label": "DNA Cargo Variants",
-      "parentId": "dna_approach",
+      "id": "cargo_variants",
+      "label": "Cargo Variants",
+      "parentId": "strategy_a",
       "order": 0,
       "icon": "",
-      "desc": "Different cargo designs testing LIR/SIR origins and T7 promoter configurations.",
+      "desc": "Different cargo designs testing various origin sequences and promoter configurations.",
       "custom": []
     },
     {
-      "id": "repa_vectors",
-      "label": "RepA Vectors",
-      "parentId": "dna_approach",
+      "id": "carrier_vectors",
+      "label": "Carrier Vectors",
+      "parentId": "strategy_a",
       "order": 1,
       "icon": "",
-      "desc": "RepA shuttle constructs for DNA binding and delivery.",
+      "desc": "Carrier protein constructs for cargo binding and delivery.",
       "custom": []
     },
     {
       "id": "detection",
       "label": "Detection & Analysis",
-      "parentId": "dna_approach",
+      "parentId": "strategy_a",
       "order": 2,
       "icon": "",
       "desc": "",
       "custom": []
     },
     {
-      "id": "rna_approach",
-      "label": "RNA Approach (Alternative)",
+      "id": "strategy_b",
+      "label": "Strategy B (Alternative)",
       "parentId": "phase2",
       "order": 1,
       "icon": "",
-      "desc": "Alternative strategy: use RNA-binding proteins to shuttle RNA into mitochondria. Currently on hold pending DNA approach results.",
+      "desc": "Alternative strategy using RNA-binding proteins for indirect delivery. On hold pending Strategy A results.",
       "custom": [
-        {"id": "sec_note_rna", "title": "Note", "content": "Exploratory — based on earlier work by a previous master student. Will revisit if DNA approach hits a dead end."}
+        {"id": "sec_note_b", "title": "Note", "content": "Exploratory — based on earlier pilot study. Will revisit if Strategy A hits a dead end."}
       ]
     },
     {
-      "id": "rna_plasmids",
-      "label": "RNA Plasmids",
-      "parentId": "rna_approach",
+      "id": "strat_b_mod1",
+      "label": "Binding Modules",
+      "parentId": "strategy_b",
       "order": 0,
       "icon": "",
       "desc": "",
       "custom": []
     },
     {
-      "id": "rbp_plasmids",
-      "label": "RNA-Binding Protein Plasmids",
-      "parentId": "rna_approach",
+      "id": "strat_b_mod2",
+      "label": "Adapter Constructs",
+      "parentId": "strategy_b",
       "order": 1,
       "icon": "",
       "desc": "",
@@ -151,10 +151,10 @@
       "parentId": null,
       "order": 2,
       "icon": "🎯",
-      "desc": "Ultimate goal: restore mitochondrial function by delivering a corrective gene. Demonstrate phenotypic rescue via Complex I activity restoration.",
+      "desc": "Ultimate goal: restore organelle function by delivering a corrective gene. Demonstrate phenotypic rescue via enzyme activity restoration.",
       "custom": [
-        {"id": "sec_method_3", "title": "Method", "content": "BN-PAGE (Blue Native PAGE) to detect Complex I assembly. Compare transformed vs. untransformed mitochondria."},
-        {"id": "sec_goal_3", "title": "Success Criteria", "content": "Restored Complex I band on BN-PAGE in transformed plants. Quantifiable by densitometry."}
+        {"id": "sec_method_3", "title": "Method", "content": "Native gel electrophoresis to detect enzyme complex assembly. Compare transformed vs. untransformed samples."},
+        {"id": "sec_goal_3", "title": "Success Criteria", "content": "Restored enzyme band on native gel in transformed samples. Quantifiable by densitometry."}
       ]
     },
     {
@@ -178,60 +178,60 @@
   ],
   "elements": [
     {
-      "id": "pDC011",
-      "label": "pDC011",
-      "nodeId": "gg_lvl1",
+      "id": "vec001",
+      "label": "VEC-001",
+      "nodeId": "assembly_lvl1",
       "status": "done",
-      "desc": "Module 1: UBQ10→RFP–TEVrs–mtPre–mTurquoise2–NES–TEVrs–NLS. Cargo + shuttle signals.",
+      "desc": "Module 1: Constitutive promoter → GFP–cleavage site–signal peptide–mCherry–export signal. Cargo + shuttle signals.",
       "tags": ["plasmid", "poc"],
       "replicates": [{"type": "bio", "result": "success", "note": "Confirmed by sequencing", "date": "2025-11-15"}],
       "custom": [],
       "order": 0
     },
     {
-      "id": "pDC012",
-      "label": "pDC012",
-      "nodeId": "gg_lvl1",
+      "id": "vec002",
+      "label": "VEC-002",
+      "nodeId": "assembly_lvl1",
       "status": "done",
-      "desc": "Module 2: UBQ10→mTurquoise2–TEV-Protease(Intron)–SV40-NLS. Nuclear TEV expression.",
+      "desc": "Module 2: Constitutive promoter → mCherry–protease(intron)–NLS. Nuclear protease expression.",
       "tags": ["plasmid", "poc"],
       "replicates": [{"type": "bio", "result": "success", "note": "", "date": "2025-11-20"}],
       "custom": [],
       "order": 1
     },
     {
-      "id": "pDC045",
-      "label": "pDC045",
-      "nodeId": "gg_lvl2",
+      "id": "vec010",
+      "label": "VEC-010",
+      "nodeId": "assembly_lvl2",
       "status": "done",
-      "desc": "Complete PoC binary vector (pGBY1). Combines @pDC011 + @pDC012. Transformation successful, validated by microscopy.",
+      "desc": "Complete PoC binary vector. Combines @VEC-001 + @VEC-002. Transformation successful, validated by microscopy.",
       "tags": ["plasmid", "poc"],
       "replicates": [
-        {"type": "bio", "result": "success", "note": "Agro-infiltration batch 1", "date": "2025-12-05"},
-        {"type": "bio", "result": "success", "note": "Agro-infiltration batch 2", "date": "2025-12-12"}
+        {"type": "bio", "result": "success", "note": "Transformation batch 1", "date": "2025-12-05"},
+        {"type": "bio", "result": "success", "note": "Transformation batch 2", "date": "2025-12-12"}
       ],
       "custom": [
-        {"id": "cs_clone", "title": "Cloning Notes", "content": "GreenGate LVL2 assembly. Colony PCR: 4/6 positive. Sequencing confirmed correct assembly."}
+        {"id": "cs_clone", "title": "Cloning Notes", "content": "Modular assembly LVL2. Colony PCR: 4/6 positive. Sequencing confirmed correct assembly."}
       ],
       "order": 0
     },
     {
-      "id": "pDC112",
-      "label": "pDC112 (ΔNES)",
+      "id": "ctrl001",
+      "label": "CTRL-001 (Δexport)",
       "nodeId": "controls_poc",
       "status": "in_progress",
-      "desc": "Negative control: @pDC045 without NLS–TEVrs–NES. No nuclear processing expected → mTurquoise2 stays nuclear.",
+      "desc": "Negative control: @VEC-010 without export signal. No nuclear processing expected → GFP stays in nucleus.",
       "tags": ["plasmid", "control"],
       "replicates": [],
       "custom": [],
       "order": 0
     },
     {
-      "id": "pDC113",
-      "label": "pDC113 (ΔTEVrs)",
+      "id": "ctrl002",
+      "label": "CTRL-002 (Δcleavage)",
       "nodeId": "controls_poc",
       "status": "in_progress",
-      "desc": "Negative control: @pDC045 without TEVrs between NES and mtPre. TEV cannot expose mtPre → no mito transport.",
+      "desc": "Negative control: @VEC-010 without cleavage site between export and signal peptide. Protease cannot expose signal → no transport.",
       "tags": ["plasmid", "control"],
       "replicates": [],
       "custom": [],
@@ -242,14 +242,14 @@
       "label": "Confocal Microscopy",
       "nodeId": "validation_poc",
       "status": "done",
-      "desc": "Confocal imaging of @pDC045-infiltrated N. benthamiana leaves. MitoTracker co-staining for mitochondrial verification.",
+      "desc": "Confocal imaging of @VEC-010-transformed tissue. Organelle-specific dye co-staining for localization verification.",
       "tags": ["assay"],
       "replicates": [
-        {"type": "bio", "result": "success", "note": "Clear mTurquoise2 mito localization", "date": "2025-12-18"},
-        {"type": "bio", "result": "success", "note": "Replicate with different leaf age", "date": "2026-01-08"}
+        {"type": "bio", "result": "success", "note": "Clear GFP target localization", "date": "2025-12-18"},
+        {"type": "bio", "result": "success", "note": "Replicate with different tissue age", "date": "2026-01-08"}
       ],
       "custom": [
-        {"id": "cs_settings", "title": "Microscope Settings", "content": "Zeiss LSM 880. RFP: 561nm ex / 580-630nm em. mTurquoise2: 458nm ex / 470-510nm em. MitoTracker: 633nm."}
+        {"id": "cs_settings", "title": "Microscope Settings", "content": "Zeiss LSM 880. GFP: 488nm ex / 500-550nm em. mCherry: 561nm ex / 580-630nm em. Organelle dye: 633nm."}
       ],
       "order": 0
     },
@@ -258,104 +258,104 @@
       "label": "Western Blot",
       "nodeId": "validation_poc",
       "status": "done",
-      "desc": "Anti-GFP western to confirm TEV cleavage products in nuclear and mitochondrial fractions.",
+      "desc": "Anti-GFP western to confirm protease cleavage products in nuclear and organellar fractions.",
       "tags": ["assay"],
       "replicates": [{"type": "bio", "result": "success", "note": "Band at expected size", "date": "2026-01-15"}],
       "custom": [],
       "order": 1
     },
     {
-      "id": "pDC071",
-      "label": "pDC071 (Cargo v1)",
-      "nodeId": "dna_cargo",
+      "id": "cargo_v1",
+      "label": "CARGO-v1",
+      "nodeId": "cargo_variants",
       "status": "done",
-      "desc": "DNA cargo v1: LIR–nad9-upstream(430nt)–150nt-reporter–nad9-downstream. No T7 site.",
+      "desc": "Cargo variant 1: Origin-A + target-upstream(430nt) + 150nt reporter + target-downstream. No in vitro site.",
       "tags": ["plasmid", "cargo"],
       "replicates": [{"type": "bio", "result": "success", "note": "", "date": "2026-01-10"}],
       "custom": [],
       "order": 0
     },
     {
-      "id": "pDC076",
-      "label": "pDC076 (Cargo v2)",
-      "nodeId": "dna_cargo",
+      "id": "cargo_v2",
+      "label": "CARGO-v2",
+      "nodeId": "cargo_variants",
       "status": "done",
-      "desc": "DNA cargo v2: SIR (YBDV origin) instead of LIR. Testing alternative rolling-circle origin.",
+      "desc": "Cargo variant 2: Alternative origin (Origin-B) instead of Origin-A. Testing different replication strategy.",
       "tags": ["plasmid", "cargo"],
       "replicates": [{"type": "bio", "result": "success", "note": "Some clones had deletions, clone 3 correct", "date": "2026-01-18"}],
       "custom": [],
       "order": 1
     },
     {
-      "id": "pDC079",
-      "label": "pDC079 (Cargo v3)",
-      "nodeId": "dna_cargo",
+      "id": "cargo_v3",
+      "label": "CARGO-v3",
+      "nodeId": "cargo_variants",
       "status": "done",
-      "desc": "DNA cargo v3: LIR + T7 promoter for in vitro ssDNA synthesis. Enables pre-loading RepA with cargo.",
+      "desc": "Cargo variant 3: Origin-A + T7 promoter for in vitro single-stranded synthesis. Enables pre-loading carrier with cargo.",
       "tags": ["plasmid", "cargo"],
       "replicates": [{"type": "bio", "result": "success", "note": "", "date": "2026-01-25"}],
       "custom": [],
       "order": 2
     },
     {
-      "id": "pDC083",
-      "label": "pDC083 (Cargo v4)",
-      "nodeId": "dna_cargo",
+      "id": "cargo_v4",
+      "label": "CARGO-v4",
+      "nodeId": "cargo_variants",
       "status": "in_progress",
-      "desc": "DNA cargo v4: optimized LIR + T7 site variant 2. Currently in cloning.",
+      "desc": "Cargo variant 4: optimized origin + T7 site variant 2. Currently in cloning.",
       "tags": ["plasmid", "cargo"],
       "replicates": [{"type": "bio", "result": "failed", "note": "Ligation failed — re-digesting fragments", "date": "2026-02-20"}],
       "custom": [
-        {"id": "cs_troubleshoot", "title": "Troubleshooting", "content": "Ligation efficiency low. Switching to 30U/µL T4 ligase and 16°C overnight. Also testing Gibson assembly as alternative."}
+        {"id": "cs_troubleshoot", "title": "Troubleshooting", "content": "Ligation efficiency low. Switching to higher-concentration ligase and overnight incubation at 16°C. Also testing isothermal assembly as alternative."}
       ],
       "order": 3
     },
     {
-      "id": "pDC068",
-      "label": "pDC068",
-      "nodeId": "repa_vectors",
+      "id": "carrier_base",
+      "label": "CAR-001",
+      "nodeId": "carrier_vectors",
       "status": "done",
-      "desc": "RepA shuttle backbone (no GFP). Intermediate for @pDC084.",
-      "tags": ["plasmid", "repa"],
+      "desc": "Carrier protein shuttle backbone (no reporter). Intermediate for @CAR-003.",
+      "tags": ["plasmid", "carrier"],
       "replicates": [],
       "custom": [],
       "order": 0
     },
     {
-      "id": "pDC069",
-      "label": "pDC069 (RepA-GFP)",
-      "nodeId": "repa_vectors",
+      "id": "carrier_gfp",
+      "label": "CAR-002 (GFP-tagged)",
+      "nodeId": "carrier_vectors",
       "status": "done",
-      "desc": "RepA–GFP fusion for fluorescence localization tracking. Confirms RepA enters mitochondria.",
-      "tags": ["plasmid", "repa"],
-      "replicates": [{"type": "bio", "result": "success", "note": "GFP signal in mito confirmed", "date": "2026-02-01"}],
+      "desc": "Carrier–GFP fusion for fluorescence localization tracking. Confirms carrier enters target compartment.",
+      "tags": ["plasmid", "carrier"],
+      "replicates": [{"type": "bio", "result": "success", "note": "GFP signal in target confirmed", "date": "2026-02-01"}],
       "custom": [],
       "order": 1
     },
     {
-      "id": "pDC084",
-      "label": "pDC084",
-      "nodeId": "repa_vectors",
+      "id": "carrier_full",
+      "label": "CAR-003",
+      "nodeId": "carrier_vectors",
       "status": "done",
-      "desc": "Complete RepA binary vector: @pDC068 + @pDC012. Ready for co-transformation with cargo.",
-      "tags": ["plasmid", "repa"],
+      "desc": "Complete carrier binary vector: @CAR-001 + @VEC-002. Ready for co-transformation with cargo.",
+      "tags": ["plasmid", "carrier"],
       "replicates": [],
       "custom": [],
       "order": 2
     },
     {
-      "id": "rtpcr",
-      "label": "RT-PCR (nad9 editing)",
+      "id": "qpcr",
+      "label": "qPCR (reporter editing)",
       "nodeId": "detection",
       "status": "in_progress",
-      "desc": "RT-PCR targeting nad9 C→U RNA editing sites. Positive result = cargo transcribed inside mitochondria.",
+      "desc": "qPCR targeting compartment-specific RNA editing sites. Positive result = cargo transcribed inside target organelle.",
       "tags": ["assay"],
       "replicates": [
-        {"type": "bio", "result": "failed", "note": "No editing detected — possible contamination with nuclear DNA", "date": "2026-02-25"},
+        {"type": "bio", "result": "failed", "note": "No signal — possible genomic DNA contamination", "date": "2026-02-25"},
         {"type": "bio", "result": "success", "note": "Faint band after DNase treatment — needs replication", "date": "2026-03-01"}
       ],
       "custom": [
-        {"id": "cs_protocol", "title": "Protocol", "content": "RNA extraction → DNase I treatment → RT with gene-specific primer → PCR → Sanger sequencing of C→U positions."}
+        {"id": "cs_protocol", "title": "Protocol", "content": "RNA extraction → DNase I treatment → RT with gene-specific primer → qPCR → Sanger sequencing of edited positions."}
       ],
       "order": 0
     },
@@ -364,55 +364,55 @@
       "label": "Fluorescence Microscopy",
       "nodeId": "detection",
       "status": "in_progress",
-      "desc": "Co-localization of @pDC069 (RepA-GFP) with MitoTracker in co-transformed cells.",
+      "desc": "Co-localization of @CAR-002 (carrier-GFP) with organelle dye in co-transformed cells.",
       "tags": ["assay"],
       "replicates": [],
       "custom": [],
       "order": 1
     },
     {
-      "id": "pDC094",
-      "label": "pDC094",
-      "nodeId": "rna_plasmids",
+      "id": "bind_mod1",
+      "label": "BIND-001",
+      "nodeId": "strat_b_mod1",
       "status": "done",
-      "desc": "RNA shuttle construct. Delivers target RNA sequence for mitochondrial import.",
-      "tags": ["plasmid", "rna"],
+      "desc": "RNA-binding module construct. Delivers target RNA sequence for indirect import.",
+      "tags": ["plasmid", "alt"],
       "replicates": [],
       "custom": [],
       "order": 0
     },
     {
-      "id": "pDC095",
-      "label": "pDC095",
-      "nodeId": "rbp_plasmids",
+      "id": "adapt_001",
+      "label": "ADAPT-001",
+      "nodeId": "strat_b_mod2",
       "status": "done",
-      "desc": "GG LVL 1: Modified backbone for RNA-binding protein expression.",
-      "tags": ["plasmid", "rna"],
+      "desc": "Level 1 assembly: Modified backbone for adapter protein expression.",
+      "tags": ["plasmid", "alt"],
       "replicates": [{"type": "bio", "result": "success", "note": "", "date": "2026-02-10"}],
       "custom": [],
       "order": 0
     },
     {
-      "id": "pDC098",
-      "label": "pDC098",
-      "nodeId": "rbp_plasmids",
+      "id": "adapt_002",
+      "label": "ADAPT-002",
+      "nodeId": "strat_b_mod2",
       "status": "planned",
-      "desc": "GG LVL 2: Combines @pDC095 + TEV module. Final RNA approach vector — not yet assembled.",
-      "tags": ["plasmid", "rna"],
+      "desc": "Level 2 assembly: Combines @ADAPT-001 + protease module. Final alternative strategy vector — not yet assembled.",
+      "tags": ["plasmid", "alt"],
       "replicates": [],
       "custom": [],
       "order": 1
     },
     {
-      "id": "pDC111",
-      "label": "pDC111 (Y→A mutant)",
+      "id": "ctrl_mut",
+      "label": "CTRL-MUT (active site)",
       "nodeId": "controls_p2",
       "status": "in_progress",
-      "desc": "Critical negative control: @pDC084 with Tyr→Ala mutation in RepA active site. Cannot bind DNA covalently.",
+      "desc": "Critical negative control: @CAR-003 with point mutation in carrier active site. Cannot bind cargo covalently.",
       "tags": ["plasmid", "control"],
       "replicates": [],
       "custom": [
-        {"id": "cs_mutagenesis", "title": "Mutagenesis", "content": "Site-directed mutagenesis via overlap extension PCR. Tyr305→Ala. Primer pair validated by NEB Tm calculator."}
+        {"id": "cs_mutagenesis", "title": "Mutagenesis", "content": "Site-directed mutagenesis via overlap extension PCR. Active-site Tyr→Ala. Primer pair validated by Tm calculator."}
       ],
       "order": 0
     },
@@ -421,22 +421,22 @@
       "label": "Empty Vector Control",
       "nodeId": "controls_p2",
       "status": "done",
-      "desc": "pGBY1 empty backbone. Infiltrated alongside experimental constructs in every co-transformation.",
+      "desc": "Empty backbone vector. Infiltrated alongside experimental constructs in every co-transformation.",
       "tags": ["control"],
       "replicates": [],
       "custom": [],
       "order": 1
     },
     {
-      "id": "bnpage",
-      "label": "BN-PAGE (Complex I)",
+      "id": "native_gel",
+      "label": "Native Gel (Enzyme Complex)",
       "nodeId": "rescue_assays",
       "status": "planned",
-      "desc": "Blue Native PAGE to detect restored Complex I assembly in mitochondrial extracts from transformed tissue.",
+      "desc": "Native gel electrophoresis to detect restored enzyme complex assembly in organellar extracts from transformed tissue.",
       "tags": ["assay"],
       "replicates": [],
       "custom": [
-        {"id": "cs_protocol_bn", "title": "Protocol", "content": "Mitochondrial isolation → digitonin solubilization → BN-PAGE → Coomassie or in-gel activity staining."}
+        {"id": "cs_protocol_bn", "title": "Protocol", "content": "Organelle isolation → detergent solubilization → native gel → Coomassie or in-gel activity staining."}
       ],
       "order": 0
     },
@@ -445,7 +445,7 @@
       "label": "O₂ Consumption Assay",
       "nodeId": "rescue_assays",
       "status": "planned",
-      "desc": "Oxygen consumption rate measurement to quantify restored mitochondrial electron transport chain activity.",
+      "desc": "Oxygen consumption rate measurement to quantify restored electron transport chain activity.",
       "tags": ["assay"],
       "replicates": [],
       "custom": [],
@@ -456,18 +456,18 @@
       "label": "Growth Phenotype",
       "nodeId": "phenotyping",
       "status": "planned",
-      "desc": "Compare growth rates of transformed vs. untransformed plants under stress conditions that require functional Complex I.",
+      "desc": "Compare growth rates of transformed vs. untransformed organisms under stress conditions requiring functional enzyme complex.",
       "tags": ["assay"],
       "replicates": [],
       "custom": [],
       "order": 0
     },
     {
-      "id": "chlorophyll",
+      "id": "fluorescence_pheno",
       "label": "Chlorophyll Fluorescence",
       "nodeId": "phenotyping",
       "status": "planned",
-      "desc": "PAM fluorometry to assess photosynthetic efficiency as indirect measure of mitochondrial health.",
+      "desc": "PAM fluorometry to assess photosynthetic efficiency as indirect measure of organelle health.",
       "tags": ["assay"],
       "replicates": [],
       "custom": [],
@@ -477,9 +477,9 @@
   "tags": {
     "plasmid": {"label": "Plasmid", "color": "#dc2626"},
     "poc": {"label": "PoC", "color": "#3b82f6"},
-    "repa": {"label": "RepA", "color": "#0891b2"},
-    "cargo": {"label": "DNA-Cargo", "color": "#d97706"},
-    "rna": {"label": "RNA Approach", "color": "#7c3aed"},
+    "carrier": {"label": "Carrier", "color": "#0891b2"},
+    "cargo": {"label": "Cargo", "color": "#d97706"},
+    "alt": {"label": "Strategy B", "color": "#7c3aed"},
     "control": {"label": "Control", "color": "#64748b"},
     "assay": {"label": "Assay", "color": "#16a34a"}
   },
@@ -489,6 +489,6 @@
     "done": {"label": "done", "icon": "✓", "color": "#bfdbfe;#1e3a8a"},
     "abandoned": {"label": "abandoned", "icon": "✕", "color": "#fecaca;#991b1b"}
   },
-  "projectName": "Mito-Transformation (Demo)",
+  "projectName": "Organelle Engineering (Demo)",
   "exported": "2026-03-04T21:00:00.000Z"
 }
