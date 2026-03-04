@@ -587,6 +587,23 @@ const NODES=(function(){
   return _DN;
 })();
 
+// Auto-load demo data if completely empty (first visit)
+let _demoLoadPending=false;
+if(!NODES.length&&!ELEMENTS.length){
+  _demoLoadPending=true;
+  fetch('demo_data.json').then(r=>r.ok?r.json():null).then(d=>{
+    if(!d||!d.nodes) return;
+    NODES.length=0;ELEMENTS.length=0;
+    d.nodes.forEach(n=>NODES.push(n));
+    d.elements.forEach(e=>ELEMENTS.push(e));
+    if(d.tags) Object.assign(TAGS,d.tags);
+    if(d.statuses){Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,d.statuses);}
+    saveState();saveStatuses();saveTags();
+    buildRoadmap();updateCounts();renderDetail();
+    _demoLoadPending=false;
+  }).catch(()=>{_demoLoadPending=false;});
+}
+
 // Status-Migration: spezifische → generische Status
 (function migrateStatus(){
   const map={verified:'done',in_cloning:'in_progress',seq_needed:'in_progress'};

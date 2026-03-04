@@ -1,177 +1,176 @@
 {
   "nodes": [
     {
-      "id": "poc",
-      "label": "Proof of Concept",
+      "id": "phase1",
+      "label": "Phase 1 — Proof of Concept",
       "parentId": null,
       "order": 0,
       "icon": "🔬",
-      "desc": "Nukleärer TEV-Shuttle sortiert Fluoreszenzproteine korrekt in Mitochondrien.",
+      "desc": "Validate the nuclear TEV-shuttle mechanism: can we sort fluorescent proteins from nucleus to mitochondria in planta?",
       "custom": [
-        {
-          "id": "sec_exp_poc",
-          "title": "Experiment / Method",
-          "content": "Fluoreszenzmikroskopie (RFP nukleär, mTurquoise2 mitochondrial) in N. benthamiana."
-        },
-        {
-          "id": "sec_dr_poc",
-          "title": "Design Rationale",
-          "content": "Nachweis dass der Nuklear→Mito-Transport funktioniert bevor RepA eingebaut wird."
-        },
-        {
-          "id": "sec_next_poc",
-          "title": "Next Steps",
-          "content": "✓ Abgeschlossen."
-        }
+        {"id": "sec_method_1", "title": "Method", "content": "Confocal fluorescence microscopy (RFP nuclear, mTurquoise2 mitochondrial) in N. benthamiana leaf cells after Agrobacterium infiltration."},
+        {"id": "sec_rationale_1", "title": "Design Rationale", "content": "Must prove nuclear→mito transport works before adding the RepA DNA-binding domain. Two-module system: Module 1 = cargo + shuttle signals, Module 2 = TEV protease + NLS."},
+        {"id": "sec_result_1", "title": "Key Result", "content": "mTurquoise2 successfully relocalized to mitochondria within 48h post-infiltration. RFP remained nuclear. Shuttle mechanism confirmed."}
       ]
     },
     {
-      "id": "grp_poc_poc",
-      "label": "PoC-Konstrukte",
-      "parentId": "poc",
+      "id": "constructs",
+      "label": "Constructs",
+      "parentId": "phase1",
       "order": 0,
       "icon": "",
-      "desc": "",
+      "desc": "Binary vectors for the PoC shuttle system.",
       "custom": []
     },
     {
-      "id": "grp_poc_ctrl",
-      "label": "Kontrollen",
-      "parentId": "poc",
-      "order": 1,
-      "icon": "",
-      "desc": "",
-      "custom": []
-    },
-    {
-      "id": "grp_1772560380976",
-      "label": "Green gate LVL 1",
-      "parentId": "grp_poc_poc",
+      "id": "gg_lvl1",
+      "label": "GreenGate Level 1",
+      "parentId": "constructs",
       "order": 0,
       "icon": "",
-      "desc": "",
+      "desc": "Individual modules assembled via GreenGate cloning.",
       "custom": []
     },
     {
-      "id": "grp_1772560381599",
-      "label": "greengate lvl 2",
-      "parentId": "grp_poc_poc",
+      "id": "gg_lvl2",
+      "label": "GreenGate Level 2",
+      "parentId": "constructs",
       "order": 1,
       "icon": "",
-      "desc": "",
+      "desc": "Final binary vectors combining Level 1 modules.",
       "custom": []
     },
     {
-      "id": "grp_1772616047626",
-      "label": "",
-      "parentId": "poc",
+      "id": "controls_poc",
+      "label": "Controls",
+      "parentId": "phase1",
+      "order": 1,
+      "icon": "",
+      "desc": "Negative controls to confirm specificity of the shuttle mechanism.",
+      "custom": []
+    },
+    {
+      "id": "validation_poc",
+      "label": "Validation",
+      "parentId": "phase1",
       "order": 2,
       "icon": "",
       "desc": "",
       "custom": []
     },
     {
-      "id": "mito",
-      "label": "Mito-Transformation",
+      "id": "phase2",
+      "label": "Phase 2 — DNA Transport",
       "parentId": null,
       "order": 1,
-      "icon": "⚗️",
-      "desc": "Transport exogener DNA in pflanzliche Mitochondrien, Nachweis via RNA-Editing.",
+      "icon": "🧬",
+      "desc": "Transport exogenous DNA into plant mitochondria via RepA-mediated covalent binding. Detect successful integration through mitochondrial RNA editing at nad9.",
       "custom": [
-        {
-          "id": "sec_exp_mito",
-          "title": "Experiment / Method",
-          "content": "Co-Transformation pDC097 + DNA-Cargo → RT-PCR mit C→U RNA-Editing an nad9."
-        },
-        {
-          "id": "sec_dr_mito",
-          "title": "Design Rationale",
-          "content": "RepA bindet ssDNA kovalent via Tyr. Nach TEV-Schnitt zieht mtPre das Komplex ins Mito. DNA-Cargo als Invertiertes Repeat mit Nonanukleotid. nad9-Arme für Integration."
-        },
-        {
-          "id": "sec_next_mito",
-          "title": "Next Steps",
-          "content": "Sauberen Nachweis erbringen (pos. + neg. Kontrolle in einem Versuch)."
-        }
+        {"id": "sec_method_2", "title": "Method", "content": "Co-transformation of RepA shuttle + DNA cargo constructs. RT-PCR to detect C→U RNA editing at nad9 as evidence of mitochondrial transcription."},
+        {"id": "sec_rationale_2", "title": "Design Rationale", "content": "RepA binds ssDNA covalently via catalytic Tyr. After TEV cleavage, mtPre pulls the RepA-DNA complex into mitochondria. Cargo flanked by nad9 homology arms for recombination."},
+        {"id": "sec_next_2", "title": "Next Steps", "content": "Obtain clean positive + negative control results in a single experiment. Test all four DNA cargo variants."}
       ]
     },
     {
-      "id": "grp_mito_repA",
-      "label": "RNA Ansatz",
-      "parentId": "mito",
+      "id": "dna_approach",
+      "label": "DNA Approach",
+      "parentId": "phase2",
       "order": 0,
       "icon": "",
-      "desc": "",
+      "desc": "Primary strategy: deliver DNA cargo directly via RepA shuttle.",
       "custom": []
     },
     {
-      "id": "grp_mito_dna",
-      "label": "DNA-Ansatz",
-      "parentId": "mito",
+      "id": "dna_cargo",
+      "label": "DNA Cargo Variants",
+      "parentId": "dna_approach",
+      "order": 0,
+      "icon": "",
+      "desc": "Different cargo designs testing LIR/SIR origins and T7 promoter configurations.",
+      "custom": []
+    },
+    {
+      "id": "repa_vectors",
+      "label": "RepA Vectors",
+      "parentId": "dna_approach",
+      "order": 1,
+      "icon": "",
+      "desc": "RepA shuttle constructs for DNA binding and delivery.",
+      "custom": []
+    },
+    {
+      "id": "detection",
+      "label": "Detection & Analysis",
+      "parentId": "dna_approach",
       "order": 2,
       "icon": "",
       "desc": "",
       "custom": []
     },
     {
-      "id": "grp_1772559106092",
-      "label": "DNA Plasmide",
-      "parentId": "grp_mito_dna",
+      "id": "rna_approach",
+      "label": "RNA Approach (Alternative)",
+      "parentId": "phase2",
+      "order": 1,
+      "icon": "",
+      "desc": "Alternative strategy: use RNA-binding proteins to shuttle RNA into mitochondria. Currently on hold pending DNA approach results.",
+      "custom": [
+        {"id": "sec_note_rna", "title": "Note", "content": "Exploratory — based on earlier work by a previous master student. Will revisit if DNA approach hits a dead end."}
+      ]
+    },
+    {
+      "id": "rna_plasmids",
+      "label": "RNA Plasmids",
+      "parentId": "rna_approach",
       "order": 0,
       "icon": "",
       "desc": "",
       "custom": []
     },
     {
-      "id": "grp_1772559280206",
-      "label": "RepA Plasmide",
-      "parentId": "grp_mito_dna",
+      "id": "rbp_plasmids",
+      "label": "RNA-Binding Protein Plasmids",
+      "parentId": "rna_approach",
       "order": 1,
       "icon": "",
       "desc": "",
       "custom": []
     },
     {
-      "id": "grp_1772559726125",
-      "label": "RNA Plasmide",
-      "parentId": "grp_mito_repA",
-      "order": 0,
-      "icon": "",
-      "desc": "",
-      "custom": []
-    },
-    {
-      "id": "grp_1772559726898",
-      "label": "RNA BINDING PROTEIN PLASMIDS",
-      "parentId": "grp_mito_repA",
-      "order": 1,
-      "icon": "",
-      "desc": "",
-      "custom": []
-    },
-    {
-      "id": "grp_1772560870884",
-      "label": "KONTRollen",
-      "parentId": "grp_mito_dna",
+      "id": "controls_p2",
+      "label": "Controls",
+      "parentId": "phase2",
       "order": 2,
       "icon": "",
-      "desc": "",
+      "desc": "Critical controls for Phase 2 experiments.",
       "custom": []
     },
     {
-      "id": "goal_1772556210112",
-      "label": "Mitotrafo",
+      "id": "phase3",
+      "label": "Phase 3 — Functional Rescue",
       "parentId": null,
       "order": 2,
       "icon": "🎯",
+      "desc": "Ultimate goal: restore mitochondrial function by delivering a corrective gene. Demonstrate phenotypic rescue via Complex I activity restoration.",
+      "custom": [
+        {"id": "sec_method_3", "title": "Method", "content": "BN-PAGE (Blue Native PAGE) to detect Complex I assembly. Compare transformed vs. untransformed mitochondria."},
+        {"id": "sec_goal_3", "title": "Success Criteria", "content": "Restored Complex I band on BN-PAGE in transformed plants. Quantifiable by densitometry."}
+      ]
+    },
+    {
+      "id": "rescue_assays",
+      "label": "Rescue Assays",
+      "parentId": "phase3",
+      "order": 0,
+      "icon": "",
       "desc": "",
       "custom": []
     },
     {
-      "id": "grp_goal_1772556210112_default",
-      "label": "Nachweis",
-      "parentId": "goal_1772556210112",
-      "order": 0,
+      "id": "phenotyping",
+      "label": "Phenotyping",
+      "parentId": "phase3",
+      "order": 1,
       "icon": "",
       "desc": "",
       "custom": []
@@ -181,108 +180,203 @@
     {
       "id": "pDC011",
       "label": "pDC011",
-      "nodeId": "grp_1772560380976",
+      "nodeId": "gg_lvl1",
       "status": "done",
-      "desc": "PoC-Modul 1. UBQ10→RFP–TEVrs–mtPre–mTurquoise2–NES–TEVrs–NLS.",
-      "tags": [
-        "poc"
-      ],
-      "replicates": [],
+      "desc": "Module 1: UBQ10→RFP–TEVrs–mtPre–mTurquoise2–NES–TEVrs–NLS. Cargo + shuttle signals.",
+      "tags": ["plasmid", "poc"],
+      "replicates": [{"type": "bio", "result": "success", "note": "Confirmed by sequencing", "date": "2025-11-15"}],
       "custom": [],
       "order": 0
     },
     {
       "id": "pDC012",
       "label": "pDC012",
-      "nodeId": "grp_1772560380976",
+      "nodeId": "gg_lvl1",
       "status": "done",
-      "desc": "PoC-Modul 2. UBQ10→mTurquoise2–TEV-Protease(Intron)–SV40-NLS.",
-      "tags": [
-        "poc"
-      ],
-      "replicates": [],
+      "desc": "Module 2: UBQ10→mTurquoise2–TEV-Protease(Intron)–SV40-NLS. Nuclear TEV expression.",
+      "tags": ["plasmid", "poc"],
+      "replicates": [{"type": "bio", "result": "success", "note": "", "date": "2025-11-20"}],
       "custom": [],
-      "order": 0
+      "order": 1
     },
     {
       "id": "pDC045",
       "label": "pDC045",
-      "nodeId": "grp_1772560381599",
+      "nodeId": "gg_lvl2",
       "status": "done",
-      "desc": "Vollständiger PoC-Binärvektor (pGBY1). pDC011+pDC012. Transformation erfolgreich.",
-      "tags": [
-        "poc"
+      "desc": "Complete PoC binary vector (pGBY1). Combines @pDC011 + @pDC012. Transformation successful, validated by microscopy.",
+      "tags": ["plasmid", "poc"],
+      "replicates": [
+        {"type": "bio", "result": "success", "note": "Agro-infiltration batch 1", "date": "2025-12-05"},
+        {"type": "bio", "result": "success", "note": "Agro-infiltration batch 2", "date": "2025-12-12"}
       ],
-      "replicates": [],
-      "custom": [],
+      "custom": [
+        {"id": "cs_clone", "title": "Cloning Notes", "content": "GreenGate LVL2 assembly. Colony PCR: 4/6 positive. Sequencing confirmed correct assembly."}
+      ],
       "order": 0
     },
     {
       "id": "pDC112",
-      "label": "pDC112",
-      "nodeId": "grp_poc_ctrl",
+      "label": "pDC112 (ΔNES)",
+      "nodeId": "controls_poc",
       "status": "in_progress",
-      "desc": "pDC045 ohne NLS–TEVrs–NES. Negativkontrolle: keine nukleäre Prozessierung.",
-      "tags": [
-        "tag_1772555417156",
-        "ctrl"
-      ],
+      "desc": "Negative control: @pDC045 without NLS–TEVrs–NES. No nuclear processing expected → mTurquoise2 stays nuclear.",
+      "tags": ["plasmid", "control"],
       "replicates": [],
       "custom": [],
       "order": 0
     },
     {
       "id": "pDC113",
-      "label": "pDC113",
-      "nodeId": "grp_poc_ctrl",
+      "label": "pDC113 (ΔTEVrs)",
+      "nodeId": "controls_poc",
       "status": "in_progress",
-      "desc": "pDC045 ohne TEVrs zwischen NES und mtPre. NLS vorhanden, TEV kann mtPre nicht freilegen.",
-      "tags": [
-        "tag_1772555417156",
-        "ctrl"
-      ],
+      "desc": "Negative control: @pDC045 without TEVrs between NES and mtPre. TEV cannot expose mtPre → no mito transport.",
+      "tags": ["plasmid", "control"],
       "replicates": [],
+      "custom": [],
+      "order": 1
+    },
+    {
+      "id": "microscopy_poc",
+      "label": "Confocal Microscopy",
+      "nodeId": "validation_poc",
+      "status": "done",
+      "desc": "Confocal imaging of @pDC045-infiltrated N. benthamiana leaves. MitoTracker co-staining for mitochondrial verification.",
+      "tags": ["assay"],
+      "replicates": [
+        {"type": "bio", "result": "success", "note": "Clear mTurquoise2 mito localization", "date": "2025-12-18"},
+        {"type": "bio", "result": "success", "note": "Replicate with different leaf age", "date": "2026-01-08"}
+      ],
+      "custom": [
+        {"id": "cs_settings", "title": "Microscope Settings", "content": "Zeiss LSM 880. RFP: 561nm ex / 580-630nm em. mTurquoise2: 458nm ex / 470-510nm em. MitoTracker: 633nm."}
+      ],
+      "order": 0
+    },
+    {
+      "id": "western_poc",
+      "label": "Western Blot",
+      "nodeId": "validation_poc",
+      "status": "done",
+      "desc": "Anti-GFP western to confirm TEV cleavage products in nuclear and mitochondrial fractions.",
+      "tags": ["assay"],
+      "replicates": [{"type": "bio", "result": "success", "note": "Band at expected size", "date": "2026-01-15"}],
+      "custom": [],
+      "order": 1
+    },
+    {
+      "id": "pDC071",
+      "label": "pDC071 (Cargo v1)",
+      "nodeId": "dna_cargo",
+      "status": "done",
+      "desc": "DNA cargo v1: LIR–nad9-upstream(430nt)–150nt-reporter–nad9-downstream. No T7 site.",
+      "tags": ["plasmid", "cargo"],
+      "replicates": [{"type": "bio", "result": "success", "note": "", "date": "2026-01-10"}],
       "custom": [],
       "order": 0
     },
     {
+      "id": "pDC076",
+      "label": "pDC076 (Cargo v2)",
+      "nodeId": "dna_cargo",
+      "status": "done",
+      "desc": "DNA cargo v2: SIR (YBDV origin) instead of LIR. Testing alternative rolling-circle origin.",
+      "tags": ["plasmid", "cargo"],
+      "replicates": [{"type": "bio", "result": "success", "note": "Some clones had deletions, clone 3 correct", "date": "2026-01-18"}],
+      "custom": [],
+      "order": 1
+    },
+    {
+      "id": "pDC079",
+      "label": "pDC079 (Cargo v3)",
+      "nodeId": "dna_cargo",
+      "status": "done",
+      "desc": "DNA cargo v3: LIR + T7 promoter for in vitro ssDNA synthesis. Enables pre-loading RepA with cargo.",
+      "tags": ["plasmid", "cargo"],
+      "replicates": [{"type": "bio", "result": "success", "note": "", "date": "2026-01-25"}],
+      "custom": [],
+      "order": 2
+    },
+    {
+      "id": "pDC083",
+      "label": "pDC083 (Cargo v4)",
+      "nodeId": "dna_cargo",
+      "status": "in_progress",
+      "desc": "DNA cargo v4: optimized LIR + T7 site variant 2. Currently in cloning.",
+      "tags": ["plasmid", "cargo"],
+      "replicates": [{"type": "bio", "result": "failed", "note": "Ligation failed — re-digesting fragments", "date": "2026-02-20"}],
+      "custom": [
+        {"id": "cs_troubleshoot", "title": "Troubleshooting", "content": "Ligation efficiency low. Switching to 30U/µL T4 ligase and 16°C overnight. Also testing Gibson assembly as alternative."}
+      ],
+      "order": 3
+    },
+    {
       "id": "pDC068",
       "label": "pDC068",
-      "nodeId": "grp_1772559280206",
+      "nodeId": "repa_vectors",
       "status": "done",
-      "desc": "pDC011-Backbone mit RepA (kein GFP). Intermediat für pDC084.",
-      "tags": [
-        "tag_1772555417156",
-        "repA"
-      ],
+      "desc": "RepA shuttle backbone (no GFP). Intermediate for @pDC084.",
+      "tags": ["plasmid", "repa"],
       "replicates": [],
       "custom": [],
       "order": 0
     },
     {
       "id": "pDC069",
-      "label": "pDC069",
-      "nodeId": "grp_1772559280206",
+      "label": "pDC069 (RepA-GFP)",
+      "nodeId": "repa_vectors",
       "status": "done",
-      "desc": "RepA–GFP-Fusion. Für Fluoreszenz-Lokalisations-Tracking von RepA.",
-      "tags": [
-        "tag_1772555417156",
-        "repA"
-      ],
-      "replicates": [],
+      "desc": "RepA–GFP fusion for fluorescence localization tracking. Confirms RepA enters mitochondria.",
+      "tags": ["plasmid", "repa"],
+      "replicates": [{"type": "bio", "result": "success", "note": "GFP signal in mito confirmed", "date": "2026-02-01"}],
       "custom": [],
-      "order": 0
+      "order": 1
     },
     {
       "id": "pDC084",
       "label": "pDC084",
-      "nodeId": "grp_1772559280206",
+      "nodeId": "repa_vectors",
       "status": "done",
-      "desc": "Vollständiger RepA-Binärvektor (kein GFP): pDC068+pDC012.",
-      "tags": [
-        "tag_1772555417156",
-        "repA"
+      "desc": "Complete RepA binary vector: @pDC068 + @pDC012. Ready for co-transformation with cargo.",
+      "tags": ["plasmid", "repa"],
+      "replicates": [],
+      "custom": [],
+      "order": 2
+    },
+    {
+      "id": "rtpcr",
+      "label": "RT-PCR (nad9 editing)",
+      "nodeId": "detection",
+      "status": "in_progress",
+      "desc": "RT-PCR targeting nad9 C→U RNA editing sites. Positive result = cargo transcribed inside mitochondria.",
+      "tags": ["assay"],
+      "replicates": [
+        {"type": "bio", "result": "failed", "note": "No editing detected — possible contamination with nuclear DNA", "date": "2026-02-25"},
+        {"type": "bio", "result": "success", "note": "Faint band after DNase treatment — needs replication", "date": "2026-03-01"}
       ],
+      "custom": [
+        {"id": "cs_protocol", "title": "Protocol", "content": "RNA extraction → DNase I treatment → RT with gene-specific primer → PCR → Sanger sequencing of C→U positions."}
+      ],
+      "order": 0
+    },
+    {
+      "id": "microscopy_p2",
+      "label": "Fluorescence Microscopy",
+      "nodeId": "detection",
+      "status": "in_progress",
+      "desc": "Co-localization of @pDC069 (RepA-GFP) with MitoTracker in co-transformed cells.",
+      "tags": ["assay"],
+      "replicates": [],
+      "custom": [],
+      "order": 1
+    },
+    {
+      "id": "pDC094",
+      "label": "pDC094",
+      "nodeId": "rna_plasmids",
+      "status": "done",
+      "desc": "RNA shuttle construct. Delivers target RNA sequence for mitochondrial import.",
+      "tags": ["plasmid", "rna"],
       "replicates": [],
       "custom": [],
       "order": 0
@@ -290,450 +384,111 @@
     {
       "id": "pDC095",
       "label": "pDC095",
-      "nodeId": "grp_1772559726898",
+      "nodeId": "rbp_plasmids",
       "status": "done",
-      "desc": "GG LVL 1: Modifizierter pDC068-Backbone (CFP+TEV entfernt). Intermediat für pDC097.",
-      "tags": [
-        "tag_1772555417156",
-        "repA"
-      ],
-      "replicates": [
-        {
-          "type": "bio",
-          "result": "success",
-          "note": "",
-          "date": "2026-03-04"
-        }
-      ],
+      "desc": "GG LVL 1: Modified backbone for RNA-binding protein expression.",
+      "tags": ["plasmid", "rna"],
+      "replicates": [{"type": "bio", "result": "success", "note": "", "date": "2026-02-10"}],
       "custom": [],
       "order": 0
     },
     {
-      "id": "pDC097",
-      "label": "pDC097",
-      "nodeId": "grp_1772559726898",
-      "status": "in_progress",
-      "desc": "GG LVL 2: pDC095+pDC012",
-      "tags": [
-        "tag_1772555417156",
-        "repA"
-      ],
-      "replicates": [
-        {
-          "type": "bio",
-          "result": "failed",
-          "note": "Ligation gescheitert, einzelteile nicht alle per PCR nachweisbar --> einzeteile neu ausschneiden+ ligieren (pDC12i ist ok tho)",
-          "date": "2026-03-04"
-        }
-      ],
-      "custom": [
-        {
-          "id": "cs_1772559568280",
-          "title": "KLONIERUNG",
-          "content": "Ligation gescheitert, einzelteile nicht alle per PCR nachweisbar --> einzeteile neu ausschneiden+ ligieren\n(pDC12i ist ok tho)"
-        },
-        {
-          "id": "cs_1772621114222",
-          "title": "New section",
-          "content": ""
-        }
-      ],
-      "order": 0
+      "id": "pDC098",
+      "label": "pDC098",
+      "nodeId": "rbp_plasmids",
+      "status": "planned",
+      "desc": "GG LVL 2: Combines @pDC095 + TEV module. Final RNA approach vector — not yet assembled.",
+      "tags": ["plasmid", "rna"],
+      "replicates": [],
+      "custom": [],
+      "order": 1
     },
     {
       "id": "pDC111",
-      "label": "pDC111 (Y-mut)",
-      "nodeId": "grp_1772560870884",
+      "label": "pDC111 (Y→A mutant)",
+      "nodeId": "controls_p2",
       "status": "in_progress",
-      "desc": "pDC084 mit Tyr→X Mutation in RepA. Kann keine DNA binden. Kritische Negativkontrolle.",
-      "tags": [
-        "tag_1772555417156",
-        "ctrl"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "pDC071",
-      "label": "pDC071",
-      "nodeId": "grp_1772559106092",
-      "status": "done",
-      "desc": "DNA-Cargo v1: LIR–nad9-upstream(430nt)–150nt-random–nad9-downstream. Kein T7-Site.",
-      "tags": [
-        "tag_1772555417156",
-        "dna"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "pDC076",
-      "label": "pDC076",
-      "nodeId": "grp_1772559106092",
-      "status": "done",
-      "desc": "DNA-Cargo v2: SIR statt LIR (YBDV). Mehrere Klone mit Deletionen.",
-      "tags": [
-        "tag_1772555417156",
-        "dna"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "pDC079",
-      "label": "pDC079",
-      "nodeId": "grp_1772559106092",
-      "status": "done",
-      "desc": "DNA-Cargo v3: LIR + T7-RNA-Pol-Bindungssite für in vitro ssDNA-Synthese.",
-      "tags": [
-        "tag_1772555417156",
-        "dna"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "pDC083",
-      "label": "pDC083",
-      "nodeId": "grp_1772559106092",
-      "status": "done",
-      "desc": "DNA-Cargo v4: LIR + T7-Site Variante 2. Mehrere Klone mit Mutationen.",
-      "tags": [
-        "tag_1772555417156",
-        "dna"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "wf_microscopy",
-      "label": "Fluoreszenzmikroskopie",
-      "nodeId": "grp_poc_poc",
-      "status": "done",
-      "desc": "Konfokalmikroskopische Validierung des PoC-Shuttles.",
-      "tags": [],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "wf_cotransform",
-      "label": "Co-Transformation",
-      "nodeId": "grp_mito_repA",
-      "status": "planned",
-      "desc": "Agrobacterium-Co-Infiltration RepA + DNA-Cargo.",
-      "tags": [
-        "tag_1772560817285"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "wf_rtpcr",
-      "label": "RT-PCR Nachweis",
-      "nodeId": "grp_mito_dna",
-      "status": "in_progress",
-      "desc": "Nachweis mito Transkription via RNA-Editing an nad9.",
-      "tags": [
-        "tag_1772560840989"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "wf_rna_approach",
-      "label": "RNA-Ansatz (TBD)",
-      "nodeId": "grp_mito_repA",
-      "status": "abandoned",
-      "desc": "Alternativer Ansatz von früherer Masterstudentin. Details ausstehend.",
-      "tags": [],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772558889833",
-      "label": "BN-Page Complex I restoration rescue Phenotype by Trafo",
-      "nodeId": "grp_goal_1772556210112_default",
-      "status": "planned",
-      "desc": "",
-      "tags": [
-        "tag_1772560840989"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772559648861",
-      "label": "Co-Transformation (Kopie)",
-      "nodeId": "grp_mito_repA",
-      "status": "abandoned",
-      "desc": "Agrobacterium-Co-Infiltration RepA + DNA-Cargo.",
-      "tags": [],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772559710758",
-      "label": "Co-Transformation",
-      "nodeId": "grp_mito_dna",
-      "status": "in_progress",
-      "desc": "Agrobacterium-Co-Infiltration RepA + DNA-Cargo.",
-      "tags": [
-        "tag_1772560817285"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772559756298",
-      "label": "pDC094",
-      "nodeId": "grp_1772559726125",
-      "status": "done",
-      "desc": "",
-      "tags": [
-        "tag_1772555417156",
-        "rna"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772560406781",
-      "label": "Fluoreszenzmikroskopie",
-      "nodeId": "grp_mito_repA",
-      "status": "planned",
-      "desc": "Konfokalmikroskopische Validierung des PoC-Shuttles.",
-      "tags": [
-        "tag_1772560840989"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772560434051",
-      "label": "Fluoreszenzmikroskopie",
-      "nodeId": "grp_mito_dna",
-      "status": "in_progress",
-      "desc": "Konfokalmikroskopische Validierung des PoC-Shuttles.",
-      "tags": [
-        "tag_1772560840989"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772561051250",
-      "label": "RNA Splicing Nachweis",
-      "nodeId": "grp_mito_repA",
-      "status": "planned",
-      "desc": "Nachweis für Mito-RNA-Uptake",
-      "tags": [
-        "tag_1772560840989"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772615174511",
-      "label": "pDC096",
-      "nodeId": "grp_1772559726898",
-      "status": "done",
-      "desc": "GG LVL 1 for pDC098",
-      "tags": [
-        "tag_1772555417156",
-        "rna"
-      ],
-      "replicates": [
-        {
-          "type": "bio",
-          "result": "success",
-          "note": "",
-          "date": "2026-03-04"
-        }
-      ],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772615182543",
-      "label": "rfrfr",
-      "nodeId": "grp_mito_repA",
-      "status": "abandoned",
-      "desc": "",
-      "tags": [],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772615204727",
-      "label": "werwer",
-      "nodeId": "grp_mito_repA",
-      "status": "abandoned",
-      "desc": "werwer",
-      "tags": [],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772615214231",
-      "label": "werwerewrwerwe",
-      "nodeId": "grp_poc_poc",
-      "status": "abandoned",
-      "desc": "werwer",
-      "tags": [],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772615301255",
-      "label": "pDC098",
-      "nodeId": "grp_1772559726898",
-      "status": "in_progress",
-      "desc": "GG LVL 2 for, delivers RNA binding protein and TEV",
-      "tags": [
-        "tag_1772555417156",
-        "rna"
-      ],
-      "replicates": [
-        {
-          "type": "bio",
-          "result": "failed",
-          "note": "Ligation gescheitert, einzelteile nicht alle per PCR nachweisbar",
-          "date": "2026-03-04"
-        }
-      ],
-      "custom": [
-        {
-          "id": "cs_1772618926760",
-          "title": "KLONIERUNG",
-          "content": "Ligation gescheitert, einzelteile nicht alle per PCR nachweisbar --> einzeteile neu ausschneiden+ ligieren mit 30u/muL T4 Ligase (pDC12i ist ok tho)"
-        }
-      ],
-      "order": 0
-    },
-    {
-      "id": "el_1772616013986",
-      "label": "pDC114",
-      "nodeId": "grp_poc_ctrl",
-      "status": "in_progress",
-      "desc": "pDC011 ohne NLS–TEVrs–NES. Negativkontrolle: keine nukleäre Prozessierung.",
-      "tags": [
-        "tag_1772555417156",
-        "ctrl"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772616023162",
-      "label": "pDC115",
-      "nodeId": "grp_poc_ctrl",
-      "status": "in_progress",
-      "desc": "pDC011 ohne TEVrs zwischen NES und mtPre. NLS vorhanden, TEV kann mtPre nicht freilegen.",
-      "tags": [
-        "tag_1772555417156",
-        "ctrl"
-      ],
-      "replicates": [],
-      "custom": [],
-      "order": 0
-    },
-    {
-      "id": "el_1772618979297",
-      "label": "pDC098",
-      "nodeId": "grp_1772559726898",
-      "status": "abandoned",
-      "desc": "GG LVL 2 PLASMID for RNA APPROACH, delivers RNA binding protein and TEV",
-      "tags": [
-        "tag_1772555417156",
-        "rna"
-      ],
+      "desc": "Critical negative control: @pDC084 with Tyr→Ala mutation in RepA active site. Cannot bind DNA covalently.",
+      "tags": ["plasmid", "control"],
       "replicates": [],
       "custom": [
-        {
-          "id": "cs_1772618926760",
-          "title": "KLONIERUNG",
-          "content": "Ligation gescheitert, einzelteile nicht alle per PCR nachweisbar --> einzeteile neu ausschneiden+ ligieren"
-        }
+        {"id": "cs_mutagenesis", "title": "Mutagenesis", "content": "Site-directed mutagenesis via overlap extension PCR. Tyr305→Ala. Primer pair validated by NEB Tm calculator."}
       ],
       "order": 0
+    },
+    {
+      "id": "empty_vector",
+      "label": "Empty Vector Control",
+      "nodeId": "controls_p2",
+      "status": "done",
+      "desc": "pGBY1 empty backbone. Infiltrated alongside experimental constructs in every co-transformation.",
+      "tags": ["control"],
+      "replicates": [],
+      "custom": [],
+      "order": 1
+    },
+    {
+      "id": "bnpage",
+      "label": "BN-PAGE (Complex I)",
+      "nodeId": "rescue_assays",
+      "status": "planned",
+      "desc": "Blue Native PAGE to detect restored Complex I assembly in mitochondrial extracts from transformed tissue.",
+      "tags": ["assay"],
+      "replicates": [],
+      "custom": [
+        {"id": "cs_protocol_bn", "title": "Protocol", "content": "Mitochondrial isolation → digitonin solubilization → BN-PAGE → Coomassie or in-gel activity staining."}
+      ],
+      "order": 0
+    },
+    {
+      "id": "respiration",
+      "label": "O₂ Consumption Assay",
+      "nodeId": "rescue_assays",
+      "status": "planned",
+      "desc": "Oxygen consumption rate measurement to quantify restored mitochondrial electron transport chain activity.",
+      "tags": ["assay"],
+      "replicates": [],
+      "custom": [],
+      "order": 1
+    },
+    {
+      "id": "growth_rescue",
+      "label": "Growth Phenotype",
+      "nodeId": "phenotyping",
+      "status": "planned",
+      "desc": "Compare growth rates of transformed vs. untransformed plants under stress conditions that require functional Complex I.",
+      "tags": ["assay"],
+      "replicates": [],
+      "custom": [],
+      "order": 0
+    },
+    {
+      "id": "chlorophyll",
+      "label": "Chlorophyll Fluorescence",
+      "nodeId": "phenotyping",
+      "status": "planned",
+      "desc": "PAM fluorometry to assess photosynthetic efficiency as indirect measure of mitochondrial health.",
+      "tags": ["assay"],
+      "replicates": [],
+      "custom": [],
+      "order": 1
     }
   ],
   "tags": {
-    "poc": {
-      "label": "PoC-Konstrukte",
-      "color": "#3b82f6"
-    },
-    "repA": {
-      "label": "RepA-Protein",
-      "color": "#0891b2"
-    },
-    "dna": {
-      "label": "DNA-Cargo",
-      "color": "#d97706"
-    },
-    "rna": {
-      "label": "RNA-Ansatz (TBD)",
-      "color": "#7c3aed"
-    },
-    "ctrl": {
-      "label": "Kontrollen",
-      "color": "#94a3b8"
-    },
-    "tag_1772555417156": {
-      "label": "Plasmid",
-      "color": "#dc2626"
-    },
-    "tag_1772560817285": {
-      "label": "workflow",
-      "color": "#16a34a"
-    },
-    "tag_1772560840989": {
-      "label": "Nachweis",
-      "color": "#3b82f6"
-    }
+    "plasmid": {"label": "Plasmid", "color": "#dc2626"},
+    "poc": {"label": "PoC", "color": "#3b82f6"},
+    "repa": {"label": "RepA", "color": "#0891b2"},
+    "cargo": {"label": "DNA-Cargo", "color": "#d97706"},
+    "rna": {"label": "RNA Approach", "color": "#7c3aed"},
+    "control": {"label": "Control", "color": "#64748b"},
+    "assay": {"label": "Assay", "color": "#16a34a"}
   },
   "statuses": {
-    "planned": {
-      "label": "planned",
-      "icon": "○",
-      "color": "#e9d5ff;#4c1d95"
-    },
-    "in_progress": {
-      "label": "in progress",
-      "icon": "⟳",
-      "color": "#fed7aa;#7c2d12"
-    },
-    "done": {
-      "label": "done",
-      "icon": "✓",
-      "color": "#bfdbfe;#1e3a8a"
-    },
-    "abandoned": {
-      "label": "abandoned",
-      "icon": "✕",
-      "color": "#fecaca;#991b1b"
-    }
+    "planned": {"label": "planned", "icon": "○", "color": "#e9d5ff;#4c1d95"},
+    "in_progress": {"label": "in progress", "icon": "⟳", "color": "#fed7aa;#7c2d12"},
+    "done": {"label": "done", "icon": "✓", "color": "#bfdbfe;#1e3a8a"},
+    "abandoned": {"label": "abandoned", "icon": "✕", "color": "#fecaca;#991b1b"}
   },
-  "projectName": "researchgraph_2026-03-04 (1)",
-  "exported": "2026-03-04T20:15:03.494Z"
+  "projectName": "Mito-Transformation (Demo)",
+  "exported": "2026-03-04T21:00:00.000Z"
 }
