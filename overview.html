@@ -1375,9 +1375,8 @@ function renderDetail(){
     const childNodes=getChildNodes(n.id);
     const isRoot=!n.parentId;
     body.innerHTML=`
-      <div class="dh" style="color:#3b82f6">${isRoot?'Root Node':'Node'}</div>
+      <div class="dh" style="color:#3b82f6">Node</div>
       ${ed('node',n.id,'label',n.label,'div','dtitle')}
-      ${isRoot?`<div class="dsec"><div class="dsec-title">Icon</div>${ed('node',n.id,'icon',n.icon,'div','dsec-content')}</div>`:''}
       <p class="ddesc editable" contenteditable="true"
         data-type="node" data-id="${n.id}" data-field="desc"
         onblur="saveField(this)">${renderInlineLinks(escH(n.desc))}</p>
