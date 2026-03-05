@@ -115,9 +115,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 .rg-el-row:hover .ghost-add{opacity:1}
 .ghost-add:hover{border-color:#94a3b8;color:#475569}
 [draggable=true]{cursor:grab}[draggable=true]:active{cursor:grabbing}
-.rg-add-group-btn{font-size:9px;padding:4px 10px;border:1px dashed #cbd5e1;border-radius:6px;
-  background:none;cursor:pointer;color:#94a3b8;margin-top:6px;display:inline-block}
-.rg-add-group-btn:hover{border-color:#94a3b8;color:#475569;background:#f8fafc}
 
 /* ── ELEMENT CARDS ── */
 .el-card{width:138px;border-radius:8px;padding:8px 10px;cursor:pointer;overflow:hidden;
@@ -546,7 +543,7 @@ function _pk(key){return 'rg_'+_activeProjectId+'_'+key;}
 function saveProjects(){localStorage.setItem('rg_projects',JSON.stringify(_projects));}
 function updateProjectSelector(){
   const sel=document.getElementById('project-selector');if(!sel)return;
-  sel.innerHTML=_projects.map(p=>`<option value="${p.id}"${p.id===_activeProjectId?' selected':''}>${p.name}</option>`).join('');
+  sel.innerHTML=_projects.map(p=>`<option style="color:#333;background:#fff" value="${p.id}"${p.id===_activeProjectId?' selected':''}>${p.name}</option>`).join('');
 }
 function switchProject(id){
   if(id===_activeProjectId)return;
@@ -901,6 +898,7 @@ function editTagLabel(span,key){
 }
 function deleteTag(key){
   if(!confirm(`Delete tag "${TAGS[key]?.label}"? Will also be removed from all elements.`))return;
+  pushUndo();
   ELEMENTS.forEach(el=>{el.tags=(el.tags||[]).filter(t=>t!==key);});
   delete TAGS[key];hiddenTags.delete(key);saveState();saveTags();buildTagManager();buildRoadmap();renderDetail();
 }
@@ -943,7 +941,7 @@ function buildStatusManager(){
     pill.innerHTML=`<span>${st.icon}</span>
       <span class="tm-pill-label" onclick="event.stopPropagation();editStatusLabel('${key}')">${escH(st.label)}</span>
       <span style="cursor:pointer;font-size:10px" onclick="event.stopPropagation();toggleSmPalette('${key}')" title="Change color">●</span>
-      ${key!=='planned'&&key!=='done'&&key!=='abandoned'?`<button class="tm-del" onclick="event.stopPropagation();deleteStatus('${key}')" title="Delete status">×</button>`:''}`;
+      <button class="tm-del" onclick="event.stopPropagation();deleteStatus('${key}')" title="Delete status">×</button>`;
     wrap.appendChild(pill);
   });
   c.appendChild(wrap);
@@ -973,6 +971,7 @@ function editStatusLabel(key){
 }
 function deleteStatus(key){
   if(!confirm('Delete status "'+STATUSES[key].label+'"? Elements with this status will become "planned".'))return;
+  pushUndo();
   ELEMENTS.forEach(el=>{if(el.status===key)el.status='planned';});
   delete STATUSES[key];
   saveStatuses();saveState();buildStatusManager();buildRoadmap();renderDetail();updateCounts();
@@ -1000,6 +999,7 @@ function onTagDrop(e,type,id,targetIdx){
 }
 function removeElementTag(type,id,idx){
   const data=getItem(type,id);if(!data)return;
+  pushUndo();
   data.tags.splice(idx,1);saveState();buildRoadmap();renderDetail();
 }
 function addElementTag(type,id,key){
@@ -1075,7 +1075,7 @@ function renderNode(node,container,depth){
         <div class="inline-actions">
           <button class="ia-btn" onclick="event.stopPropagation();inlineEditNode('${node.id}')" title="Rename">✎</button>
           <button class="ia-btn" onclick="event.stopPropagation();openAddModal('${node.id}')" title="Add element">+</button>
-          <button class="ia-btn" onclick="event.stopPropagation();addNode('${node.id}')" title="Add sub-node">+N</button>
+          <button class="ia-btn" onclick="event.stopPropagation();addNode('${node.id}')" title="Add sub-node">+Sub</button>
           <button class="ia-btn danger" onclick="event.stopPropagation();deleteNode('${node.id}')" title="Delete">×</button>
         </div>
       </div>`;
@@ -1088,9 +1088,6 @@ function renderNode(node,container,depth){
     _renderNodeElements(node,body);
     // Child nodes
     children.forEach(child=>renderNode(child,body,1));
-    // Add sub-node button
-    const addBtn=document.createElement('button');addBtn.className='rg-add-group-btn';addBtn.textContent='+ Sub-Node';
-    addBtn.onclick=()=>addNode(node.id);body.appendChild(addBtn);
     block.appendChild(body);
     container.appendChild(block);
   } else {
@@ -1204,6 +1201,7 @@ function onDrop(e){
   e.currentTarget.querySelectorAll('.dnd-insert-bar').forEach(b=>b.remove());
   const targetNodeId=e.currentTarget.dataset.nodeId;
   if(!_dragType||!_dragId||!targetNodeId)return;
+  pushUndo();
   if(_dragType==='element'){
     const data=ELEMENTS.find(x=>x.id===_dragId);if(!data)return;
     const cards=[...e.currentTarget.querySelectorAll('.el-card')];
@@ -1223,6 +1221,7 @@ function onDrop(e){
 function onNodeDrop(parentId,targetIdx,siblingsList){
   if(_dragType!=='node'||!_dragId)return;
   const node=NODES.find(n=>n.id===_dragId);if(!node)return;
+  pushUndo();
   node.parentId=parentId;
   const ordered=siblingsList.filter(n=>n.id!==_dragId);
   ordered.splice(targetIdx,0,node);
@@ -1316,6 +1315,7 @@ function saveArrField(el){
 }
 function removeArrItem(type,id,field,idx){
   const data=getItem(type,id); if(!data)return;
+  pushUndo();
   data[field].splice(idx,1);
   saveState(); renderDetail();
 }
@@ -1350,6 +1350,7 @@ function addCustomSection(type,id){
 }
 function removeCustomSection(type,id,sid){
   const data=getItem(type,id); if(!data)return;
+  pushUndo();
   data.custom=data.custom.filter(s=>s.id!==sid);
   saveState(); renderDetail();
 }
@@ -1568,6 +1569,7 @@ function deleteRep(type,id,idx){
 // ─── STATUS CHANGE ────────────────────────────────────────────────────────────
 function changeElStatus(elId,newStatus){
   const el=ELEMENTS.find(x=>x.id===elId); if(!el)return;
+  pushUndo();
   el.status=newStatus; saveState(); buildRoadmap(); renderDetail();
 }
 let _statusFilter=new Set(); // Multi-select status filter
