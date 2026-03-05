@@ -375,6 +375,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
   <div class="spacer"></div>
   <span id="status-pills" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></span>
   <button class="hdr-btn" onclick="openTodo()">📋 Tasks</button>
+  <button class="hdr-btn" onclick="undo()" title="Undo (Ctrl+Z)">↩ Undo</button>
   <button class="hdr-btn" onclick="exportData()">⬇ Export</button>
   <button class="hdr-btn" onclick="importData()">⬆ Import</button>
   <button class="hdr-btn" onclick="showHelp()" title="How to use">?</button>
@@ -498,6 +499,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 </div>
 
 <script>
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function _uid(prefix){return (prefix||'id')+'_'+crypto.randomUUID().replace(/-/g,'').slice(0,12);}
+function _selectAll(el){const range=document.createRange();range.selectNodeContents(el);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);}
+
+// Undo stack (max 30 snapshots)
+const _undoStack=[];
+function pushUndo(){
+  _undoStack.push({nodes:JSON.stringify(NODES),elements:JSON.stringify(ELEMENTS),tags:JSON.stringify(TAGS),statuses:JSON.stringify(STATUSES)});
+  if(_undoStack.length>30) _undoStack.shift();
+}
+function undo(){
+  if(!_undoStack.length) return;
+  const snap=_undoStack.pop();
+  NODES.splice(0,Infinity,...JSON.parse(snap.nodes));
+  ELEMENTS.splice(0,Infinity,...JSON.parse(snap.elements));
+  Object.keys(TAGS).forEach(k=>delete TAGS[k]);Object.assign(TAGS,JSON.parse(snap.tags));
+  Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,JSON.parse(snap.statuses));
+  saveState();saveTags();saveStatuses();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
+}
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.target.isContentEditable){e.preventDefault();undo();}});
+
 // ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
 // Goals: jedes Goal hat groups[] mit Ebene-1 und optional Ebene-2 Gruppen
 const _DN = [];
@@ -537,7 +559,7 @@ function switchProject(id){
 }
 function addProject(){
   const name=prompt('Project name:');if(!name||!name.trim())return;
-  const pid='proj_'+Date.now();
+  const pid=_uid('proj');
   _projects.push({id:pid,name:name.trim(),created:new Date().toISOString()});
   saveProjects();
   switchProject(pid);
@@ -867,7 +889,7 @@ function toggleTagFilter(key){
   buildTagManager();buildRoadmap();
 }
 function editTagLabel(span,key){
-  span.contentEditable='true';span.focus();document.execCommand('selectAll',false,null);
+  span.contentEditable='true';span.focus();_selectAll(span);
   const save=()=>{
     span.contentEditable='false';
     const v=span.textContent.trim();
@@ -885,7 +907,7 @@ function deleteTag(key){
 function addNewTag(){
   const inp=document.getElementById('new-tag-inp');
   const label=(inp?.value||'').trim();if(!label)return;
-  const key='tag_'+Date.now();
+  const key=_uid('tag');
   TAGS[key]={label,color:_newTagColor};
   saveTags();inp.value='';buildTagManager();
 }
@@ -1087,15 +1109,16 @@ function renderNode(node,container,depth){
     }).join('')}</span>`:'';
     const hdr=document.createElement('div');hdr.className='rg-group-hdr';
     hdr.dataset.type='node';hdr.dataset.id=node.id;
+    const nid=escAttr(node.id);
     hdr.innerHTML=`
-      <button class="ag-caret${collapsed?' closed':''}" onclick="event.stopPropagation();toggleNode('${node.id}')">▾</button>
+      <button class="ag-caret${collapsed?' closed':''}" onclick="event.stopPropagation();toggleNode('${nid}')">▾</button>
       <span class="rg-group-label">${escH(node.label)}</span>${miniPreview}
       <div class="ag-summary">${chips}</div>
       <div class="rg-group-actions">
-        <button class="rg-group-btn" onclick="event.stopPropagation();openAddModal('${node.id}')" title="Add element">+</button>
-        <button class="rg-group-btn" onclick="event.stopPropagation();addNode('${node.id}')" title="Sub-node">+Sub</button>
-        <button class="rg-group-btn" onclick="event.stopPropagation();inlineEditNode('${node.id}')">✎</button>
-        <button class="rg-group-btn danger" onclick="event.stopPropagation();deleteNode('${node.id}')">×</button>
+        <button class="rg-group-btn" onclick="event.stopPropagation();openAddModal('${nid}')" title="Add element">+</button>
+        <button class="rg-group-btn" onclick="event.stopPropagation();addNode('${nid}')" title="Sub-node">+Sub</button>
+        <button class="rg-group-btn" onclick="event.stopPropagation();inlineEditNode('${nid}')">✎</button>
+        <button class="rg-group-btn danger" onclick="event.stopPropagation();deleteNode('${nid}')">×</button>
       </div>`;
     hdr.addEventListener('click',()=>select('node',node.id));
     hdr.draggable=true;
@@ -1210,13 +1233,14 @@ function onNodeDrop(parentId,targetIdx,siblingsList){
 
 // ─── NODE MANAGEMENT ──────────────────────────────────────────────────────────
 function addNode(parentId=null){
-  const id='node_'+Date.now();
+  const id=_uid('node');
   const siblings=NODES.filter(n=>n.parentId===(parentId||null));
   NODES.push({id,label:'',parentId:parentId||null,order:siblings.length,icon:parentId?'':'🎯',desc:'',custom:[]});
   saveState();buildRoadmap();
 }
 function deleteNode(nodeId){
   const node=NODES.find(n=>n.id===nodeId);if(!node)return;
+  pushUndo();
   // Collect all descendant node ids recursively
   function collectIds(nid){
     const ids=[nid];
@@ -1242,7 +1266,7 @@ function inlineEditNode(nodeId){
   // Try goal-title first (root nodes), then group-label (sub-nodes)
   const span=document.getElementById('gtitle-'+nodeId)||document.querySelector(`.rg-group[data-node-id="${nodeId}"] .rg-group-label`);
   if(!span)return;
-  span.contentEditable='true';span.focus();document.execCommand('selectAll',false,null);
+  span.contentEditable='true';span.focus();_selectAll(span);
   const save=()=>{span.contentEditable='false';const n=NODES.find(x=>x.id===nodeId);if(n){n.label=span.textContent.trim();saveState();buildRoadmap();}};
   span.addEventListener('blur',save,{once:true});
   span.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();span.blur();}});
@@ -1276,6 +1300,7 @@ function ed(type,id,field,value,tag,extraClass){
     >${escH(value)}</${tag}>`;
 }
 function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s){ return String(s||'').replace(/[^a-zA-Z0-9_.-]/g,''); }
 function saveField(el){
   const {type,id,field}=el.dataset;
   const data=getItem(type,id); if(!data)return;
@@ -1301,7 +1326,7 @@ function addArrItem(type,id,field){
   saveState(); renderDetail();
   setTimeout(()=>{
     const els=document.querySelectorAll(`[data-type="${type}"][data-id="${id}"][data-field="${field}"]`);
-    if(els.length){const last=els[els.length-1];last.focus();document.execCommand('selectAll',false,null);}
+    if(els.length){const last=els[els.length-1];last.focus();_selectAll(last);}
   },30);
 }
 function arrListHTML(type,id,field,items,boxClass){
@@ -1320,7 +1345,7 @@ function arrListHTML(type,id,field,items,boxClass){
 function addCustomSection(type,id){
   const data=getItem(type,id); if(!data)return;
   if(!data.custom) data.custom=[];
-  data.custom.push({id:'cs_'+Date.now(),title:'New section',content:''});
+  data.custom.push({id:_uid('cs'),title:'New section',content:''});
   saveState(); renderDetail();
 }
 function removeCustomSection(type,id,sid){
@@ -1358,7 +1383,7 @@ function customSectionsHTML(type,id,custom){
 function duplicateElement(id){
   const src=ELEMENTS.find(x=>x.id===id);if(!src)return;
   const copy=JSON.parse(JSON.stringify(src));
-  copy.id='el_'+Date.now();
+  copy.id=_uid('el');
   copy.label=src.label;
   copy.replicates=[];
   ELEMENTS.push(copy);
@@ -1366,6 +1391,7 @@ function duplicateElement(id){
 }
 function abandonElement(type,id){
   const data=getItem(type,id);if(!data)return;
+  pushUndo();
   data.status='abandoned';saveState();buildRoadmap();
   if(selId===id){selType=null;selId=null;renderDetail();}
 }
@@ -1535,6 +1561,7 @@ function addRep(type,id){
 }
 function deleteRep(type,id,idx){
   const data=getItem(type,id); if(!data)return;
+  pushUndo();
   data.replicates.splice(idx,1); saveState(); buildRoadmap(); renderDetail();
 }
 
@@ -1669,7 +1696,7 @@ function confirmAdd(){
   const nodeId=document.getElementById('add-node')?.value||NODES[0]?.id;
   const desc=(document.getElementById('add-desc')?.value||'').trim();
   const order=ELEMENTS.filter(x=>x.nodeId===nodeId).length;
-  ELEMENTS.push({id:'el_'+Date.now(),label,nodeId,status:'planned',desc,tags:[],replicates:[],custom:[],order});
+  ELEMENTS.push({id:_uid('el'),label,nodeId,status:'planned',desc,tags:[],replicates:[],custom:[],order});
   saveState(); buildRoadmap(); closeAddModal();
 }
 
@@ -1718,7 +1745,7 @@ function deleteTodo(id){const idx=TODOS.findIndex(x=>x.id===id);if(idx<0)return;
 function addTodo(){
   const inp=document.getElementById('todo-new-input');
   const text=(inp?.value||'').trim();if(!text)return;
-  TODOS.push({id:'t'+Date.now(),text,done:false});inp.value='';saveTodos();renderTodo();
+  TODOS.push({id:_uid('t'),text,done:false});inp.value='';saveTodos();renderTodo();
 }
 
 // ─── EXPORT / IMPORT ─────────────────────────────────────────────────────────
@@ -1738,10 +1765,27 @@ function handleImport(e){
   r.onload=()=>{
     try{
       const d=JSON.parse(r.result);
+      // Validate imported data structure
+      if(d.elements&&!Array.isArray(d.elements)){alert('Invalid file: "elements" is not an array.');return;}
+      if(d.nodes&&!Array.isArray(d.nodes)){alert('Invalid file: "nodes" is not an array.');return;}
+      if(d.elements) d.elements.forEach(el=>{
+        if(!el.id) el.id=_uid('el');
+        if(!el.label) el.label='(unnamed)';
+        if(!el.status) el.status='planned';
+        if(!el.tags) el.tags=[];
+        if(!el.replicates) el.replicates=[];
+        if(!el.custom) el.custom=[];
+      });
+      if(d.nodes) d.nodes.forEach(n=>{
+        if(!n.id) n.id=_uid('node');
+        if(!n.label) n.label='(unnamed)';
+        if(!n.custom) n.custom=[];
+      });
+      pushUndo();
       const asNew=confirm('Import as new project?\n\nOK = New project\nCancel = Overwrite current');
       if(asNew){
         const name=d.projectName||f.name.replace(/\.json$/,'')||'Imported';
-        const pid='proj_'+Date.now();
+        const pid=_uid('proj');
         _projects.push({id:pid,name,created:new Date().toISOString()});
         saveProjects();
         _activeProjectId=pid;localStorage.setItem('rg_active_project',pid);
@@ -1755,6 +1799,10 @@ function handleImport(e){
         const migrated=_migrateGoalsToNodes(d.goals,ELEMENTS);
         NODES.splice(0,Infinity,...migrated);
       }
+      // Validate node references: orphaned elements get moved to first root node
+      const nodeIds=new Set(NODES.map(n=>n.id));
+      const fallbackNode=NODES.find(n=>!n.parentId)?.id;
+      if(fallbackNode) ELEMENTS.forEach(el=>{if(!nodeIds.has(el.nodeId))el.nodeId=fallbackNode;});
       if(d.tags)Object.keys(TAGS).forEach(k=>delete TAGS[k]),Object.assign(TAGS,d.tags);
       if(d.statuses){Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,d.statuses);saveStatuses();}
       saveState();saveTags();updateProjectSelector();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
@@ -1765,7 +1813,7 @@ function handleImport(e){
 
 // ─── GITHUB SYNC (Device Flow + Gist) ────────────────────────────────────────
 const GH_CLIENT_ID='Ov23limUXGj7sIDx6kIb';
-let ghToken=localStorage.getItem('rg_gh_token');
+let ghToken=sessionStorage.getItem('rg_gh_token');
 let ghGistId=localStorage.getItem('rg_gh_gist');
 let ghUser=localStorage.getItem('rg_gh_user');
 function updateGhBtn(){
@@ -1812,7 +1860,7 @@ async function ghPoll(deviceCode,interval){
         body:JSON.stringify({client_id:GH_CLIENT_ID,device_code:deviceCode,grant_type:'urn:ietf:params:oauth:grant-type:device_code'})});
       const d=await r.json();
       if(d.access_token){
-        ghToken=d.access_token;localStorage.setItem('rg_gh_token',ghToken);
+        ghToken=d.access_token;sessionStorage.setItem('rg_gh_token',ghToken);
         const u=await fetch('https://api.github.com/user',{headers:{Authorization:'Bearer '+ghToken}});
         const ud=await u.json();ghUser=ud.login;localStorage.setItem('rg_gh_user',ghUser);
         updateGhBtn();
@@ -1871,12 +1919,13 @@ async function ghLoad(){
 }
 function ghLogout(){
   ghToken=null;ghGistId=null;ghUser=null;
-  localStorage.removeItem('rg_gh_token');localStorage.removeItem('rg_gh_gist');localStorage.removeItem('rg_gh_user');
+  sessionStorage.removeItem('rg_gh_token');localStorage.removeItem('rg_gh_gist');localStorage.removeItem('rg_gh_user');
   updateGhBtn();
 }
-// Auto-sync: nach jedem saveState auch zum Gist pushen
+// Auto-sync: nach jedem saveState auch zum Gist pushen (debounced)
 const _origSave=saveState;
-saveState=function(){_origSave();ghSave();};
+let _ghSaveTimer;
+saveState=function(){_origSave();clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);};
 
 // ─── PHASE 8: FULL RESET ─────────────────────────────────────────────────────
 function showHelp(){const o=document.getElementById('help-overlay');o.style.display='flex';}
