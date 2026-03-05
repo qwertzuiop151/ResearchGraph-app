@@ -1,0 +1,660 @@
+LOCUS       sequence-415144-        7282 bp DNA     circular SYN 25-AUG-2024
+DEFINITION  GreenBraid destination vector pGBZ1 - PaqCI - Eco31I - spisPink- 
+            Eco31I - PaqCI.
+ACCESSION   .
+VERSION     .
+KEYWORDS    .
+SOURCE      synthetic DNA construct
+  ORGANISM  synthetic DNA construct
+REFERENCE   1  (bases 1 to 7282)
+  AUTHORS   Piepers M, Erbstein K, Reyes-Hernandez J, Song C, Tessi T, 
+            Petrasiunaite V, Faerber N, Distel K, Maizel A
+  TITLE     GreenGate 2.0: Backwards compatible addons for assembly of complex 
+            transcriptional units and their stacking with GreenGate.
+  JOURNAL   PLoS One. 2023 Sep 8;18(9):e0290097. doi: 
+            10.1371/journal.pone.0290097. eCollection 2023.
+  PUBMED    37682951
+REFERENCE   2  (bases 1 to 7282)
+  AUTHORS   .
+  TITLE     Direct Submission
+  JOURNAL   Exported Aug 25, 2024 from SnapGene Server 7.0.3
+            https://www.snapgene.com
+COMMENT     SGRef: number: 1; type: "Journal Article"; journalName: "PLoS One.";
+            date: "2023-09-8"; volume: "18(9):e0290097. doi"; pages: " 
+            10.1371/journal.pone.0290097. eCollection 2023"
+FEATURES             Location/Qualifiers
+     source          1..4842
+                     /mol_type="other DNA"
+                     /organism="synthetic DNA construct"
+     PCR_primer      11..51
+                     /note="oDC083"
+     misc_feature    17..23
+                     /note="PaqCI (=AarI) recognition site"
+     misc_feature    28..31
+                     /note="A; overhang from Green Gate"
+     misc_feature    32..254
+                     /note="LIR YBDV"
+     misc_feature    107..117
+                     /note="deletion in pDC079_XIII"
+     misc_feature    113..113
+                     /note="deletion in pDC079_XV"
+     misc_feature    113..113
+                     /note="deletion in pDC079s_I"
+     misc_feature    114..114
+                     /note="deletion in pDC079_I"
+     misc_feature    138..138
+                     /note="mutation in pDC079_XIII: this C is a G"
+     PCR_primer      complement(232..317)
+                     /note="oDC118"
+     misc_feature    255..277
+                     /note="T7 RNA Polymerase binding site"
+     PCR_primer      278..326
+                     /note="oDC074"
+     promoter        278..286
+                     /note="alternative CNM-type promoter according to
+                     K%C3%BChn et al. 2005"
+     misc_feature    278..306
+                     /note="amplifiable from pJF1229"
+     misc_feature    285..285
+                     /note="putative transcription start site"
+     promoter        287..304
+                     /note="CNM-type promoter (full-length)"
+     promoter        294..302
+                     /note="CNM motif (core)"
+     misc_feature    301..301
+                     /note="putative transcription start site"
+     misc_feature    307..736
+                     /note="sequence immediately upstream of Ntnad9"
+     PCR_primer      587..608
+                     /note="oJF253"
+     PCR_primer      complement(588..613)
+                     /note="oJF183"
+     5'UTR           614..736
+                     /note="experimentally determined 5'UTR of Ntnad9"
+     PCR_primer      614..639
+                     /note="oJF311"
+     repeat_region   621..687
+                     /note="nad9-repeat-3"
+     PCR_primer      629..648
+                     /note="oJF1114"
+     misc_feature    650..650
+                     /note="fully edited in tobacco nad9 transcripts"
+     misc_feature    733..733
+                     /note="partially edited in tobacco nad9 transcripts"
+     gene            737..1306
+                     /dnas_title="nad9"
+                     /gene="nad9"
+                     /locus_tag="NitaMp142"
+                     /db_xref="GeneID:3205361"
+     CDS             737..1306
+                     /dnas_title="nad9"
+                     /gene="nad9"
+                     /locus_tag="NitaMp142"
+                     /codon_start=1
+                     /product="NADH dehydrogenase subunit 9"
+                     /protein_id="YP_173479.1"
+                     /db_xref="GI:57014008"
+                     /db_xref="GeneID:3205361"
+                     /translation="MDNQFIFKYSWETLPKKWVKKMERSEHGNRSDTNTDYLFQLLCF
+                     LKLHTYTRVQVSIDICGVDYPSRKQRFEVVYNLLSIRYNSRIRVQTSADEVTRISPVV
+                     SLFPSAGRWEREVWDMFGVSSINHPDLRRISTDYGFEGHPLRKDLPLSGYVEVRYDDP
+                     EKRVVSEPIEMTQEFRYFDFASPWEQRSDG"
+     PCR_primer      complement(765..791)
+                     /note="oJF120"
+     PCR_primer      765..784
+                     /note="oJF271 (+10 additional nucleotides at 5' end)"
+     repeat_region   778..786
+                     /note="R** (not used for recombination)"
+     misc_feature    828..828
+                     /note="C-->U editing"
+     PCR_primer      complement(839..866)
+                     /note="oJF119"
+     PCR_primer      896..917
+                     /note="oJF273 (+10 additional nucleotides at 5' end)"
+     misc_feature    903..903
+                     /note="C-->U editing"
+     PCR_primer      complement(904..923)
+                     /note="oJF118"
+     PCR_primer      918..937
+                     /note="oJF496"
+     PCR_primer      complement(968..990)
+                     /note="oJF720"
+     misc_binding    973..991
+                     /note="left (HA-) TALEN from pJF1006 binding site"
+     PCR_primer      997..1016
+                     /note="oJF1098"
+     misc_binding    complement(1004..1022)
+                     /note="right (FLAG-) TALEN from pJF1006 binding site"
+     PCR_primer      complement(1015..1035)
+                     /note="oJF1099"
+     misc_feature    1034..1034
+                     /note="C--> U editing"
+     misc_feature    1064..1064
+                     /note="C-->U editing"
+     misc_feature    1104..1104
+                     /note="C-->U editing"
+     PCR_primer      1105..1126
+                     /note="oJF1194"
+     misc_feature    1134..1134
+                     /note="C-->U editing"
+     misc_feature    1175..1175
+                     /note="C-->U editing"
+     PCR_primer      1179..1204
+                     /note="oJF121"
+     PCR_primer      complement(1235..1256)
+                     /note="oJF1195"
+     PCR_primer      complement(1238..1257)
+                     /note="oJF499"
+     repeat_region   1250..1258
+                     /note="R** repeat used for recombination with sequence
+                     downstream of orf121c"
+     PCR_primer      complement(1287..1335)
+                     /note="oDC075"
+     exon            1307..1346
+                     /gene="40 rnadom nt for primer binding"
+     PCR_primer      1318..1366
+                     /note="oDC076"
+     3'UTR           1347..1399
+                     /note="experimentally determined 3'UTR of Ntnad9"
+     misc_feature    1347..2346
+                     /note="1000 bp downstream flanking sequence"
+     PCR_primer      complement(1375..1399)
+                     /note="oJF1112"
+     PCR_primer      1400..1426
+                     /note="oJF186"
+     PCR_primer      complement(1444..1464)
+                     /note="oJF880"
+     PCR_primer      complement(1455..1479)
+                     /note="oJF470 (+10 additional nucleotides at 5' end)"
+     PCR_primer      complement(1559..1579)
+                     /note="oJF878"
+     PCR_primer      complement(1753..1772)
+                     /note="oJF256"
+     repeat_region   1754..1878
+                     /note="nad9-repeat-1"
+     PCR_primer      complement(1957..1976)
+                     /note="oJF849_nad9_R1_d"
+     misc_feature    2174..2346
+                     /note="also present in chloroplast genome"
+     gene            2214..2287
+                     /dnas_title="trnP(ugg)"
+                     /gene="trnP(ugg)"
+                     /locus_tag="NitaMt020"
+                     /db_xref="GeneID:3205314"
+     tRNA            2214..2287
+                     /dnas_title="trnP(ugg)"
+                     /gene="trnP(ugg)"
+                     /locus_tag="NitaMt020"
+                     /product="tRNA-Pro"
+                     /note="codon recognized: CCA; plastid-like form"
+                     /anticodon=(pos:337585..337587,aa:Pro,seq:tgg)
+                     /codon_recognized="CCA"
+                     /db_xref="GeneID:3205314"
+     PCR_primer      2273..2292
+                     /note="oJF210"
+     PCR_primer      complement(2326..2431)
+                     /note="oDC077"
+     PCR_primer      2334..2364
+                     /note="oDC116"
+     misc_feature    2347..2496
+                     /note="150 random nt loop"
+     PCR_primer      2412..2517
+                     /note="oDC078"
+     misc_feature    2440..2440
+                     /note="mutation in pDC079_I: G instead of C"
+     PCR_primer      complement(2481..2510)
+                     /note="oDC117"
+     misc_feature    complement(2497..3496)
+                     /note="1000 bp downstream flanking sequence"
+     misc_feature    complement(2497..2669)
+                     /note="also present in chloroplast genome"
+     PCR_primer      complement(2551..2570)
+                     /note="oJF210"
+     gene            complement(2556..2629)
+                     /dnas_title="trnP(ugg)"
+                     /gene="trnP(ugg)"
+                     /locus_tag="NitaMt020"
+                     /db_xref="GeneID:3205314"
+     tRNA            complement(2556..2629)
+                     /dnas_title="trnP(ugg)"
+                     /gene="trnP(ugg)"
+                     /locus_tag="NitaMt020"
+                     /product="tRNA-Pro"
+                     /note="codon recognized: CCA; plastid-like form"
+                     /anticodon=(pos:337585..337587,aa:Pro,seq:tgg)
+                     /codon_recognized="CCA"
+                     /db_xref="GeneID:3205314"
+     PCR_primer      2867..2886
+                     /note="oJF849_nad9_R1_d"
+     repeat_region   complement(2965..3089)
+                     /note="nad9-repeat-1"
+     PCR_primer      3071..3090
+                     /note="oJF256"
+     PCR_primer      3264..3284
+                     /note="oJF878"
+     PCR_primer      3364..3388
+                     /note="oJF470 (+10 additional nucleotides at 5' end)"
+     PCR_primer      3379..3399
+                     /note="oJF880"
+     PCR_primer      complement(3417..3443)
+                     /note="oJF186"
+     3'UTR           complement(3444..3496)
+                     /note="experimentally determined 3'UTR of Ntnad9"
+     PCR_primer      3444..3468
+                     /note="oJF1112"
+     PCR_primer      complement(3477..3525)
+                     /note="oDC076"
+     exon            complement(3497..3536)
+                     /gene="40 rnadom nt for primer binding"
+     PCR_primer      3508..3556
+                     /note="oDC075"
+     gene            complement(3537..4106)
+                     /dnas_title="nad9"
+                     /gene="nad9"
+                     /locus_tag="NitaMp142"
+                     /db_xref="GeneID:3205361"
+     CDS             complement(3537..4106)
+                     /dnas_title="nad9"
+                     /gene="nad9"
+                     /locus_tag="NitaMp142"
+                     /codon_start=1
+                     /product="NADH dehydrogenase subunit 9"
+                     /protein_id="YP_173479.1"
+                     /db_xref="GI:57014008"
+                     /db_xref="GeneID:3205361"
+                     /translation="MDNQFIFKYSWETLPKKWVKKMERSEHGNRSDTNTDYLFQLLCF
+                     LKLHTYTRVQVSIDICGVDYPSRKQRFEVVYNLLSIRYNSRIRVQTSADEVTRISPVV
+                     SLFPSAGRWEREVWDMFGVSSINHPDLRRISTDYGFEGHPLRKDLPLSGYVEVRYDDP
+                     EKRVVSEPIEMTQEFRYFDFASPWEQRSDG"
+     repeat_region   complement(3585..3593)
+                     /note="R** repeat used for recombination with sequence
+                     downstream of orf121c"
+     PCR_primer      3586..3605
+                     /note="oJF499"
+     PCR_primer      3587..3608
+                     /note="oJF1195"
+     PCR_primer      complement(3639..3664)
+                     /note="oJF121"
+     misc_feature    complement(3668..3668)
+                     /note="C-->U editing"
+     misc_feature    complement(3709..3709)
+                     /note="C-->U editing"
+     PCR_primer      complement(3717..3738)
+                     /note="oJF1194"
+     misc_feature    complement(3739..3739)
+                     /note="C-->U editing"
+     misc_feature    complement(3779..3779)
+                     /note="C-->U editing"
+     PCR_primer      3808..3828
+                     /note="oJF1099"
+     misc_feature    complement(3809..3809)
+                     /note="C--> U editing"
+     misc_binding    3821..3839
+                     /note="right (FLAG-) TALEN from pJF1006 binding site"
+     PCR_primer      complement(3827..3846)
+                     /note="oJF1098"
+     misc_binding    complement(3852..3870)
+                     /note="left (HA-) TALEN from pJF1006 binding site"
+     PCR_primer      3853..3875
+                     /note="oJF720"
+     PCR_primer      complement(3906..3925)
+                     /note="oJF496"
+     PCR_primer      3920..3939
+                     /note="oJF118"
+     PCR_primer      complement(3926..3947)
+                     /note="oJF273 (+10 additional nucleotides at 5' end)"
+     misc_feature    complement(3940..3940)
+                     /note="C-->U editing"
+     PCR_primer      3977..4004
+                     /note="oJF119"
+     misc_feature    complement(4015..4015)
+                     /note="C-->U editing"
+     PCR_primer      4052..4078
+                     /note="oJF120"
+     repeat_region   complement(4057..4065)
+                     /note="R** (not used for recombination)"
+     PCR_primer      complement(4059..4078)
+                     /note="oJF271 (+10 additional nucleotides at 5' end)"
+     misc_feature    complement(4107..4536)
+                     /note="sequence immediately upstream of Ntnad9"
+     5'UTR           complement(4107..4229)
+                     /note="experimentally determined 5'UTR of Ntnad9"
+     misc_feature    complement(4110..4110)
+                     /note="partially edited in tobacco nad9 transcripts"
+     repeat_region   complement(4156..4222)
+                     /note="nad9-repeat-3"
+     misc_feature    complement(4193..4193)
+                     /note="fully edited in tobacco nad9 transcripts"
+     PCR_primer      complement(4195..4214)
+                     /note="oJF1114"
+     PCR_primer      complement(4204..4229)
+                     /note="oJF311"
+     PCR_primer      4230..4255
+                     /note="oJF183"
+     PCR_primer      complement(4235..4256)
+                     /note="oJF253"
+     PCR_primer      complement(4517..4565)
+                     /note="oDC074"
+     PCR_primer      4536..4614
+                     /note="oDC0119"
+     misc_feature    complement(4537..4565)
+                     /note="amplifiable from pJF1229"
+     promoter        complement(4539..4556)
+                     /note="CNM-type promoter (full-length)"
+     promoter        complement(4541..4549)
+                     /note="CNM motif (core)"
+     misc_feature    complement(4542..4542)
+                     /note="putative transcription start site"
+     promoter        complement(4557..4565)
+                     /note="alternative CNM-type promoter according to
+                     K%C3%BChn et al. 2005"
+     misc_feature    complement(4558..4558)
+                     /note="putative transcription start site"
+     source          complement(4566..4588)
+                     /mol_type="other DNA"
+                     /organism="synthetic DNA construct"
+     misc_feature    4566..4588
+                     /note="reverse complement of T7 RNA Polymerase binding
+                     site"
+     misc_feature    4589..4811
+                     /note="LIR YBDV"
+     misc_feature    4663..4667
+                     /note="mutation in pDC079_I: deletion of those 5 nt"
+     misc_feature    4663..4667
+                     /note="deletion in pDC079s_I"
+     misc_feature    4694..4710
+                     /note="deletion in pDC079_XV"
+     misc_feature    4697..4709
+                     /note="deletion in pDC079_XIII"
+     PCR_primer      complement(4772..4833)
+                     /note="oDC082"
+     misc_feature    4812..4815
+                     /note="G; overhang from Green Gate"
+     misc_feature    4816..4819
+                     /note="GB; overhang from Green Gate"
+     misc_feature    complement(4824..4830)
+                     /note="PaqCI (=AarI) recognition site"
+     misc_feature    4843..4867
+                     /label=RB T-DNA repeat
+                     /note="right border repeat from nopaline C58 T-DNA"
+     source          4843..9919
+                     /note="pCAMBIA1300"
+     source          4843..11178
+                     /dnas_title="pDC079f"
+                     /mol_type="other DNA"
+                     /organism="synthetic DNA construct"
+     PCR_primer      complement(4930..4950)
+                     /note="oJFB058"
+     CDS             6168..6797
+                     /codon_start=1
+                     /product="stability protein from the Pseudomonas plasmid
+                     pVS1 (Heeb et al., 2000)"
+                     /label=pVS1 StaA
+                     /translation="MKVIAVLNQKGGSGKTTIATHLARALQLAGADVLLVDSDPQGSA
+                     RDWAAVREDQPLTVVGIDRPTIDRDVKAIGRRDFVVIDGAPQAADLAVSAIKAADFVL
+                     IPVQPSPYDIWATADLVELVKQRIEVTDGRLQAAFVVSRAIKGTRIGGEVAEALAGYE
+                     LPILESRITQRVSYPGTAAAGTTVLESEPEGDAAREVQALAAEIKSKLI"
+     CDS             7226..8299
+                     /codon_start=1
+                     /product="replication protein from the Pseudomonas
+                     plasmid pVS1 (Heeb et al., 2000)"
+                     /label=pVS1 RepA
+                     /translation="MSGRKPSGPVQIGAALGDDLVEKLKAAQAAQRQRIEAEARPGES
+                     WQAAADRIRKESRQPPAAGAPSIRKPPKGDEQPDFFVPMLYDVGTRDSRSIMDVAVFR
+                     LSKRDRRAGEVIRYELPDGHVEVSAGPAGMASVWDYDLVLMAVSHLTESMNRYREGKG
+                     DKPGRVFRPHVADVLKFCRRADGGKQKDDLVETCIRLNTTHVAMQRTKKAKNGRLVTV
+                     SEGEALISRYKIVKSETGRPEYIEIELADWMYREITEGKNPDVLTVHPDYFLIDPGIG
+                     RFLYRLARRAAGKAEARWLFKTIYERSGSAGEFKKFCFTVRKLIGSNDLPEYDLKEEA
+                     GQAGPILVMRYRNLIEGEASAGS"
+     PCR_primer      complement(7810..7846)
+                     /note="oDC044"
+     PCR_primer      7827..7857
+                     /note="oDC043"
+     rep_origin      8365..8559
+                     /label=pVS1 oriV
+                     /note="origin of replication for the Pseudomonas plasmid
+                     pVS1 (Heeb et al., 2000)"
+     primer_bind     complement(8795..8817)
+                     /label=pGEX 3'
+                     /note="pGEX vectors, reverse primer"
+     misc_feature    8903..9043
+                     /label=bom
+                     /note="basis of mobility region from pBR322"
+     primer_bind     8958..8977
+                     /label=pRS-marker
+                     /note="pRS vectors, use to sequence yeast selectable
+                     marker"
+     primer_bind     complement(9058..9075)
+                     /label=L4440
+                     /note="L4440 vector, forward primer"
+     rep_origin      complement(9229..9817)
+                     /direction=LEFT
+                     /label=ori
+                     /note="high-copy-number ColE1/pMB1/pBR322/pUC origin of
+                     replication"
+     primer_bind     complement(9309..9328)
+                     /label=pBR322ori-F
+                     /note="pBR322 origin, forward primer"
+     CDS             complement(9905..10720)
+                     /codon_start=1
+                     /product="aminoglycoside phosphotransferase"
+                     /label=KanR
+                     /note="confers resistance to kanamycin in bacteria or
+                     G418 (Geneticin(R)) in eukaryotes"
+                     /translation="MSHIQRETSCSRPRLNSNMDADLYGYKWARDNVGQSGATIYRLY
+                     GKPDAPELFLKHGKGSVANDVTDEMVRLNWLTEFMPLPTIKHFIRTPDDAWLLTTAIP
+                     GKTAFQVLEEYPDSGENIVDALAVFLRRLHSIPVCNCPFNSDRVFRLAQAQSRMNNGL
+                     VDASDFDDERNGWPVEQVWKEMHKLLPFSPDSVVTHGDFSLDNLIFDEGKLIGCIDVG
+                     RVGIADRYQDLAILWNCLGEFSPSLQKRLFQKYGIDNPDMNKLQFHLMLDEFF"
+     CDS             complement(9905..10720)
+                     /codon_start=1
+                     /gene="aph(3')-Ia"
+                     /product="aminoglycoside phosphotransferase"
+                     /label=KanR
+                     /note="confers resistance to kanamycin in bacteria or
+                     G418 (Geneticin(R)) in eukaryotes"
+                     /translation="MSHIQRETSCSRPRLNSNMDADLYGYKWARDNVGQSGATIYRLY
+                     GKPDAPELFLKHGKGSVANDVTDEMVRLNWLTEFMPLPTIKHFIRTPDDAWLLTTAIP
+                     GKTAFQVLEEYPDSGENIVDALAVFLRRLHSIPVCNCPFNSDRVFRLAQAQSRMNNGL
+                     VDASDFDDERNGWPVEQVWKEMHKLLPFSPDSVVTHGDFSLDNLIFDEGKLIGCIDVG
+                     RVGIADRYQDLAILWNCLGEFSPSLQKRLFQKYGIDNPDMNKLQFHLMLDEFF"
+     primer_bind     10628..10647
+                     /label=Kan-R
+                     /note="Kanamycin resistance gene, reverse primer"
+     source          10729..11178
+                     /note="pCAMBIA1300"
+     PCR_primer      11077..11096
+                     /note="oJFB059"
+     misc_feature    11153..11177
+                     /label=LB T-DNA repeat
+                     /note="left border repeat from nopaline C58 T-DNA"
+ORIGIN      
+        1 taacgaatta ccatggcacc tgctgcaacc tattttggtc attttaatag atagtggaaa
+       61 atgacgtgga atttacttaa agacgaagtc tttgcgacaa gggggggccc acgccgaatt
+      121 taatattacc ggcgtggccc ccccttatcg cgagtgcttt agcacgagcg gtccagattt
+      181 aaagtagaaa atttcccgcc cactagggtt aaaggtgttc acactataaa agcatatacg
+      241 atgtgatggt atttTAATAC GACTCACTAT AGGGAGACGT ATATAAaaaa tatCATAAGA
+      301 GAagaagatg aaagcctcaa cgctcgcgtt ctacggggaa cttttttgac tatttacctt
+      361 catcaaagcc ggaagcaaag ggcgaaaact ccaaaactag taaataaagg gtgcttgtgt
+      421 tgtggttttg agttccttgg cttgtgttct aatagtaacc acaggaagaa agcggggagc
+      481 atggtcccta gtctcgtttt tgccgagcct gattctctat ggcatggacg tctttgattg
+      541 gatggagaca gatatataga aagtgtgcag tgagggtgct tgtaaatcac taggtagcca
+      601 tacaacactc ggcccaagca atgcccaaaa gtcccatgcc tttcttggtc ggaccaaccc
+      661 aaccggcgat ttccgacaag tctttctgaa ttggaagagc aagaagcgga actagaagaa
+      721 aactttcttt ctctttatgg ataaccaatt cattttcaaa tatagttggg agactttacc
+      781 caagaaatgg gtcaaaaaaa tggaaagatc ggaacatggg aatagatctg ataccaatac
+      841 ggactaccta tttcaattgt tgtgctttct gaaattgcat acctatacaa gggttcaagt
+      901 ttcgatcgat atttgcggag ttgattatcc ctctcgaaaa caaagatttg aagtggtcta
+      961 taatttactg agtattcggt ataactcacg cattcgtgta caaaccagtg cagacgaagt
+     1021 aacacgaata tctccggtag tcagtctatt tccatcagcc ggccggtggg agcgagaagt
+     1081 ttgggatatg tttggtgttt cttccatcaa tcatccggat ctacgccgta tatcaacaga
+     1141 ttatggtttc gagggtcatc cattacgaaa agaccttcct ctgagtggat atgtggaagt
+     1201 acgctatgat gatccagaga aacgtgtggt ttctgaaccc attgagatga cccaagaatt
+     1261 tcgctatttc gattttgcta gtccttggga acagcgtagc gacggaGCAC GACCGTGGAT
+     1321 CATTATAAGT ACAGGTAGAA AGTGAGttca gaatcagaat aggtccagtc caggggacaa
+     1381 atcaatagga aatgctattt gcttcgtaag aataagaatt cacttctatg aaatgaaaga
+     1441 gtttcacggg aattgtcttg atcgtcggat atcattgaga aagaaatagg aagaagtgtt
+     1501 atcgaacgat ttcctgcaat tcttcccagt atggaatgag taaagaatca agctacaagt
+     1561 ctcgatctat acgaaacgca ctggtttttt ttctttcttt cggtttcatt gataacagaa
+     1621 aagacttact ctaaaggggc gctagcgctt gactaataac atatcaaagg ggcctgaaaa
+     1681 aacgtaatag gctgctactc taggctcgct tcgcttcttc aagctccgcc ccttctttca
+     1741 aaaatcaaaa aacagcgcta acgagcaaga aaacggatgc gctaaggcgc aacttcgcgc
+     1801 agctgctacg cccttgcttc ttgccttatc ttacttagta aagcaacctt tcgcgctagg
+     1861 cgctcacctt ttttgtctgg gtggaagctg gcgggcaggg cttgcttaac cggatacacg
+     1921 gaattgggat ctctgttgca tgcaaatctt tctatcggga aagcctcgct tattcaaagg
+     1981 gcttcttatt tagaaccctt ttttttgctt agttgtaagt aagcgttggt aggagcggcg
+     2041 ggatgatgat gagtatataa atcaataaag accaaaaaag aataaatggc aagataaatt
+     2101 agatatctat ggaaaaaata acgatgtaga gggcgactga aaaggaggct cgacctacag
+     2161 ggagagtggt gggcagggat tctctacaat gacactgttg tagaccaatt gaaagggatg
+     2221 tagcgcagtt tggtagcgcc tttgttttgg gtaaaaaatg tcacgggttc aaatcctgtc
+     2281 atccctacct attcttctcc tctgggcagt aacgagggat ccattgagat cgattcaaat
+     2341 tggacaACGA TGTGAATTAA CGTGCGCGGT TAGAGCAGGC GTGAAGCTAT ATAAATTCCG
+     2401 CTCGGATTTG TTAGAGCTGC CGAGGAAAGT GCTCCGGGGC ATGCCCCGTT AAAGTCTACC
+     2461 GTTCGACCCC ACGTGCGTTA GCGTTAGATT GTCGTCtgtc caatttgaat cgatctcaat
+     2521 ggatccctcg ttactgccca gaggagaaga ataggtaggg atgacaggat ttgaacccgt
+     2581 gacatttttt acccaaaaca aaggcgctac caaactgcgc tacatccctt tcaattggtc
+     2641 tacaacagtg tcattgtaga gaatccctgc ccaccactct ccctgtaggt cgagcctcct
+     2701 tttcagtcgc cctctacatc gttatttttt ccatagatat ctaatttatc ttgccattta
+     2761 ttcttttttg gtctttattg atttatatac tcatcatcat cccgccgctc ctaccaacgc
+     2821 ttacttacaa ctaagcaaaa aaaagggttc taaataagaa gccctttgaa taagcgaggc
+     2881 tttcccgata gaaagatttg catgcaacag agatcccaat tccgtgtatc cggttaagca
+     2941 agccctgccc gccagcttcc acccagacaa aaaaggtgag cgcctagcgc gaaaggttgc
+     3001 tttactaagt aagataaggc aagaagcaag ggcgtagcag ctgcgcgaag ttgcgcctta
+     3061 gcgcatccgt tttcttgctc gttagcgctg ttttttgatt tttgaaagaa ggggcggagc
+     3121 ttgaagaagc gaagcgagcc tagagtagca gcctattacg ttttttcagg cccctttgat
+     3181 atgttattag tcaagcgcta gcgccccttt agagtaagtc ttttctgtta tcaatgaaac
+     3241 cgaaagaaag aaaaaaaacc agtgcgtttc gtatagatcg agacttgtag cttgattctt
+     3301 tactcattcc atactgggaa gaattgcagg aaatcgttcg ataacacttc ttcctatttc
+     3361 tttctcaatg atatccgacg atcaagacaa ttcccgtgaa actctttcat ttcatagaag
+     3421 tgaattctta ttcttacgaa gcaaatagca tttcctattg atttgtcccc tggactggac
+     3481 ctattctgat tctgaaCTCA CTTTCTACCT GTACTTATAA TGATCCACGG TCGTGCtccg
+     3541 tcgctacgct gttcccaagg actagcaaaa tcgaaatagc gaaattcttg ggtcatctca
+     3601 atgggttcag aaaccacacg tttctctgga tcatcatagc gtacttccac atatccactc
+     3661 agaggaaggt cttttcgtaa tggatgaccc tcgaaaccat aatctgttga tatacggcgt
+     3721 agatccggat gattgatgga agaaacacca aacatatccc aaacttctcg ctcccaccgg
+     3781 ccggctgatg gaaatagact gactaccgga gatattcgtg ttacttcgtc tgcactggtt
+     3841 tgtacacgaa tgcgtgagtt ataccgaata ctcagtaaat tatagaccac ttcaaatctt
+     3901 tgttttcgag agggataatc aactccgcaa atatcgatcg aaacttgaac ccttgtatag
+     3961 gtatgcaatt tcagaaagca caacaattga aataggtagt ccgtattggt atcagatcta
+     4021 ttcccatgtt ccgatctttc catttttttg acccatttct tgggtaaagt ctcccaacta
+     4081 tatttgaaaa tgaattggtt atccataaag agaaagaaag ttttcttcta gttccgcttc
+     4141 ttgctcttcc aattcagaaa gacttgtcgg aaatcgccgg ttgggttggt ccgaccaaga
+     4201 aaggcatggg acttttgggc attgcttggg ccgagtgttg tatggctacc tagtgattta
+     4261 caagcaccct cactgcacac tttctatata tctgtctcca tccaatcaaa gacgtccatg
+     4321 ccatagagaa tcaggctcgg caaaaacgag actagggacc atgctccccg ctttcttcct
+     4381 gtggttacta ttagaacaca agccaaggaa ctcaaaacca caacacaagc accctttatt
+     4441 tactagtttt ggagttttcg ccctttgctt ccggctttga tgaaggtaaa tagtcaaaaa
+     4501 agttccccgt agaacgcgag cgttgaggct ttcatcttct TCTCTTATGa tattttTTAT
+     4561 ATACGTCTCC CTATAGTGAG TCGTATTAat tttggtcatt ttaatagata gtggaaaatg
+     4621 acgtggaatt tacttaaaga cgaagtcttt gcgacaaggg ggggcccacg ccgaatttaa
+     4681 tattaccggc gtggcccccc cttatcgcga gtgctttagc acgagcggtc cagatttaaa
+     4741 gtagaaaatt tcccgcccac tagggttaaa ggtgttcaca ctataaaagc atatacgatg
+     4801 tgatggtatt tgtatgtcat atggcaggtg ctcgagcaat tctgacagga tatattggcg
+     4861 ggtaaaccta agagaaaaga gcgtttatta gaataatcgg atatttaaaa gggcgtgaaa
+     4921 aggtttatcc gttcgtccat ttgtatgtgc atgccaacca cagggttccc ctcgggatca
+     4981 aagtactttg atccaacccc tccgctgcta tagtgcagtc ggcttctgac gttcagtgca
+     5041 gccgtcatct gaaaacgaca tgtcgcacaa gtcctaagtt acgcgacagg ctgccgccct
+     5101 gcccttttcc tggcgttttc ttgtcgcgtg ttttagtcgc ataaagtaga atacttgcga
+     5161 ctagaaccgg agacattacg ccatgaacaa gagcgccgcc gctggcctgc tgggctatgc
+     5221 ccgcgtcagc accgacgacc aggacttgac caaccaacgg gccgaactgc acgcggccgg
+     5281 ctgcaccaag ctgttttccg agaagatcac cggcaccagg cgcgaccgcc cggagctggc
+     5341 caggatgctt gaccacctac gccctggcga cgttgtgaca gtgaccaggc tagaccgcct
+     5401 ggcccgcagc acccgcgacc tactggacat tgccgagcgc atccaggagg ccggcgcggg
+     5461 cctgcgtagc ctggcagagc cgtgggccga caccaccacg ccggccggcc gcatggtgtt
+     5521 gaccgtgttc gccggcattg ccgagttcga gcgttcccta atcatcgacc gcacccggag
+     5581 cgggcgcgag gccgccaagg cccgaggcgt gaagtttggc ccccgcccta ccctcacccc
+     5641 ggcacagatc gcgcacgccc gcgagctgat cgaccaggaa ggccgcaccg tgaaagaggc
+     5701 ggctgcactg cttggcgtgc atcgctcgac cctgtaccgc gcacttgagc gcagcgagga
+     5761 agtgacgccc accgaggcca ggcggcgcgg tgccttccgt gaggacgcat tgaccgaggc
+     5821 cgacgccctg gcggccgccg agaatgaacg ccaagaggaa caagcatgaa accgcaccag
+     5881 gacggccagg acgaaccgtt tttcattacc gaagagatcg aggcggagat gatcgcggcc
+     5941 gggtacgtgt tcgagccgcc cgcgcacctc tcaaccgtgc ggctgcatga aatcctggcc
+     6001 ggtttgtctg atgccaagct ggcggcctgg ccggccagct tggccgctga agaaaccgag
+     6061 cgccgccgtc taaaaaggtg atgtgtattt gagtaaaaca gcttgcgtca tgcggtcgct
+     6121 gcgtatatga tgcgatgagt aaataaacaa atacgcaagg ggaacgcatg aaggttatcg
+     6181 ctgtacttaa ccagaaaggc gggtcaggca agacgaccat cgcaacccat ctagcccgcg
+     6241 ccctgcaact cgccggggcc gatgttctgt tagtcgattc cgatccccag ggcagtgccc
+     6301 gcgattgggc ggccgtgcgg gaagatcaac cgctaaccgt tgtcggcatc gaccgcccga
+     6361 cgattgaccg cgacgtgaag gccatcggcc ggcgcgactt cgtagtgatc gacggagcgc
+     6421 cccaggcggc ggacttggct gtgtccgcga tcaaggcagc cgacttcgtg ctgattccgg
+     6481 tgcagccaag cccttacgac atatgggcca ccgccgacct ggtggagctg gttaagcagc
+     6541 gcattgaggt cacggatgga aggctacaag cggcctttgt cgtgtcgcgg gcgatcaaag
+     6601 gcacgcgcat cggcggtgag gttgccgagg cgctggccgg gtacgagctg cccattcttg
+     6661 agtcccgtat cacgcagcgc gtgagctacc caggcactgc cgccgccggc acaaccgttc
+     6721 ttgaatcaga acccgagggc gacgctgccc gcgaggtcca ggcgctggcc gctgaaatta
+     6781 aatcaaaact catttgagtt aatgaggtaa agagaaaatg agcaaaagca caaacacgct
+     6841 aagtgccggc cgtccgagcg cacgcagcag caaggctgca acgttggcca gcctggcaga
+     6901 cacgccagcc atgaagcggg tcaactttca gttgccggcg gaggatcaca ccaagctgaa
+     6961 gatgtacgcg gtacgccaag gcaagaccat taccgagctg ctatctgaat acatcgcgca
+     7021 gctaccagag taaatgagca aatgaataaa tgagtagatg aattttagcg gctaaaggag
+     7081 gcggcatgga aaatcaagaa caaccaggca ccgacgccgt ggaatgcccc atgtgtggag
+     7141 gaacgggcgg ttggccaggc gtaagcggct gggttgcctg ccggccctgc aatggcactg
+     7201 gaacccccaa gcccgaggaa tcggcgtgag cggtcgcaaa ccatccggcc cggtacaaat
+     7261 cggcgcggcg ctgggtgatg acctggtgga gaagttgaag gccgcgcagg ccgcccagcg
+     7321 gcaacgcatc gaggcagaag cacgccccgg tgaatcgtgg caagcggccg ctgatcgaat
+     7381 ccgcaaagaa tcccggcaac cgccggcagc cggtgcgccg tcgattagga agccgcccaa
+     7441 gggcgacgag caaccagatt ttttcgttcc gatgctctat gacgtgggca cccgcgatag
+     7501 tcgcagcatc atggacgtgg ccgttttccg tctgtcgaag cgtgaccgac gagctggcga
+     7561 ggtgatccgc tacgagcttc cagacgggca cgtagaggtt tccgcagggc cggccggcat
+     7621 ggccagtgtg tgggattacg acctggtact gatggcggtt tcccatctaa ccgaatccat
+     7681 gaaccgatac cgggaaggga agggagacaa gcccggccgc gtgttccgtc cacacgttgc
+     7741 ggacgtactc aagttctgcc ggcgagccga tggcggaaag cagaaagacg acctggtaga
+     7801 aacctgcatt cggttaaaca ccacgcacgt tgccatgcag cgtacgaaga aggccaagaa
+     7861 cggccgcctg gtgacggtat ccgagggtga agccttgatt agccgctaca agatcgtaaa
+     7921 gagcgaaacc gggcggccgg agtacatcga gatcgagcta gctgattgga tgtaccgcga
+     7981 gatcacagaa ggcaagaacc cggacgtgct gacggttcac cccgattact ttttgatcga
+     8041 tcccggcatc ggccgttttc tctaccgcct ggcacgccgc gccgcaggca aggcagaagc
+     8101 cagatggttg ttcaagacga tctacgaacg cagtggcagc gccggagagt tcaagaagtt
+     8161 ctgtttcacc gtgcgcaagc tgatcgggtc aaatgacctg ccggagtacg atttgaagga
+     8221 ggaggcgggg caggctggcc cgatcctagt catgcgctac cgcaacctga tcgagggcga
+     8281 agcatccgcc ggttcctaat gtacggagca gatgctaggg caaattgccc tagcagggga
+     8341 aaaaggtcga aaaggactct ttcctgtgga tagcacgtac attgggaacc caaagccgta
+     8401 cattgggaac cggaacccgt acattgggaa cccaaagccg tacattggga accggtcaca
+     8461 catgtaagtg actgatataa aagagaaaaa aggcgatttt tccgcctaaa actctttaaa
+     8521 acttattaaa actcttaaaa cccgcctggc ctgtgcataa ctgtctggcc agcgcacagc
+     8581 cgaagagctg caaaaagcgc ctacccttcg gtcgctgcgc tccctacgcc ccgccgcttc
+     8641 gcgtcggcct atcgcggccg ctggccgctc aaaaatggct ggcctacggc caggcaatct
+     8701 accagggcgc ggacaagccg cgccgtcgcc actcgaccgc cggcgcccac atcaaggcac
+     8761 cctgcctcgc gcgtttcggt gatgacggtg aaaacctctg acacatgcag ctcccggtga
+     8821 cggtcacagc ttgtctgtaa gcggatgccg ggagcagaca agcccgtcag ggcgcgtcag
+     8881 cgggtgttgg cgggtgtcgg ggcgcagcca tgacccagtc acgtagcgat agcggagtgt
+     8941 atactggctt aactatgcgg catcagagca gattgtactg agagtgcacc atatgcggtg
+     9001 tgaaataccg cacagatgcg taaggagaaa ataccgcatc aggcgctctt ccgcttcctc
+     9061 gctcactgac tcgctgcgct cggtcgttcg gctgcggcga gcggtatcag ctcactcaaa
+     9121 ggcggtaata cggttatcca cagaatcagg ggataacgca ggaaagaaca tgtgagcaaa
+     9181 aggccagcaa aaggccagga accgtaaaaa ggccgcgttg ctggcgtttt tccataggct
+     9241 ccgcccccct gacgagcatc acaaaaatcg acgctcaagt cagaggtggc gaaacccgac
+     9301 aggactataa agataccagg cgtttccccc tggaagctcc ctcgtgcgct ctcctgttcc
+     9361 gaccctgccg cttaccggat acctgtccgc ctttctccct tcgggaagcg tggcgctttc
+     9421 tcatagctca cgctgtaggt atctcagttc ggtgtaggtc gttcgctcca agctgggctg
+     9481 tgtgcacgaa ccccccgttc agcccgaccg ctgcgcctta tccggtaact atcgtcttga
+     9541 gtccaacccg gtaagacacg acttatcgcc actggcagca gccactggta acaggattag
+     9601 cagagcgagg tatgtaggcg gtgctacaga gttcttgaag tggtggccta actacggcta
+     9661 cactagaagg acagtatttg gtatctgcgc tctgctgaag ccagttacct tcggaaaaag
+     9721 agttggtagc tcttgatccg gcaaacaaac caccgctggt agcggtggtt tttttgtttg
+     9781 caagcagcag attacgcgca gaaaaaaagg atctcaagaa gatcctttga tcttttctac
+     9841 ggggtctgac gctcagtgga acgaaaactc acgttaaggg attttggtca tgcattctag
+     9901 gtgattagaa aaactcatcg agcatcaaat gaaactgcaa tttattcata tcaggattat
+     9961 caataccata tttttgaaaa agccgtttct gtaatgaagg agaaaactca ccgaggcagt
+    10021 tccataggat ggcaagatcc tggtatcggt ctgcgattcc gactcgtcca acatcaatac
+    10081 aacctattaa tttcccctcg tcaaaaataa ggttatcaag tgagaaatca ccatgagtga
+    10141 cgactgaatc cggtgagaat ggcaaaagtt tatgcatttc tttccagact tgttcaacag
+    10201 gccagccatt acgctcgtca tcaaaatcac tcgcatcaac caaaccgtta ttcattcgtg
+    10261 attgcgcctg agcgagtcga aatacgcgat cgctgttaaa aggacaatta caaacaggaa
+    10321 tcgaatgcaa ccggcgcagg aacactgcca gcgcatcaac aatattttca cctgaatcag
+    10381 gatattcttc taatacctgg aatgctgttt tccctgggat cgcagtggtg agtaaccatg
+    10441 catcatcagg agtacggata aaatgcttga tggtcggaag aggcataaat tccgtcagcc
+    10501 agtttagtct gaccatctca tctgtaacat cattggcaac gctacctttg ccatgtttca
+    10561 gaaacaactc tggcgcatcg ggcttcccat acaatcggta gattgtcgca cctgattgcc
+    10621 cgacattatc gcgagcccat ttatacccat ataaatcagc atccatgttg gaatttaatc
+    10681 gcggccttga gcaagacgtt tcccgttgaa tatggctcat aacagaactt attatttcct
+    10741 tcctcttttc tacagtattt aaagataccc caagaagcta attataacaa gacgaactcc
+    10801 aattcactgt tccttgcatt ctaaaacctt aaataccaga aaacagcttt ttcaaagttg
+    10861 ttttcaaagt tggcgtataa catagtatcg acggagccga ttttgaaacc gcggtgatca
+    10921 caggcagcaa cgctctgtca tcgttacaat caacatgcta ccctccgcga gatcatccgt
+    10981 gtttcaaacc cggcagctta gttgccgttc ttccgaatag catcggtaac atgagcaaag
+    11041 tctgccgcct tacaacggct ctcccgctga cgccgtcccg gactgatggg ctgcctgtat
+    11101 cgagtggtga ttttgtgccg agctgccggt cggggagctg ttggctggct ggtggcagga
+    11161 tatattgtgg tgtaaaca
+//
+
