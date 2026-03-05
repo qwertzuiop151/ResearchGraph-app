@@ -3,3 +3,14 @@ VISION.md
 thesis_data.json
 *_backup.json
 *.log
+*.png
+*.xlsx
+*.docx
+*.gbk
+Kontext/
+ResearchGraph/
+deploy/
+.claude/
+Untitled
+graph.html
+Screenshot*
