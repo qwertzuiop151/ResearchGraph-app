@@ -650,7 +650,7 @@ document.addEventListener('keydown',e=>{
 });
 
 // ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
-// Goals: jedes Goal hat groups[] mit Ebene-1 und optional Ebene-2 Gruppen
+// Goals: each goal has groups[] with level-1 and optional level-2 groups
 const _DN = [];
 
 const _DE = [];
@@ -990,7 +990,7 @@ let todoTab='open';
 
 // Color palette (shared between Tag Manager and Card Picker)
 const COLOR_PALETTE=['#2563eb','#0891b2','#d97706','#7c3aed','#94a3b8','#c026d3','#0d9488','#be185d'];
-let _tmOpenPalette=null;  // Tag-Key, dessen Mini-Palette offen ist
+let _tmOpenPalette=null;  // Tag key whose mini-palette is open
 let _newTagColor=COLOR_PALETTE[0];
 
 // DnD
@@ -1129,7 +1129,7 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('blur',()=>closeMentionDropdown(),true);
 
-// ─── TAG MANAGER (ersetzt buildLegend) ────────────────────────────────────────
+// ─── TAG MANAGER ─────────────────────────────────────────────────────────────
 let _tagEditMode=false;
 function toggleTagEditMode(){_tagEditMode=!_tagEditMode;_tmOpenPalette=null;document.getElementById('tag-gear')?.classList.toggle('active',_tagEditMode);buildTagManager();}
 function buildTagManager(){
@@ -1154,7 +1154,7 @@ function buildTagManager(){
   });
   c.appendChild(pillsWrap);
   if(!_tagEditMode) return;
-  // Farbpalette (falls offen für einen Tag)
+  // Color palette (if open for a tag)
   if(_tmOpenPalette&&TAGS[_tmOpenPalette]){
     const pal=document.createElement('div');pal.className='tm-palette';pal.style.marginTop='6px';
     COLOR_PALETTE.forEach(col=>{
@@ -1166,7 +1166,7 @@ function buildTagManager(){
     });
     c.appendChild(pal);
   }
-  // Neuen Tag hinzufügen
+  // Add new tag
   const addSec=document.createElement('div');addSec.className='tm-add-section';
   const palHTML=COLOR_PALETTE.map(col=>`<div class="mp-sw${_newTagColor===col?' sel':''}" style="background:${col}" data-col="${col}" onclick="setNewTagColor('${col}')"></div>`).join('');
   addSec.innerHTML=`
@@ -1295,10 +1295,23 @@ function buildStatusManager(){
 }
 function toggleSmPalette(key){_smOpenPalette=(_smOpenPalette===key)?null:key;buildStatusManager();}
 function editStatusLabel(key){
-  const newLabel=prompt('Status label:',STATUSES[key]?.label);
-  if(!newLabel||!newLabel.trim())return;
-  STATUSES[key].label=newLabel.trim();
-  saveStatuses();buildStatusManager();buildRoadmap();updateCounts();
+  const span=document.querySelector(`.tm-pill-label[onclick*="'${key}'"]`);
+  if(!span)return;
+  span.contentEditable='true';
+  span.focus();
+  const r=document.createRange();r.selectNodeContents(span);const s=window.getSelection();s.removeAllRanges();s.addRange(r);
+  const finish=()=>{
+    span.contentEditable='false';
+    span.removeEventListener('blur',finish);
+    span.removeEventListener('keydown',onKey);
+    const v=span.innerText.trim();
+    if(!v){span.textContent=STATUSES[key].label;return;}
+    STATUSES[key].label=v;
+    saveStatuses();buildStatusManager();buildRoadmap();updateCounts();
+  };
+  const onKey=e=>{if(e.key==='Enter'){e.preventDefault();span.blur();}if(e.key==='Escape'){span.textContent=STATUSES[key].label;span.blur();}};
+  span.addEventListener('blur',finish);
+  span.addEventListener('keydown',onKey);
 }
 let _smOpenIconPicker=null;
 const _STATUS_ICONS=['○','◆','⟳','✓','✗','★','⚡','⏳','⬤','◇','△','▢','♦','⊕','⊘'];
@@ -1783,35 +1796,7 @@ function saveCustomField(el,type,id,sid,field){
 }
 function customSectionsHTML(type,id,custom){
   if(!custom) return '';
-  return custom.map(sec=>{
-    const titleHTML=`<div class="dsec-title">
-      <span class="editable" contenteditable="true"
-        onblur="saveCustomField(this,'${type}','${id}','${sec.id}','title')"
-        >${escH(sec.title)}</span>
-      <button class="rm-sec" onclick="removeCustomSection('${type}','${id}','${sec.id}')" title="Remove section">× remove</button>
-    </div>`;
-    if(sec.type==='link'){
-      const pills=(sec.links||[]).map((lk,i)=>{
-        const target=lk.type==='node'?NODES.find(x=>x.id===lk.id):ELEMENTS.find(x=>x.id===lk.id);
-        if(!target) return '';
-        const si=lk.type==='element'?statusIcon(target.status):{icon:target.icon||'◈',text:'Node'};
-        const col=lk.type==='element'?getElementColor(target):'#94a3b8';
-        return `<span class="link-pill" style="border-left-color:${col}" onclick="select('${lk.type}','${escAttr(lk.id)}')">
-          <span class="lp-icon">${escH(si.icon)}</span>${escH(target.label)}<button class="lp-del" onclick="event.stopPropagation();removeSecLink('${type}','${escAttr(id)}','${sec.id}',${i})">×</button>
-        </span>`;
-      }).join('');
-      return `<div class="dsec">${titleHTML}
-        <div class="link-pills">${pills}
-          <button class="link-add-pill" onclick="event.stopPropagation();openSecLinkPicker('${type}','${escAttr(id)}','${sec.id}',this)">+</button>
-        </div>
-      </div>`;
-    }
-    return `<div class="dsec">${titleHTML}
-      <div class="dsec-content editable" contenteditable="true"
-        onblur="saveCustomField(this,'${type}','${id}','${sec.id}','content')"
-        >${renderInlineLinks(escH(sec.content))}</div>
-    </div>`;
-  }).join('');
+  return custom.map(sec=>_singleCustomSectionHTML(type,id,sec)).join('');
 }
 
 // (gruppeDropdownHTML removed — replaced by unified node tree)
@@ -1842,7 +1827,7 @@ function abandonElement(type,id){
   if(selId===id){selType=null;selId=null;renderDetail();}
 }
 
-// ─── PHASE 7: ELEMENT PICKER ─────────────────────────────────────────────────
+// ─── ELEMENT PICKER ──────────────────────────────────────────────────────────
 function openPicker(mode,type,id,anchorEl){
   _pickerMode=mode;_pickerTarget={type,id};
   const picker=document.getElementById('el-picker');
@@ -1869,10 +1854,7 @@ function filterPicker(){
     <span class="picker-item-desc">${escH((x.desc||'').substring(0,40))}</span>
   </div>`).join('')||'<div style="padding:10px 12px;font-size:11px;color:#94a3b8">No matches</div>';
 }
-function pickElement(id,label){
-  if(!_pickerTarget)return;
-  closePicker();
-}
+function pickElement(id,label){closePicker();}
 
 document.addEventListener('click',e=>{
   const picker=document.getElementById('el-picker');
@@ -2733,7 +2715,7 @@ async function ghSave(){
 async function ghLoad(){
   if(!ghToken)return;
   if(!ghGistId){
-    // suche existierenden Gist
+    // Search for existing Gist
     try{
       const r=await fetch('https://api.github.com/gists?per_page=100',{headers:{Authorization:'Bearer '+ghToken}});
       const gists=await r.json();
@@ -2761,12 +2743,12 @@ function ghLogout(){
   sessionStorage.removeItem('rg_gh_token');localStorage.removeItem('rg_gh_gist');localStorage.removeItem('rg_gh_user');
   updateGhBtn();
 }
-// Auto-sync: nach jedem saveState auch zum Gist pushen (debounced, only if logged in)
+// Auto-sync: push to Gist after every saveState (debounced, only if logged in)
 const _origSave=saveState;
 let _ghSaveTimer;
 saveState=function(){_origSave();if(ghToken){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);}};
 
-// ─── PHASE 8: FULL RESET ─────────────────────────────────────────────────────
+// ─── FULL RESET ──────────────────────────────────────────────────────────────
 function showHelp(){const o=document.getElementById('help-overlay');o.style.display='flex';}
 function resetAll(){
   if(!confirm('Reset current project data? This will delete all saved changes and load defaults.'))return;
