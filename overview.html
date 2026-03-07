@@ -1935,8 +1935,9 @@ function pickSecLink(type,targetId){
   if(!sec.links) sec.links=[];
   sec.links.push({type,id:targetId});
   const target=type==='node'?NODES.find(x=>x.id===targetId):ELEMENTS.find(x=>x.id===targetId);
-  if(data.modifiedAt!==undefined) data.modifiedAt=Date.now();
-  if(data.log){data.log.push({time:Date.now(),msg:'Linked to: '+(target?.label||targetId)});}
+  const now=new Date().toISOString();
+  if(data.modifiedAt!==undefined) data.modifiedAt=now;
+  if(data.log){data.log.push({time:now,msg:'Linked to: '+(target?.label||targetId)});}
   _secLinkCtx=null;
   saveState();renderDetail();
 }
@@ -1946,8 +1947,9 @@ function removeSecLink(itemType,itemId,secId,idx){
   pushUndo();
   const removed=sec.links.splice(idx,1)[0];
   const target=removed.type==='node'?NODES.find(x=>x.id===removed.id):ELEMENTS.find(x=>x.id===removed.id);
-  if(data.modifiedAt!==undefined) data.modifiedAt=Date.now();
-  if(data.log){data.log.push({time:Date.now(),msg:'Unlinked: '+(target?.label||removed.id)});}
+  const now=new Date().toISOString();
+  if(data.modifiedAt!==undefined) data.modifiedAt=now;
+  if(data.log){data.log.push({time:now,msg:'Unlinked: '+(target?.label||removed.id)});}
   saveState();renderDetail();
 }
 
@@ -2300,14 +2302,14 @@ function changeElStatus(elId,newStatus){
 let _statusFilter=new Set(); // Multi-select status filter
 let _viewMode='tree'; // 'tree' or 'board'
 let _sortMode='manual'; // 'manual','name','name-desc','status','newest','oldest'
-const _statusOrder={done:0,wip:1,planned:2,abandoned:3};
+function _getStatusOrder(){const o={};Object.keys(STATUSES).forEach((k,i)=>o[k]=i);return o;}
 function _elSortFn(a,b){
   switch(_sortMode){
     case 'name': return a.label.localeCompare(b.label);
     case 'name-desc': return b.label.localeCompare(a.label);
-    case 'status': return (_statusOrder[a.status]??99)-(_statusOrder[b.status]??99)||(a.order||0)-(b.order||0);
-    case 'newest': return (b.createdAt||0)-(a.createdAt||0);
-    case 'oldest': return (a.createdAt||0)-(b.createdAt||0);
+    case 'status':{const so=_getStatusOrder();return (so[a.status]??99)-(so[b.status]??99)||(a.order||0)-(b.order||0);}
+    case 'newest': return (b.createdAt||'').localeCompare(a.createdAt||'');
+    case 'oldest': return (a.createdAt||'').localeCompare(b.createdAt||'');
     default: return (a.order||0)-(b.order||0);
   }
 }
@@ -2346,7 +2348,7 @@ function clearBulk(){
 function bulkSetStatus(status){
   if(!_bulkSelected.size)return;
   pushUndo();
-  const now=Date.now();
+  const now=new Date().toISOString();
   _bulkSelected.forEach(id=>{
     const el=ELEMENTS.find(e=>e.id===id);
     if(!el)return;
@@ -2361,7 +2363,7 @@ function bulkDelete(){
   if(!_bulkSelected.size)return;
   if(!confirm('Delete '+_bulkSelected.size+' elements?'))return;
   pushUndo();
-  ELEMENTS=ELEMENTS.filter(e=>!_bulkSelected.has(e.id));
+  ELEMENTS.splice(0,Infinity,...ELEMENTS.filter(e=>!_bulkSelected.has(e.id)));
   saveState();clearBulk();buildRoadmap();renderDetail();
 }
 function setZoom(val){
@@ -2491,7 +2493,7 @@ function confirmAdd(){
   const desc=(document.getElementById('add-desc')?.value||'').trim();
   const order=ELEMENTS.filter(x=>x.nodeId===nodeId).length;
   const now=new Date().toISOString();
-  ELEMENTS.push({id:_uid('el'),label,nodeId,status:'planned',desc,tags:[],replicates:[],custom:[],links:[],log:[{time:now,msg:'Created'}],order,createdAt:now,modifiedAt:now,completedAt:null});
+  ELEMENTS.push({id:_uid('el'),label,nodeId,status:'planned',desc,tags:[],replicates:[],custom:[],log:[{time:now,msg:'Created'}],order,createdAt:now,modifiedAt:now,completedAt:null});
   saveState(); buildRoadmap(); closeAddModal();
 }
 
