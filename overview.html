@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <title>ResearchGraph</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e3a5f'/><text x='16' y='23' text-anchor='middle' font-size='20' fill='white'>R</text></svg>">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html{height:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:calc(100vh / 1.4);display:flex;flex-direction:column;overflow:hidden;background:#f1f5f9;color:#1e293b;zoom:1.4}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#f1f5f9;color:#1e293b}
 
 /* ── HEADER ── */
-#hdr{background:#1e3a5f;color:#fff;padding:9px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-#hdr h1{font-size:15px;font-weight:700;letter-spacing:.5px}
-.pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;letter-spacing:.2px;cursor:pointer;
+#hdr{background:#1e3a5f;color:#fff;padding:12px 24px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+#hdr h1{font-size:18px;font-weight:700;letter-spacing:.5px}
+.pill{font-size:13px;font-weight:700;padding:4px 12px;border-radius:10px;letter-spacing:.2px;cursor:pointer;
   transition:opacity .15s,box-shadow .15s;user-select:none}
 .pill:hover{opacity:.85}
 .pill.pill-active{box-shadow:0 0 0 2px #fff}
@@ -22,39 +23,52 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 .dnd-insert-bar{width:3px;min-height:40px;background:#3b82f6;border-radius:2px;flex-shrink:0}
 .goal-drop-zone,.group-drop-zone{height:6px;transition:height .15s,background .15s;border-radius:3px}
 .goal-dz-active{height:12px;background:#bfdbfe}
-.view-toggle-btn{background:rgba(255,255,255,.12);border:1px solid rgba(0,0,0,.1);color:#475569;font-size:11px;padding:3px 10px;border-radius:6px;cursor:pointer}
-.zoom-bar{position:fixed;bottom:12px;left:12px;z-index:90;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:4px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-size:11px;color:#64748b}
+.sort-select{background:#fff;border:1px solid #cbd5e1;color:#334155;font-size:13px;padding:6px 10px;border-radius:8px;cursor:pointer;outline:none;font-weight:600}
+.sort-select:hover{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.view-toggle-btn{background:#1e3a5f;border:none;color:#fff;font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;letter-spacing:.3px}
+.zoom-bar{position:fixed;bottom:12px;left:12px;z-index:90;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:4px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-size:12px;color:#64748b;max-width:calc(100vw - 380px)}
 .zoom-bar input[type=range]{width:100px;height:4px;accent-color:#3b82f6;cursor:pointer}
-.view-toggle-btn:hover{background:rgba(59,130,246,.1)}
+.view-toggle-btn:hover{background:#2d4f7a}
 .status-board-section{margin-bottom:16px}
 .status-board-hdr{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-weight:700;font-size:13px;margin-bottom:6px}
 .status-board-cards{display:flex;flex-wrap:wrap;gap:8px;padding:0 4px}
 .goal-block.dimmed{opacity:.25;pointer-events:none;transition:opacity .2s}
 #hdr .spacer{flex:1}
-.hdr-btn{background:rgba(255,255,255,.12);border:none;color:#fff;font-size:11px;font-weight:600;padding:4px 11px;border-radius:6px;cursor:pointer;letter-spacing:.2px}
+.hdr-btn{background:rgba(255,255,255,.12);border:none;color:#fff;font-size:13px;font-weight:600;padding:5px 14px;border-radius:6px;cursor:pointer;letter-spacing:.2px}
 .hdr-btn:hover{background:rgba(255,255,255,.22)}
 .proj-switch{position:relative}
-.proj-switch-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:600;max-width:200px}
+.proj-switch-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:5px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:600;max-width:260px}
 .proj-switch-btn:hover{background:rgba(255,255,255,.28)}
 .proj-switch-btn .chevron{font-size:8px;opacity:.7;transition:transform .15s}
 .proj-switch.open .chevron{transform:rotate(180deg)}
-.proj-dd{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:220px;background:#fff;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.18);z-index:2000;overflow:hidden;color:#333;font-size:12px}
+.proj-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)}
+.proj-dd .proj-dot{border-color:rgba(0,0,0,.1)}
+.proj-dd{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:280px;background:#fff;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.18);z-index:2000;overflow:hidden;color:#333;font-size:12px}
 .proj-switch.open .proj-dd{display:block}
-.proj-dd-list{max-height:240px;overflow-y:auto;padding:6px 0}
-.proj-dd-item{display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;transition:background .1s}
+.proj-dd-list{max-height:300px;overflow-y:auto;padding:6px 0}
+.proj-dd-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;transition:background .1s;border-left:3px solid transparent}
 .proj-dd-item:hover{background:#f1f5f9}
-.proj-dd-item.active{background:#e0ecff;font-weight:600}
-.proj-dd-item .proj-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.proj-dd-item .proj-actions{display:none;gap:2px}
+.proj-dd-item.active{font-weight:600;background:#f8fafc}
+.proj-dd-item .proj-item-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.proj-dd-item .proj-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj-dd-item .proj-actions{display:none;gap:2px;flex-shrink:0}
 .proj-dd-item:hover .proj-actions{display:flex}
 .proj-dd-item .proj-act{border:none;background:none;cursor:pointer;font-size:11px;color:#94a3b8;padding:2px 4px;border-radius:4px}
 .proj-dd-item .proj-act:hover{background:#e2e8f0;color:#475569}
+.proj-status-bar{width:100%;height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden;display:flex}
+.proj-status-bar span{height:100%;transition:width .2s}
 .proj-dd-sep{border-top:1px solid #e2e8f0;margin:4px 0}
 .proj-dd-add{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;color:#3b82f6;font-weight:600;transition:background .1s}
 .proj-dd-add:hover{background:#f1f5f9}
+.proj-edit-row{display:flex;align-items:center;gap:8px;padding:8px 14px}
+.proj-edit-input{flex:1;border:1.5px solid #3b82f6;border-radius:5px;padding:4px 8px;font-size:12px;outline:none;min-width:0}
+.proj-edit-input.invalid{border-color:#ef4444}
+.proj-color-palette{display:flex;gap:4px;flex-shrink:0}
+.proj-color-sw{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .1s}
+.proj-color-sw:hover,.proj-color-sw.sel{border-color:#334155}
 
 /* ── MAIN ── */
-#main{flex:1;display:flex;overflow:hidden;min-height:0}
+#main{flex:1;display:flex;overflow:hidden;min-height:0;position:relative}
 
 /* ── ROADMAP ── */
 #roadmap{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 18px;display:flex;flex-direction:column;gap:0}
@@ -74,7 +88,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 .goal-done{background:#dbeafe;border-color:#3b82f6}
 .goal-wip{background:#fed7aa;border-color:#f59e0b}
 .goal-icon{font-size:26px;flex-shrink:0}
-.goal-title{font-size:20px;font-weight:800}
+.goal-title{font-size:22px;font-weight:800}
 .goal-exp{font-size:13px;color:#475569;font-style:italic;margin-top:3px}
 .goal-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
 .caret{width:38px;display:flex;align-items:center;justify-content:center;
@@ -101,8 +115,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 .rg-group-hdr:hover{background:#f1f5f9}
 .rg-group-hdr.selected{box-shadow:0 0 0 3px #3b82f6;background:#eff6ff}
 .rg-group:not(.depth-1) .rg-group-hdr{background:#f8fafc;border-radius:6px 6px 0 0;border-left:3px solid #94a3b8}
-.rg-group-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#475569;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rg-group:not(.depth-1) .rg-group-label{font-size:10.5px;color:#64748b}
+.rg-group-label{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#475569;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rg-group:not(.depth-1) .rg-group-label{font-size:12px;color:#64748b}
 .ag-caret{font-size:24px;color:#94a3b8;flex-shrink:0;transition:transform .15s;border:none;background:none;cursor:pointer;padding:2px}
 .ag-caret.closed{transform:rotate(-90deg)}
 .ag-summary{display:flex;gap:4px;flex-shrink:0}
@@ -128,15 +142,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
   background:#fff;min-height:42px;align-items:flex-start}
 .rg-el-row.hidden{display:none}
 .rg-el-row.dnd-over{background:#eff6ff;border-color:#3b82f6;outline:2px dashed #93c5fd}
-.ghost-add{width:138px;border:2px dashed #cbd5e1;border-radius:8px;padding:8px 10px;
-  background:transparent;color:rgba(148,163,184,.5);text-align:center;font-size:13px;
-  opacity:0;transition:opacity .2s;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:42px}
-.rg-el-row:hover .ghost-add{opacity:1}
-.ghost-add:hover{border-color:#94a3b8;color:#475569}
 [draggable=true]{cursor:grab}[draggable=true]:active{cursor:grabbing}
 
 /* ── ELEMENT CARDS ── */
-.el-card{width:138px;border-radius:8px;padding:8px 10px;cursor:pointer;overflow:hidden;
+.el-card{width:160px;border-radius:8px;padding:10px 12px;cursor:pointer;overflow:hidden;
   transition:transform .1s,box-shadow .1s;position:relative;background:#fff}
 .el-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
 .el-card.selected{box-shadow:0 0 0 3px #3b82f6 !important}
@@ -145,8 +154,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 .el-card.planned    {border:2px dotted #cbd5e1;background:#f8fafc;opacity:.75}
 .el-card.dimmed{opacity:.2;pointer-events:none}
 .el-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:6px 6px 0 0;background:var(--el-color,#94a3b8)}
-.p-name{font-size:13px;font-weight:700;color:#1e293b;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.p-desc{font-size:11px;color:#64748b;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.p-name{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-desc{font-size:12px;color:#64748b;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .p-status-icon{position:absolute;top:6px;right:7px;font-size:11px;font-weight:700}
 .p-rep-footer{font-size:8.5px;color:#64748b;margin-top:5px;padding-top:4px;border-top:1px solid #f1f5f9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rep-ok{color:#0891b2;font-weight:700}
@@ -161,8 +170,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 .spine-line{width:3px;height:12px;background:linear-gradient(to bottom,#94a3b8,#cbd5e1);border-radius:2px}
 
 /* ── DETAIL PANEL ── */
-#panel{width:300px;min-width:200px;background:#fff;border-left:1px solid #e2e8f0;
-  display:flex;flex-direction:column;overflow:hidden;box-shadow:-2px 0 8px rgba(0,0,0,.06)}
+#panel{width:340px;min-width:240px;background:#fff;border-left:1px solid #e2e8f0;
+  display:flex;flex-direction:column;overflow:hidden;box-shadow:-2px 0 8px rgba(0,0,0,.06);transition:width .2s,min-width .2s}
+#panel.collapsed{width:0!important;min-width:0!important;border:none;overflow:hidden}
+#panel.collapsed>*{display:none}
+#panel-toggle{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:100;background:#1e3a5f;color:#fff;border:none;
+  width:20px;height:48px;border-radius:6px 0 0 6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;
+  box-shadow:-2px 0 6px rgba(0,0,0,.1);transition:right .2s}
+#panel-toggle:hover{background:#2d4f7a}
 #panel-top{padding:14px 16px;background:#1e3a5f;color:#fff;flex-shrink:0}
 #panel-top h3{font-size:11px;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .edit-gear{cursor:pointer;font-size:12px;opacity:.5;transition:opacity .15s,transform .2s}
@@ -206,16 +221,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 
 /* ── DETAIL CONTENT ── */
 .dh{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px}
-.dtitle{font-size:15px;font-weight:800;margin-bottom:6px;line-height:1.25}
+.dtitle{font-size:18px;font-weight:800;margin-bottom:6px;line-height:1.25}
 .dbadge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block;margin-bottom:10px}
-.ddesc{font-size:12px;color:#475569;line-height:1.6;margin-bottom:12px}
+.ddesc{font-size:13px;color:#475569;line-height:1.6;margin-bottom:12px}
 
 /* uniform section format */
 .dsec{border-top:1px solid #f1f5f9;padding-top:10px;margin-top:10px}
-.dsec-title{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.dsec-wrap{position:relative;transition:opacity .15s;border-radius:6px;padding:2px 0}
+.dsec-wrap .sec-grip{position:absolute;top:10px;right:20px;color:#cbd5e1;font-size:14px;cursor:grab;
+  user-select:none;padding:4px 6px;opacity:0;transition:opacity .15s;z-index:10;line-height:1}
+.dsec-wrap:hover .sec-grip{opacity:.6}
+.dsec-wrap .sec-grip:hover{opacity:1;color:#64748b}
+.dsec-wrap.sec-dragging{opacity:.3}
+body.sec-dnd-active .dsec-wrap [contenteditable]{pointer-events:none}
+body.sec-dnd-active .dsec-wrap button:not(.sec-grip){pointer-events:none}
+body.sec-dnd-active .dsec-wrap input{pointer-events:none}
+.sec-drop-line{height:2px;background:#3b82f6;border-radius:1px;margin:2px 0;pointer-events:none}
+.dsec-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;margin-bottom:6px;display:flex;align-items:center;gap:6px}
 .dsec-title .rm-sec{font-size:10px;color:#cbd5e1;border:none;background:none;cursor:pointer;margin-left:auto;padding:0 2px}
 .dsec-title .rm-sec:hover{color:#64748b}
-.dsec-content{font-size:12px;color:#334155;line-height:1.6}
+.dsec-content{font-size:13px;color:#334155;line-height:1.6}
 
 /* array list items */
 .arr-item{display:flex;align-items:flex-start;gap:5px;margin-bottom:3px}
@@ -250,6 +275,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 .add-sec-btn{font-size:10px;padding:4px 10px;border:1px dashed #cbd5e1;border-radius:6px;
   background:none;cursor:pointer;color:#94a3b8;width:100%;margin-top:8px;text-align:center}
 .add-sec-btn:hover{border-color:#94a3b8;color:#475569;background:#f8fafc}
+.add-sec-btn.danger{border-color:#fca5a5;color:#ef4444}
+.add-sec-btn.danger:hover{background:#fef2f2;border-color:#f87171}
+
+/* ── TIMESTAMPS ── */
+.el-timestamps{font-size:10px;color:#94a3b8;margin:8px 0 4px;display:flex;flex-wrap:wrap;gap:8px}
+.el-timestamps span{white-space:nowrap}
+
+/* ── LINK SECTION PILLS ── */
+.link-pills{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.link-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;
+  border-radius:8px;background:#f1f5f9;color:#334155;cursor:pointer;border:none;border-left:3px solid #94a3b8;transition:background .1s}
+.link-pill:hover{background:#e2e8f0}
+.link-pill .lp-icon{font-size:10px}
+.link-pill .lp-del{font-size:9px;color:#cbd5e1;margin-left:2px;cursor:pointer;border:none;background:none;padding:0 2px;line-height:1}
+.link-pill .lp-del:hover{color:#ef4444}
+.link-add-pill{display:inline-flex;align-items:center;font-size:11px;padding:3px 10px;border-radius:8px;
+  border:1px dashed #cbd5e1;background:none;color:#94a3b8;cursor:pointer;transition:all .15s}
+.link-add-pill:hover{border-color:#3b82f6;color:#3b82f6;background:#f0f9ff}
+
+/* ── BACKLINKS ── */
+.backlinks{margin:8px 0;padding:6px 8px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0}
+.backlinks .bl-title{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;margin-bottom:4px}
+.backlinks .bl-items{display:flex;flex-wrap:wrap;gap:4px}
+
+/* ── ACTIVITY LOG ── */
+.log-entry{font-size:10px;color:#64748b;padding:2px 0;display:flex;gap:6px}
+.log-entry .log-time{color:#94a3b8;white-space:nowrap;flex-shrink:0}
+.log-entry .log-msg{word-break:break-word}
+.log-add-row{display:flex;gap:4px;margin-top:4px}
+.log-add-row input{flex:1;font-size:10px;padding:3px 6px;border:1px solid #e2e8f0;border-radius:4px;outline:none}
+.log-add-row input:focus{border-color:#93c5fd}
+.log-add-row button{font-size:10px;padding:3px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#f8fafc;cursor:pointer}
 
 /* ── REPLICATE UI ── */
 .rep-dot-row{display:flex;align-items:center;gap:6px;padding:3px 0}
@@ -356,8 +413,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 
 
 /* ── PHASE 5: GOAL MANAGEMENT ── */
-#roadmap-header{display:flex;align-items:center;padding:0 0 12px 0;gap:8px}
-#roadmap-header span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8}
+#roadmap-header{display:flex;align-items:center;padding:8px 4px 14px 4px;gap:10px}
+#roadmap-header span{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#64748b}
+.rh-btn{font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;border:none;letter-spacing:.3px}
+.rh-add{background:#3b82f6;color:#fff}
+.rh-add:hover{background:#2563eb}
+.rh-reset{background:#ef4444;color:#fff;font-size:12px;padding:5px 10px}
+.rh-reset:hover{background:#dc2626}
 #goal-list{display:flex;flex-direction:column;gap:0}
 .goal-abandon-btn{font-size:10px;padding:2px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;color:#64748b;cursor:pointer;margin-left:6px}
 .goal-abandon-btn:hover{background:#fef2f2}
@@ -370,8 +432,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 .ia-btn.danger{color:#dc2626;background:rgba(220,38,38,.08)}
 .ia-btn.danger:hover{background:rgba(220,38,38,.15)}
 .el-card{position:relative}
+.el-card.bulk-selected{box-shadow:0 0 0 3px #8b5cf6!important;background:#f5f3ff}
 .card-abandon{position:absolute;top:4px;right:4px;font-size:10px;padding:1px 5px;border-radius:4px;border:none;background:rgba(220,38,38,.1);color:#dc2626;cursor:pointer;display:none;line-height:1.4;z-index:2}
 .el-card:hover .card-abandon{display:block}
+#bulk-bar{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:200;
+  background:#1e293b;color:#fff;border-radius:12px;padding:8px 16px;box-shadow:0 8px 24px rgba(0,0,0,.25);
+  display:none;align-items:center;gap:12px;font-size:13px;font-weight:600}
+#bulk-bar button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
+#bulk-bar button:hover{background:rgba(255,255,255,.25)}
+#bulk-bar button.bulk-danger{background:rgba(220,38,38,.3)}
+#bulk-bar button.bulk-danger:hover{background:rgba(220,38,38,.5)}
 
 /* ── PHASE 7: ELEMENT PICKER ── */
 #el-picker{display:none;position:fixed;z-index:300;background:#fff;border-radius:10px;
@@ -410,7 +480,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
   <button class="hdr-btn" onclick="exportData()">⬇ Export</button>
   <button class="hdr-btn" onclick="importData()">⬆ Import</button>
   <button class="hdr-btn" onclick="showHelp()" title="How to use">?</button>
-  <button class="hdr-btn" style="background:rgba(220,38,38,.3)" onclick="resetAll()">⟳ Reset</button>
   <button class="hdr-btn" id="gh-btn" style="background:rgba(255,255,255,.22);display:none" onclick="ghAction()">⬡ GitHub</button>
   <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
 </div>
@@ -457,6 +526,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
         <li><b>Zoom</b> slider (bottom left) to adjust the view</li>
         <li>All data is saved in your <b>browser's localStorage</b> — no account needed</li>
       </ul>
+      <h3 style="font-size:14px;color:#dc2626;margin:18px 0 6px">Danger Zone</h3>
+      <p style="margin-bottom:8px"><button onclick="resetAll()" style="font-size:11px;padding:5px 12px;border:1px solid #fca5a5;border-radius:6px;background:#fef2f2;color:#dc2626;cursor:pointer;font-weight:600">⟳ Reset current project</button>
+      <span style="color:#94a3b8;font-size:11px;margin-left:8px">Deletes all data in this project and reloads.</span></p>
     </div>
   </div>
 </div>
@@ -475,17 +547,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
   <div id="roadmap">
     <div id="roadmap-header">
       <span id="roadmap-title">Nodes</span>
-      <button class="add-arr-btn" id="btn-add-goal" onclick="addNode()">+ Add Node</button>
+      <button class="rh-btn rh-add" id="btn-add-goal" onclick="addNode()">+ Add Node</button>
       <div style="flex:1"></div>
       <div class="search-box">
         <input type="text" id="search-input" placeholder="Search…" oninput="onSearch(this.value)" />
         <span class="search-clear" id="search-clear" onclick="clearSearch()" style="display:none">×</span>
       </div>
+      <button class="rh-btn rh-reset" id="btn-reset-filters" onclick="resetAllFilters()" title="Reset all filters" style="display:none">✕ Reset</button>
+      <select class="sort-select" id="sort-select" onchange="changeSort(this.value)" title="Sort elements">
+        <option value="manual">⇅ Manual</option>
+        <option value="name">A→Z Name</option>
+        <option value="name-desc">Z→A Name</option>
+        <option value="status">Status</option>
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+      </select>
       <button class="view-toggle-btn" id="view-toggle" onclick="toggleView()" title="Switch view">☰ Board</button>
     </div>
     <div id="goal-list"></div>
   </div>
   <div id="drag-divider"></div>
+  <button id="panel-toggle" onclick="togglePanel()" title="Toggle panel">◀</button>
   <div id="panel">
     <div id="panel-top">
       <h3>Tags <span class="edit-gear" id="tag-gear" onclick="toggleTagEditMode()" title="Edit tags">⚙ <span class="gear-arrow">▸</span></span></h3>
@@ -497,6 +579,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
       <p class="hint">Click a node or element for details.</p>
     </div>
   </div>
+</div>
+<div id="bulk-bar">
+  <span id="bulk-count">0 selected</span>
+  <button onclick="bulkSetStatus('planned')">→ Planned</button>
+  <button onclick="bulkSetStatus('wip')">→ WIP</button>
+  <button onclick="bulkSetStatus('done')">→ Done</button>
+  <button class="bulk-danger" onclick="bulkDelete()">Delete</button>
+  <button onclick="clearBulk()">✕ Cancel</button>
 </div>
 
 <div id="todo-modal">
@@ -529,7 +619,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:c
 </div>
 
 <div id="el-picker">
-  <input class="picker-search" id="picker-search-inp" placeholder="Suchen…" oninput="filterPicker()" onkeydown="if(event.key==='Escape')closePicker()" />
+  <input class="picker-search" id="picker-search-inp" placeholder="Search…" oninput="filterPicker()" onkeydown="if(event.key==='Escape')closePicker()" />
   <div class="picker-list" id="picker-list-inner"></div>
 </div>
 
@@ -583,10 +673,43 @@ let _projects=_loadRaw('rg_projects',[]);
 let _activeProjectId=localStorage.getItem('rg_active_project')||_projects[0]?.id||'proj_default';
 function _pk(key){return 'rg_'+_activeProjectId+'_'+key;}
 function saveProjects(){localStorage.setItem('rg_projects',JSON.stringify(_projects));}
+const PROJ_COLORS=['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ec4899','#14b8a6','#f97316','#6366f1'];
+let _projEditing=false;
+function _getProjColor(p){return p.color||PROJ_COLORS[0];}
+function _migrateProjColors(){
+  let changed=false;
+  _projects.forEach((p,i)=>{if(!p.color){p.color=PROJ_COLORS[i%PROJ_COLORS.length];changed=true;}});
+  if(changed)saveProjects();
+}
+_migrateProjColors();
+function getProjStatusCounts(projId){
+  const raw=localStorage.getItem('rg_'+projId+'_elements');
+  const rawSt=localStorage.getItem('rg_'+projId+'_statuses');
+  const els=raw?JSON.parse(raw):[];
+  const sts=rawSt?JSON.parse(rawSt):JSON.parse(JSON.stringify(_DEFAULT_STATUSES));
+  const counts={};
+  Object.keys(sts).forEach(k=>counts[k]=0);
+  els.forEach(e=>{if(e.status&&counts[e.status]!==undefined)counts[e.status]++;else if(e.status)counts[e.status]=1;});
+  return {counts,statuses:sts,total:els.length};
+}
+function _renderStatusBar(projId){
+  const {counts,statuses,total}=getProjStatusCounts(projId);
+  if(!total) return '<div class="proj-status-bar"></div>';
+  const segs=Object.entries(counts).filter(([,v])=>v>0).map(([k,v])=>{
+    const st=statuses[k];if(!st)return '';
+    const bg=st.color.split(';')[0];
+    const pct=(v/total*100).toFixed(1);
+    return `<span style="width:${pct}%;background:${bg}" title="${escH(st.label)}: ${v}"></span>`;
+  }).join('');
+  return `<div class="proj-status-bar" title="${total} elements">${segs}</div>`;
+}
 function updateProjectSelector(){
-  const lbl=document.getElementById('proj-switch-label');
+  const btn=document.getElementById('proj-switch-btn');
   const cur=_projects.find(p=>p.id===_activeProjectId);
-  if(lbl) lbl.textContent=cur?cur.name:'No Project';
+  if(!btn)return;
+  const col=cur?_getProjColor(cur):PROJ_COLORS[0];
+  const name=cur?cur.name:'No Project';
+  btn.innerHTML=`<span class="proj-dot" style="background:${col}"></span><span id="proj-switch-label">${escH(name)}</span><span class="chevron">▼</span>`;
 }
 function toggleProjDD(){
   const sw=document.getElementById('proj-switch');
@@ -596,18 +719,26 @@ function toggleProjDD(){
   setTimeout(()=>document.addEventListener('click',_closeProjDDOutside),0);
 }
 function closeProjDD(){
+  if(_projEditing)return;
   document.getElementById('proj-switch').classList.remove('open');
   document.removeEventListener('click',_closeProjDDOutside);
 }
 function _closeProjDDOutside(e){
+  if(_projEditing)return;
   if(!document.getElementById('proj-switch').contains(e.target)) closeProjDD();
 }
 function renderProjDD(){
   const dd=document.getElementById('proj-dd');
   const items=_projects.map(p=>{
     const active=p.id===_activeProjectId?' active':'';
-    return `<div class="proj-dd-item${active}" onclick="switchProject('${escAttr(p.id)}')">
-      <span class="proj-name">${escH(p.name)}</span>
+    const col=_getProjColor(p);
+    const borderStyle=p.id===_activeProjectId?`border-left-color:${col}`:'';
+    return `<div class="proj-dd-item${active}" style="${borderStyle}" onclick="switchProject('${escAttr(p.id)}')">
+      <span class="proj-dot" style="background:${col}"></span>
+      <span class="proj-item-body">
+        <span class="proj-name">${escH(p.name)}</span>
+        ${_renderStatusBar(p.id)}
+      </span>
       <span class="proj-actions">
         <button class="proj-act" onclick="event.stopPropagation();renameProjInline('${escAttr(p.id)}')" title="Rename">✎</button>
         ${_projects.length>1?`<button class="proj-act" onclick="event.stopPropagation();deleteProjectById('${escAttr(p.id)}')" title="Delete">×</button>`:''}
@@ -618,25 +749,79 @@ function renderProjDD(){
 }
 function switchProject(id){
   if(id===_activeProjectId)return;
-  // Save current state
   saveState();saveTags();saveStatuses();
-  // Switch
   _activeProjectId=id;localStorage.setItem('rg_active_project',id);
-  // Reload page to re-initialize all data
   location.reload();
 }
+function _projColorPalette(selColor){
+  return `<span class="proj-color-palette">${PROJ_COLORS.map(c=>`<span class="proj-color-sw${c===selColor?' sel':''}" data-color="${c}" style="background:${c}" onclick="event.stopPropagation();_pickProjColor(this)"></span>`).join('')}</span>`;
+}
+function _pickProjColor(sw){
+  sw.closest('.proj-color-palette').querySelectorAll('.proj-color-sw').forEach(s=>s.classList.remove('sel'));
+  sw.classList.add('sel');
+}
+function _finishProjEdit(input,id,isNew){
+  const name=input.value.trim();
+  if(!name){input.classList.add('invalid');input.focus();return;}
+  const palette=input.closest('.proj-edit-row').querySelector('.proj-color-palette');
+  const selSw=palette.querySelector('.proj-color-sw.sel');
+  const color=selSw?selSw.dataset.color:PROJ_COLORS[0];
+  _projEditing=false;
+  if(isNew){
+    const pid=_uid('proj');
+    _projects.push({id:pid,name,color,created:new Date().toISOString()});
+    saveProjects();
+    switchProject(pid);
+  } else {
+    const proj=_projects.find(p=>p.id===id);
+    if(proj){proj.name=name;proj.color=color;saveProjects();updateProjectSelector();renderProjDD();}
+  }
+}
+function _cancelProjEdit(){
+  _projEditing=false;
+  renderProjDD();
+}
 function addProject(){
-  closeProjDD();
-  const name=prompt('Project name:');if(!name||!name.trim())return;
-  const pid=_uid('proj');
-  _projects.push({id:pid,name:name.trim(),created:new Date().toISOString()});
-  saveProjects();
-  switchProject(pid);
+  _projEditing=true;
+  const dd=document.getElementById('proj-dd');
+  const addBtn=dd.querySelector('.proj-dd-add');
+  const defColor=PROJ_COLORS[_projects.length%PROJ_COLORS.length];
+  addBtn.outerHTML=`<div class="proj-edit-row" onclick="event.stopPropagation()">
+    <input class="proj-edit-input" id="proj-new-input" placeholder="Project name..." autofocus>
+    ${_projColorPalette(defColor)}
+  </div>`;
+  const inp=document.getElementById('proj-new-input');
+  inp.focus();
+  inp.closest('.proj-edit-row').querySelector('.proj-color-palette').addEventListener('mousedown',e=>e.preventDefault());
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();_finishProjEdit(inp,null,true);}
+    if(e.key==='Escape'){e.preventDefault();_cancelProjEdit();}
+  });
+  inp.addEventListener('blur',e=>{setTimeout(()=>{if(_projEditing&&!inp.closest('.proj-edit-row').contains(document.activeElement))_cancelProjEdit();},80);});
 }
 function renameProjInline(id){
   const proj=_projects.find(p=>p.id===id);if(!proj)return;
-  const name=prompt('Rename project:',proj.name);if(!name||!name.trim())return;
-  proj.name=name.trim();saveProjects();updateProjectSelector();renderProjDD();
+  _projEditing=true;
+  const dd=document.getElementById('proj-dd');
+  const items=dd.querySelectorAll('.proj-dd-item');
+  for(const item of items){
+    if(item.getAttribute('onclick')&&item.getAttribute('onclick').includes(id)){
+      const col=_getProjColor(proj);
+      item.outerHTML=`<div class="proj-edit-row" onclick="event.stopPropagation()">
+        <input class="proj-edit-input" id="proj-rename-input" value="${escAttr(proj.name)}">
+        ${_projColorPalette(col)}
+      </div>`;
+      const inp=document.getElementById('proj-rename-input');
+      inp.focus();inp.select();
+      inp.closest('.proj-edit-row').querySelector('.proj-color-palette').addEventListener('mousedown',e=>e.preventDefault());
+      inp.addEventListener('keydown',e=>{
+        if(e.key==='Enter'){e.preventDefault();_finishProjEdit(inp,id,false);}
+        if(e.key==='Escape'){e.preventDefault();_cancelProjEdit();}
+      });
+      inp.addEventListener('blur',e=>{setTimeout(()=>{if(_projEditing&&!inp.closest('.proj-edit-row').contains(document.activeElement))_cancelProjEdit();},80);});
+      break;
+    }
+  }
 }
 function renameProject(){
   renameProjInline(_activeProjectId);
@@ -670,7 +855,7 @@ function saveTags(){
   localStorage.setItem(_pk('tags'),JSON.stringify(TAGS));
 }
 
-// Migration: alte getrennte Keys → unified ELEMENTS
+// Migration: old separate keys → unified ELEMENTS
 const _migratedEls=(function(){
   const saved=localStorage.getItem(_pk('elements'));
   if(saved) return JSON.parse(saved);
@@ -737,34 +922,55 @@ const NODES=(function(){
 
 // Auto-load demo data if completely empty (first visit)
 let _demoLoadPending=false;
+function _applyDemoData(d){
+  if(!d||!d.nodes) return;
+  NODES.length=0;ELEMENTS.length=0;
+  d.nodes.forEach(n=>NODES.push(n));
+  d.elements.forEach(e=>ELEMENTS.push(e));
+  if(d.tags) Object.assign(TAGS,d.tags);
+  if(d.statuses){Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,d.statuses);}
+  if(d.collapsedNodes) d.collapsedNodes.forEach(id=>collapsedNodes.add(id));
+  localStorage.setItem(_pk('cNodes'),JSON.stringify([...collapsedNodes]));
+  saveState();saveStatuses();saveTags();
+  buildRoadmap();updateCounts();renderDetail();
+  _demoLoadPending=false;
+}
 if(!NODES.length&&!ELEMENTS.length){
   _demoLoadPending=true;
-  fetch('demo_data.json').then(r=>r.ok?r.json():null).then(d=>{
-    if(!d||!d.nodes) return;
-    NODES.length=0;ELEMENTS.length=0;
-    d.nodes.forEach(n=>NODES.push(n));
-    d.elements.forEach(e=>ELEMENTS.push(e));
-    if(d.tags) Object.assign(TAGS,d.tags);
-    if(d.statuses){Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,d.statuses);}
-    // Collapse some Phase 1 nodes so mini-preview is visible on first load
-    if(d.collapsedNodes) d.collapsedNodes.forEach(id=>collapsedNodes.add(id));
-    localStorage.setItem(_pk('cNodes'),JSON.stringify([...collapsedNodes]));
-    saveState();saveStatuses();saveTags();
-    buildRoadmap();updateCounts();renderDetail();
-    _demoLoadPending=false;
-  }).catch(()=>{_demoLoadPending=false;});
+  fetch('demo_data.json').then(r=>r.ok?r.json():null).then(d=>_applyDemoData(d))
+    .catch(()=>{_demoLoadPending=false;});
 }
 
-// Status-Migration: spezifische → generische Status
+// Status migration: specific → generic statuses
 (function migrateStatus(){
   const map={verified:'done',in_cloning:'in_progress',seq_needed:'in_progress'};
   ELEMENTS.forEach(x=>{if(map[x.status])x.status=map[x.status];});
 })();
 
-// Fehlende Array-Felder sicherstellen
+// Ensure required array fields exist
 [...ELEMENTS,...NODES].forEach(x=>{ if(!x.custom) x.custom=[]; });
-ELEMENTS.forEach(x=>{ if(!x.replicates) x.replicates=[]; });
-// Migration: order-Feld auf Elemente
+ELEMENTS.forEach(x=>{
+  if(!x.replicates) x.replicates=[];
+  if(!x.log) x.log=[];
+  if(!x.createdAt) x.createdAt=null;
+  if(x.modifiedAt===undefined) x.modifiedAt=null;
+  if(x.completedAt===undefined) x.completedAt=null;
+});
+// Migration: el.links[] → custom link section
+ELEMENTS.forEach(el=>{
+  if(el.links&&el.links.length){
+    if(!el.custom) el.custom=[];
+    if(!el.custom.some(s=>s.type==='link')){
+      el.custom.push({id:_uid('cs'),title:'Links',type:'link',links:el.links});
+    }
+    delete el.links;
+  } else { delete el.links; }
+});
+// Ensure custom section types
+[...ELEMENTS,...NODES].forEach(x=>{
+  (x.custom||[]).forEach(s=>{ if(!s.type) s.type='text'; });
+});
+// Migration: ensure order field on elements
 NODES.forEach(n=>{
   if(typeof n.order==='undefined') n.order=NODES.indexOf(n);
 });
@@ -782,7 +988,7 @@ let selType=null, selId=null;
 let repFormTarget=null, repFormState={type:'bio',result:'success'};
 let todoTab='open';
 
-// Farbpalette (geteilt zwischen Tag-Manager und Card-Picker)
+// Color palette (shared between Tag Manager and Card Picker)
 const COLOR_PALETTE=['#2563eb','#0891b2','#d97706','#7c3aed','#94a3b8','#c026d3','#0d9488','#be185d'];
 let _tmOpenPalette=null;  // Tag-Key, dessen Mini-Palette offen ist
 let _newTagColor=COLOR_PALETTE[0];
@@ -872,7 +1078,7 @@ function selectByLabel(label){
   if(n) select('node',n.id);
 }
 
-// @-Mention Dropdown für editierbare Felder
+// @-Mention Dropdown for editable fields
 let _mentionState=null;
 document.addEventListener('input',e=>{
   if(!e.target.isContentEditable) return;
@@ -981,7 +1187,7 @@ function setNewTagColor(col){
 }
 function toggleTagFilter(key){
   hiddenTags.has(key)?hiddenTags.delete(key):hiddenTags.add(key);
-  buildTagManager();buildRoadmap();
+  buildTagManager();buildRoadmap();updateResetBtn();
 }
 function editTagLabel(span,key){
   span.contentEditable='true';span.focus();_selectAll(span);
@@ -1147,7 +1353,7 @@ let _searchQuery='';
 function onSearch(val){
   _searchQuery=val.trim().toLowerCase();
   document.getElementById('search-clear').style.display=_searchQuery?'block':'none';
-  buildRoadmap();
+  buildRoadmap();updateResetBtn();
 }
 function clearSearch(){
   _searchQuery='';
@@ -1193,6 +1399,7 @@ function buildRoadmap(){
   const rootNodes=NODES.filter(n=>!n.parentId).sort((a,b)=>(a.order||0)-(b.order||0));
   const filtered=rootNodes.filter(n=>{
     if(_searchQuery&&!_nodeMatchesSearch(n.id)) return false;
+    if(_sortMode!=='manual'&&!_nodeHasElements(n.id)) return false;
     if(!_statusFilter.size) return true;
     return _nodeHasFilterMatch(n.id);
   });
@@ -1224,9 +1431,14 @@ function _nodeHasFilterMatch(nodeId){
   return NODES.filter(n=>n.parentId===nodeId).some(child=>_nodeHasFilterMatch(child.id));
 }
 
+function _nodeHasElements(nodeId){
+  if(ELEMENTS.some(e=>e.nodeId===nodeId&&e.status!=='abandoned')) return true;
+  return NODES.filter(n=>n.parentId===nodeId).some(child=>_nodeHasElements(child.id));
+}
 function renderNode(node,container,depth){
   if(_statusFilter.size&&!_nodeHasFilterMatch(node.id)) return;
   if(_searchQuery&&!_nodeMatchesSearch(node.id)) return;
+  if(_sortMode!=='manual'&&!_nodeHasElements(node.id)) return;
   const collapsed=_searchQuery?false:collapsedNodes.has(node.id);
   const chips=nodeStatusChips(node.id);
   const children=getChildNodes(node.id);
@@ -1318,8 +1530,8 @@ function _renderNodeElements(node,container){
     if(p.nodeId!==node.id) return false;
     if(_statusFilter.size) return _statusFilter.has(p.status);
     return p.status!=='abandoned';
-  }).sort((a,b)=>(a.order||0)-(b.order||0));
-  if(!elements.length) return;
+  }).sort(_elSortFn);
+  if(!elements.length&&_searchQuery) return;
   const elRow=document.createElement('div');
   elRow.className='rg-el-row';
   elRow.dataset.nodeId=node.id;
@@ -1334,6 +1546,7 @@ function _renderNodeElements(node,container){
     card.addEventListener('dragstart',e=>onDragStart(e,'element',el.id));
     elRow.appendChild(card);
   });
+  if(!elRow.children.length) return;
   container.appendChild(elRow);
 }
 
@@ -1349,7 +1562,11 @@ function makeElementCard(el){
     <div class="p-name">${escH(el.label)}</div>
     <div class="p-desc">${escH(el.desc||'')}</div>
     ${repF?`<div class="p-rep-footer">${repF}</div>`:''}`;
-  card.addEventListener('click',()=>select('element',el.id));
+  card.addEventListener('click',e=>{
+    if(e.ctrlKey||e.metaKey){toggleBulkSelect(el.id,card);return;}
+    if(_bulkSelected.size){toggleBulkSelect(el.id,card);return;}
+    select('element',el.id);
+  });
   return card;
 }
 
@@ -1416,8 +1633,10 @@ function onNodeDrop(parentId,targetIdx,siblingsList){
 function addNode(parentId=null){
   const id=_uid('node');
   const siblings=NODES.filter(n=>n.parentId===(parentId||null));
-  NODES.push({id,label:'',parentId:parentId||null,order:siblings.length,icon:parentId?'':'🎯',desc:'',custom:[]});
+  NODES.push({id,label:'New Node',parentId:parentId||null,order:siblings.length,icon:parentId?'':'🎯',desc:'',custom:[]});
+  if(parentId) collapsedNodes.delete(parentId);
   saveState();buildRoadmap();
+  setTimeout(()=>inlineEditNode(id),50);
 }
 function deleteNode(nodeId){
   const node=NODES.find(n=>n.id===nodeId);if(!node)return;
@@ -1492,6 +1711,7 @@ function saveField(el){
   const {type,id,field}=el.dataset;
   const data=getItem(type,id); if(!data)return;
   data[field]=el.innerText.trim();
+  if(type==='element'&&data.modifiedAt!==undefined) data.modifiedAt=new Date().toISOString();
   saveState();
   if(field==='label') buildRoadmap();
 }
@@ -1530,16 +1750,29 @@ function arrListHTML(type,id,field,items,boxClass){
 }
 
 // ─── CUSTOM SECTIONS ─────────────────────────────────────────────────────────
-function addCustomSection(type,id){
+function addCustomSection(type,id,secType){
+  secType=secType||'text';
   const data=getItem(type,id); if(!data)return;
   if(!data.custom) data.custom=[];
-  data.custom.push({id:_uid('cs'),title:'New section',content:''});
+  const newId=_uid('cs');
+  if(secType==='link'){
+    data.custom.push({id:newId,title:'New links',type:'link',links:[]});
+  } else {
+    data.custom.push({id:newId,title:'New section',type:'text',content:''});
+  }
+  // Add to section order (before backlinks)
+  if(data.sectionOrder){
+    const blIdx=data.sectionOrder.indexOf('backlinks');
+    if(blIdx>=0) data.sectionOrder.splice(blIdx,0,'c:'+newId);
+    else data.sectionOrder.push('c:'+newId);
+  }
   saveState(); renderDetail();
 }
 function removeCustomSection(type,id,sid){
   const data=getItem(type,id); if(!data)return;
   pushUndo();
   data.custom=data.custom.filter(s=>s.id!==sid);
+  if(data.sectionOrder) data.sectionOrder=data.sectionOrder.filter(k=>k!=='c:'+sid);
   saveState(); renderDetail();
 }
 function saveCustomField(el,type,id,sid,field){
@@ -1550,18 +1783,35 @@ function saveCustomField(el,type,id,sid,field){
 }
 function customSectionsHTML(type,id,custom){
   if(!custom) return '';
-  return custom.map(sec=>`
-    <div class="dsec">
-      <div class="dsec-title">
-        <span class="editable" contenteditable="true"
-          onblur="saveCustomField(this,'${type}','${id}','${sec.id}','title')"
-          >${escH(sec.title)}</span>
-        <button class="rm-sec" onclick="removeCustomSection('${type}','${id}','${sec.id}')" title="Remove section">× remove</button>
-      </div>
+  return custom.map(sec=>{
+    const titleHTML=`<div class="dsec-title">
+      <span class="editable" contenteditable="true"
+        onblur="saveCustomField(this,'${type}','${id}','${sec.id}','title')"
+        >${escH(sec.title)}</span>
+      <button class="rm-sec" onclick="removeCustomSection('${type}','${id}','${sec.id}')" title="Remove section">× remove</button>
+    </div>`;
+    if(sec.type==='link'){
+      const pills=(sec.links||[]).map((lk,i)=>{
+        const target=lk.type==='node'?NODES.find(x=>x.id===lk.id):ELEMENTS.find(x=>x.id===lk.id);
+        if(!target) return '';
+        const si=lk.type==='element'?statusIcon(target.status):{icon:target.icon||'◈',text:'Node'};
+        const col=lk.type==='element'?getElementColor(target):'#94a3b8';
+        return `<span class="link-pill" style="border-left-color:${col}" onclick="select('${lk.type}','${escAttr(lk.id)}')">
+          <span class="lp-icon">${escH(si.icon)}</span>${escH(target.label)}<button class="lp-del" onclick="event.stopPropagation();removeSecLink('${type}','${escAttr(id)}','${sec.id}',${i})">×</button>
+        </span>`;
+      }).join('');
+      return `<div class="dsec">${titleHTML}
+        <div class="link-pills">${pills}
+          <button class="link-add-pill" onclick="event.stopPropagation();openSecLinkPicker('${type}','${escAttr(id)}','${sec.id}',this)">+</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="dsec">${titleHTML}
       <div class="dsec-content editable" contenteditable="true"
         onblur="saveCustomField(this,'${type}','${id}','${sec.id}','content')"
         >${renderInlineLinks(escH(sec.content))}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // (gruppeDropdownHTML removed — replaced by unified node tree)
@@ -1573,13 +1823,20 @@ function duplicateElement(id){
   const src=ELEMENTS.find(x=>x.id===id);if(!src)return;
   const copy=JSON.parse(JSON.stringify(src));
   copy.id=_uid('el');
-  copy.label=src.label;
+  copy.label=src.label+' (Copy)';
   copy.replicates=[];
+  // Clear link sections in custom
+  (copy.custom||[]).forEach(s=>{if(s.type==='link') s.links=[];});
+  copy.log=[{time:new Date().toISOString(),msg:'Duplicated from '+src.label}];
+  copy.createdAt=new Date().toISOString();
+  copy.modifiedAt=copy.createdAt;
+  copy.completedAt=null;
   ELEMENTS.push(copy);
   saveState();buildRoadmap();select('element',copy.id);
 }
 function abandonElement(type,id){
   const data=getItem(type,id);if(!data)return;
+  if(!confirm(`Abandon "${data.label}"? It will be hidden from the default view.`))return;
   pushUndo();
   data.status='abandoned';saveState();buildRoadmap();
   if(selId===id){selType=null;selId=null;renderDetail();}
@@ -1599,9 +1856,10 @@ function openPicker(mode,type,id,anchorEl){
 }
 function closePicker(){
   document.getElementById('el-picker').style.display='none';
-  _pickerMode=null;_pickerTarget=null;
+  _pickerMode=null;_pickerTarget=null;_secLinkCtx=null;
 }
 function filterPicker(){
+  if(_pickerMode==='link'){filterLinkPicker();return;}
   const q=(document.getElementById('picker-search-inp')?.value||'').toLowerCase();
   const all=ELEMENTS.filter(x=>x.status!=='abandoned');
   const list=document.getElementById('picker-list-inner');if(!list)return;
@@ -1609,20 +1867,132 @@ function filterPicker(){
   list.innerHTML=items.map(x=>`<div class="picker-item" onclick="pickElement('${x.id}','${escH(x.label)}')">
     <span class="picker-item-label">${escH(x.label)}</span>
     <span class="picker-item-desc">${escH((x.desc||'').substring(0,40))}</span>
-  </div>`).join('')||'<div style="padding:10px 12px;font-size:11px;color:#94a3b8">Keine Treffer</div>';
+  </div>`).join('')||'<div style="padding:10px 12px;font-size:11px;color:#94a3b8">No matches</div>';
 }
 function pickElement(id,label){
   if(!_pickerTarget)return;
   closePicker();
-  // Insert @mention at cursor if applicable
-  const data=getItem(_pickerTarget.type,_pickerTarget.id);if(!data)return;
-  saveState();renderDetail();
 }
 
 document.addEventListener('click',e=>{
   const picker=document.getElementById('el-picker');
   if(picker&&picker.style.display!=='none'&&!picker.contains(e.target)&&!(e.target.id&&e.target.id.startsWith('bb-pick-btn')))closePicker();
 });
+
+// ─── TIMESTAMPS ──────────────────────────────────────────────────────────────
+function timestampsHTML(el){
+  const fmt=d=>{if(!d)return null;const dt=new Date(d);return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});};
+  const parts=[];
+  if(el.createdAt) parts.push(`<span title="${el.createdAt}">Created: ${fmt(el.createdAt)}</span>`);
+  if(el.modifiedAt) parts.push(`<span title="${el.modifiedAt}">Modified: ${fmt(el.modifiedAt)}</span>`);
+  if(el.completedAt) parts.push(`<span title="${el.completedAt}">Completed: ${fmt(el.completedAt)}</span>`);
+  return parts.length?`<div class="el-timestamps">${parts.join('')}</div>`:'';
+}
+
+// ─── LINK SECTION PICKER ─────────────────────────────────────────────────────
+let _secLinkCtx=null; // {itemType,itemId,secId}
+function openSecLinkPicker(itemType,itemId,secId,btn){
+  _secLinkCtx={itemType,itemId,secId};
+  _pickerMode='link';
+  const picker=document.getElementById('el-picker');
+  picker.style.display='block';
+  const rect=btn.getBoundingClientRect();
+  const pickerH=330;
+  const spaceBelow=window.innerHeight-rect.bottom;
+  const top=spaceBelow>=pickerH?rect.bottom+4:Math.max(8,rect.top-pickerH-4);
+  picker.style.top=top+'px';
+  picker.style.left=Math.min(rect.left,window.innerWidth-250)+'px';
+  picker.querySelector('.picker-search').value='';
+  filterLinkPicker();
+  picker.querySelector('.picker-search').focus();
+}
+function _getSecLinks(){
+  if(!_secLinkCtx) return [];
+  const data=getItem(_secLinkCtx.itemType,_secLinkCtx.itemId);
+  const sec=(data?.custom||[]).find(s=>s.id===_secLinkCtx.secId);
+  return sec?.links||[];
+}
+function filterLinkPicker(){
+  const q=(document.getElementById('picker-search-inp')?.value||'').toLowerCase();
+  const existingIds=new Set(_getSecLinks().map(l=>l.id));
+  const selfId=_secLinkCtx?.itemId||'';
+  const allItems=[...ELEMENTS.filter(x=>x.status!=='abandoned'&&x.id!==selfId).map(x=>({...x,_type:'element'})),...NODES.map(n=>({...n,_type:'node'}))];
+  const items=allItems.filter(x=>!existingIds.has(x.id)&&(!q||x.label.toLowerCase().includes(q)||(x.desc||'').toLowerCase().includes(q)));
+  const list=document.getElementById('picker-list-inner');if(!list)return;
+  list.innerHTML=items.slice(0,30).map(x=>{
+    const icon=x._type==='element'?statusIcon(x.status).icon:(x.icon||'◈');
+    return `<div class="picker-item" onclick="pickSecLink('${x._type}','${escAttr(x.id)}')">
+      <span class="picker-item-label">${escH(icon)} ${escH(x.label)}</span>
+      <span class="picker-item-desc">${escH(x._type)}</span>
+    </div>`;
+  }).join('')||'<div style="padding:10px 12px;font-size:11px;color:#94a3b8">No matches</div>';
+}
+function pickSecLink(type,targetId){
+  if(!_secLinkCtx) return;
+  const data=getItem(_secLinkCtx.itemType,_secLinkCtx.itemId);if(!data) return;
+  const sec=(data.custom||[]).find(s=>s.id===_secLinkCtx.secId);if(!sec) return;
+  closePicker();
+  if(!sec.links) sec.links=[];
+  sec.links.push({type,id:targetId});
+  const target=type==='node'?NODES.find(x=>x.id===targetId):ELEMENTS.find(x=>x.id===targetId);
+  if(data.modifiedAt!==undefined) data.modifiedAt=Date.now();
+  if(data.log){data.log.push({time:Date.now(),msg:'Linked to: '+(target?.label||targetId)});}
+  _secLinkCtx=null;
+  saveState();renderDetail();
+}
+function removeSecLink(itemType,itemId,secId,idx){
+  const data=getItem(itemType,itemId);if(!data) return;
+  const sec=(data.custom||[]).find(s=>s.id===secId);if(!sec||!sec.links) return;
+  pushUndo();
+  const removed=sec.links.splice(idx,1)[0];
+  const target=removed.type==='node'?NODES.find(x=>x.id===removed.id):ELEMENTS.find(x=>x.id===removed.id);
+  if(data.modifiedAt!==undefined) data.modifiedAt=Date.now();
+  if(data.log){data.log.push({time:Date.now(),msg:'Unlinked: '+(target?.label||removed.id)});}
+  saveState();renderDetail();
+}
+
+// ─── BACKLINKS ───────────────────────────────────────────────────────────────
+function backlinksHTML(label){
+  const refs=[];
+  [...ELEMENTS,...NODES].forEach(item=>{
+    if(item.label===label) return;
+    const texts=[(item.desc||''),...(item.custom||[]).map(c=>c.content||'')];
+    const mentions=texts.join(' ').match(/@([\w\-()]+)/g)||[];
+    if(mentions.some(m=>m.slice(1)===label)){
+      refs.push(item);
+    }
+  });
+  if(!refs.length) return '';
+  return `<div class="backlinks"><div class="bl-title">Referenced by</div>
+    <div class="bl-items">${refs.map(r=>{
+      const isEl=ELEMENTS.includes(r);
+      const col=isEl?getElementColor(r):'#94a3b8';
+      return `<span class="dep-tag" onclick="select('${isEl?'element':'node'}','${escAttr(r.id)}')" style="border-left:3px solid ${col}">${escH(r.label)}</span>`;
+    }).join('')}</div></div>`;
+}
+
+// ─── ACTIVITY LOG ────────────────────────────────────────────────────────────
+function activityLogHTML(id,log){
+  const fmt=d=>{const dt=new Date(d);return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});};
+  const recent=(log||[]).slice(-20).reverse();
+  const entries=recent.map(e=>`<div class="log-entry"><span class="log-time">${fmt(e.time)}</span><span class="log-msg">${escH(e.msg)}</span></div>`).join('');
+  return `<div class="dsec"><div class="dsec-title">Activity${log?.length?` (${log.length})`:''}</div>
+    <div class="log-add-row">
+      <input id="log-note-${id}" type="text" placeholder="Add a note..." onkeydown="if(event.key==='Enter')addLogNote('${escAttr(id)}')" />
+      <button onclick="addLogNote('${escAttr(id)}')">+</button>
+    </div>
+    ${entries}</div>`;
+}
+function addLogNote(id){
+  const el=ELEMENTS.find(x=>x.id===id);if(!el)return;
+  const input=document.getElementById('log-note-'+id);
+  const msg=(input?.value||'').trim();if(!msg)return;
+  if(!el.log) el.log=[];
+  const now=new Date().toISOString();
+  el.log.push({time:now,msg});
+  el.modifiedAt=now;
+  saveState();renderDetail();
+}
 
 // ─── DETAIL RENDER ────────────────────────────────────────────────────────────
 function renderDetail(){
@@ -1655,7 +2025,9 @@ function renderDetail(){
         }).join('')}</div>
       </div>`:''}
       ${customSectionsHTML('node',n.id,n.custom)}
-      <button class="add-sec-btn" onclick="addCustomSection('node','${n.id}')">+ New section</button>`;
+      <button class="add-sec-btn" onclick="addCustomSection('node','${n.id}','text')">+ Text</button>
+      <button class="add-sec-btn" onclick="addCustomSection('node','${n.id}','link')">+ Links</button>
+      ${backlinksHTML(n.label)}`;
   }
 
   else if(selType==='element'){
@@ -1663,7 +2035,7 @@ function renderDetail(){
     const si=statusIcon(el.status);
     const elColor=getElementColor(el);
     const firstTagLabel=el.tags?.[0]?(TAGS[el.tags[0]]?.label||el.tags[0]):'';
-    const statusBtns=Object.keys(STATUSES).filter(k=>k!=='abandoned');
+    const statusBtns=Object.keys(STATUSES).filter(k=>k!=='abandoned'||el.status==='abandoned');
     body.innerHTML=`
       <div class="dh" style="color:${elColor}">Element${firstTagLabel?' · '+firstTagLabel:''}</div>
       ${ed('element',el.id,'label',el.label,'div','dtitle')}
@@ -1678,11 +2050,13 @@ function renderDetail(){
         }).join('')}</div>
       </div>
 
-      ${elementTagsHTML('element',el.id,el.tags||[])}
-      ${repSectionHTML('element',el.id,el.replicates,elColor)}
-
-      ${customSectionsHTML('element',el.id,el.custom)}
-      <button class="add-sec-btn" onclick="addCustomSection('element','${el.id}')">+ New section</button>
+      <div id="detail-sections" data-type="element" data-id="${el.id}">
+      ${_renderOrderedSections(el,elColor)}
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="add-sec-btn" onclick="addCustomSection('element','${el.id}','text')">+ Text</button>
+        <button class="add-sec-btn" onclick="addCustomSection('element','${el.id}','link')">+ Links</button>
+      </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="add-sec-btn" onclick="duplicateElement('${el.id}')">Duplicate</button>
         ${el.status==='abandoned'
@@ -1691,6 +2065,159 @@ function renderDetail(){
       </div>`;
   }
 }
+
+// ─── ORDERED DETAIL SECTIONS ─────────────────────────────────────────────────
+const _defaultSecOrder=['timestamps','tags','replicates','custom','backlinks','activity'];
+function _getSecOrder(el){
+  if(el.sectionOrder&&el.sectionOrder.length) return el.sectionOrder;
+  // Build default: built-ins + custom section ids
+  const order=[...['timestamps','tags','replicates'],...(el.custom||[]).map(s=>'c:'+s.id),...['backlinks','activity']];
+  return order;
+}
+function _renderOrderedSections(el,elColor){
+  const order=_getSecOrder(el);
+  // Collect custom section ids that exist
+  const customIds=new Set((el.custom||[]).map(s=>s.id));
+  // Add any custom sections not yet in order
+  const inOrder=new Set(order);
+  (el.custom||[]).forEach(s=>{if(!inOrder.has('c:'+s.id)) order.push('c:'+s.id);});
+  const parts=[];
+  for(const key of order){
+    let html='';
+    if(key==='timestamps') html=timestampsHTML(el);
+    else if(key==='tags') html=elementTagsHTML('element',el.id,el.tags||[]);
+    else if(key==='replicates') html=repSectionHTML('element',el.id,el.replicates,elColor);
+    else if(key==='backlinks') html=backlinksHTML(el.label);
+    else if(key==='activity') html=activityLogHTML(el.id,el.log||[]);
+    else if(key.startsWith('c:')){
+      const sid=key.slice(2);
+      const sec=(el.custom||[]).find(s=>s.id===sid);
+      if(sec) html=_singleCustomSectionHTML('element',el.id,sec);
+    }
+    if(!html) continue;
+    // Wrap in draggable container
+    parts.push(`<div class="dsec-wrap" data-sec-key="${escAttr(key)}"><span class="sec-grip" title="Drag to reorder">⠿</span>${html}</div>`);
+  }
+  return parts.join('');
+}
+function _singleCustomSectionHTML(type,id,sec){
+  const titleHTML=`<div class="dsec-title">
+    <span class="editable" contenteditable="true"
+      onblur="saveCustomField(this,'${type}','${id}','${sec.id}','title')"
+      >${escH(sec.title)}</span>
+    <button class="rm-sec" onclick="removeCustomSection('${type}','${id}','${sec.id}')" title="Remove section">× remove</button>
+  </div>`;
+  if(sec.type==='link'){
+    const pills=(sec.links||[]).map((lk,i)=>{
+      const target=lk.type==='node'?NODES.find(x=>x.id===lk.id):ELEMENTS.find(x=>x.id===lk.id);
+      if(!target) return '';
+      const si=lk.type==='element'?statusIcon(target.status):{icon:target.icon||'◈',text:'Node'};
+      const col=lk.type==='element'?getElementColor(target):'#94a3b8';
+      return `<span class="link-pill" style="border-left-color:${col}" onclick="select('${lk.type}','${escAttr(lk.id)}')">
+        <span class="lp-icon">${escH(si.icon)}</span>${escH(target.label)}<button class="lp-del" onclick="event.stopPropagation();removeSecLink('${type}','${escAttr(id)}','${sec.id}',${i})">×</button>
+      </span>`;
+    }).join('');
+    return `<div class="dsec">${titleHTML}
+      <div class="link-pills">${pills}
+        <button class="link-add-pill" onclick="event.stopPropagation();openSecLinkPicker('${type}','${escAttr(id)}','${sec.id}',this)">+</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="dsec">${titleHTML}
+    <div class="dsec-content editable" contenteditable="true"
+      onblur="saveCustomField(this,'${type}','${id}','${sec.id}','content')"
+      >${renderInlineLinks(escH(sec.content))}</div>
+  </div>`;
+}
+// Section DnD in detail panel — gap-based
+let _secDragKey=null;
+let _secDropIdx=-1; // insert position (index in order array)
+document.addEventListener('mousedown',e=>{
+  const grip=e.target.closest?.('.sec-grip');
+  document.querySelectorAll('.dsec-wrap').forEach(w=>{w.draggable=false;});
+  if(grip){const wrap=grip.closest('.dsec-wrap');if(wrap)wrap.draggable=true;}
+});
+document.addEventListener('dragstart',e=>{
+  const wrap=e.target.closest?.('.dsec-wrap');
+  if(!wrap||!wrap.dataset.secKey) return;
+  _secDragKey=wrap.dataset.secKey;
+  wrap.classList.add('sec-dragging');
+  document.body.classList.add('sec-dnd-active');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain','');
+});
+function _removeDropLine(){
+  document.querySelectorAll('.sec-drop-line').forEach(l=>l.remove());
+}
+function _getSecGaps(container){
+  // Returns array of {y, insertIdx} — the y-positions between sections
+  const wraps=[...container.querySelectorAll(':scope>.dsec-wrap')];
+  const gaps=[];
+  for(let i=0;i<=wraps.length;i++){
+    if(i===0){
+      const r=wraps[0]?.getBoundingClientRect();
+      if(r) gaps.push({y:r.top,idx:0,before:wraps[0]});
+    } else if(i===wraps.length){
+      const r=wraps[i-1]?.getBoundingClientRect();
+      if(r) gaps.push({y:r.bottom,idx:i,after:wraps[i-1]});
+    } else {
+      const rAbove=wraps[i-1].getBoundingClientRect();
+      const rBelow=wraps[i].getBoundingClientRect();
+      gaps.push({y:(rAbove.bottom+rBelow.top)/2,idx:i,before:wraps[i],after:wraps[i-1]});
+    }
+  }
+  return {gaps,wraps};
+}
+document.addEventListener('dragover',e=>{
+  if(!_secDragKey) return;
+  const container=e.target.closest?.('#detail-sections')||document.getElementById('detail-sections');
+  if(!container) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  _removeDropLine();
+  const {gaps,wraps}=_getSecGaps(container);
+  if(!gaps.length) return;
+  // Find closest gap
+  let best=gaps[0],bestDist=Infinity;
+  for(const g of gaps){
+    const d=Math.abs(e.clientY-g.y);
+    if(d<bestDist){bestDist=d;best=g;}
+  }
+  _secDropIdx=best.idx;
+  // Show drop line
+  const line=document.createElement('div');
+  line.className='sec-drop-line';
+  if(best.before) container.insertBefore(line,best.before);
+  else container.appendChild(line);
+});
+document.addEventListener('drop',e=>{
+  if(!_secDragKey) return;
+  const container=e.target.closest?.('#detail-sections')||document.getElementById('detail-sections');
+  if(!container){_secDragKey=null;_removeDropLine();return;}
+  e.preventDefault();
+  const type=container.dataset.type;
+  const id=container.dataset.id;
+  const el=getItem(type,id);if(!el){_secDragKey=null;_removeDropLine();return;}
+  // Get current order without dragged item, then figure out wraps order
+  const wraps=[...container.querySelectorAll(':scope>.dsec-wrap')];
+  const keysInDom=wraps.map(w=>w.dataset.secKey).filter(k=>k!==_secDragKey);
+  // Insert at _secDropIdx (adjusted for removed item)
+  let insertAt=_secDropIdx;
+  const dragDomIdx=wraps.findIndex(w=>w.dataset.secKey===_secDragKey);
+  if(dragDomIdx>=0&&dragDomIdx<_secDropIdx) insertAt--;
+  insertAt=Math.max(0,Math.min(keysInDom.length,insertAt));
+  keysInDom.splice(insertAt,0,_secDragKey);
+  el.sectionOrder=keysInDom;
+  _secDragKey=null;_secDropIdx=-1;
+  _removeDropLine();
+  saveState();renderDetail();
+});
+document.addEventListener('dragend',()=>{
+  _secDragKey=null;_secDropIdx=-1;
+  _removeDropLine();
+  document.body.classList.remove('sec-dnd-active');
+  document.querySelectorAll('.dsec-wrap.sec-dragging').forEach(w=>w.classList.remove('sec-dragging'));
+});
 
 // ─── REPLICATE SECTION ────────────────────────────────────────────────────────
 function repSectionHTML(type,id,reps,apColor){
@@ -1758,10 +2285,85 @@ function deleteRep(type,id,idx){
 function changeElStatus(elId,newStatus){
   const el=ELEMENTS.find(x=>x.id===elId); if(!el)return;
   pushUndo();
-  el.status=newStatus; saveState(); buildRoadmap(); renderDetail();
+  const oldStatus=el.status;
+  el.status=newStatus;
+  const now=new Date().toISOString();
+  el.modifiedAt=now;
+  if(newStatus==='done'&&oldStatus!=='done') el.completedAt=now;
+  else if(newStatus!=='done') el.completedAt=null;
+  if(!el.log) el.log=[];
+  const oldLabel=STATUSES[oldStatus]?.label||oldStatus;
+  const newLabel=STATUSES[newStatus]?.label||newStatus;
+  el.log.push({time:now,msg:`Status: ${oldLabel} → ${newLabel}`});
+  saveState(); buildRoadmap(); renderDetail();
 }
 let _statusFilter=new Set(); // Multi-select status filter
 let _viewMode='tree'; // 'tree' or 'board'
+let _sortMode='manual'; // 'manual','name','name-desc','status','newest','oldest'
+const _statusOrder={done:0,wip:1,planned:2,abandoned:3};
+function _elSortFn(a,b){
+  switch(_sortMode){
+    case 'name': return a.label.localeCompare(b.label);
+    case 'name-desc': return b.label.localeCompare(a.label);
+    case 'status': return (_statusOrder[a.status]??99)-(_statusOrder[b.status]??99)||(a.order||0)-(b.order||0);
+    case 'newest': return (b.createdAt||0)-(a.createdAt||0);
+    case 'oldest': return (a.createdAt||0)-(b.createdAt||0);
+    default: return (a.order||0)-(b.order||0);
+  }
+}
+function changeSort(val){_sortMode=val;buildRoadmap();updateResetBtn();}
+function resetAllFilters(){
+  _searchQuery='';document.getElementById('search-input').value='';
+  document.getElementById('search-clear').style.display='none';
+  _statusFilter.clear();
+  hiddenTags.clear();
+  _sortMode='manual';document.getElementById('sort-select').value='manual';
+  buildTagManager();buildStatusManager();buildRoadmap();updateResetBtn();
+}
+function updateResetBtn(){
+  const active=_searchQuery||_statusFilter.size||hiddenTags.size||_sortMode!=='manual';
+  document.getElementById('btn-reset-filters').style.display=active?'':'none';
+}
+
+// ── BULK SELECT ──
+let _bulkSelected=new Set();
+function toggleBulkSelect(elId,card){
+  if(_bulkSelected.has(elId)){_bulkSelected.delete(elId);card&&card.classList.remove('bulk-selected');}
+  else{_bulkSelected.add(elId);card&&card.classList.add('bulk-selected');}
+  updateBulkBar();
+}
+function updateBulkBar(){
+  const bar=document.getElementById('bulk-bar');
+  if(!_bulkSelected.size){bar.style.display='none';return;}
+  bar.style.display='flex';
+  document.getElementById('bulk-count').textContent=_bulkSelected.size+' selected';
+}
+function clearBulk(){
+  _bulkSelected.clear();
+  document.querySelectorAll('.el-card.bulk-selected').forEach(c=>c.classList.remove('bulk-selected'));
+  updateBulkBar();
+}
+function bulkSetStatus(status){
+  if(!_bulkSelected.size)return;
+  pushUndo();
+  const now=Date.now();
+  _bulkSelected.forEach(id=>{
+    const el=ELEMENTS.find(e=>e.id===id);
+    if(!el)return;
+    const old=el.status;el.status=status;el.modifiedAt=now;
+    if(status==='done'&&!el.completedAt)el.completedAt=now;
+    if(status!=='done')el.completedAt=null;
+    el.log=el.log||[];el.log.push({time:now,msg:'Status: '+old+' → '+status+' (bulk)'});
+  });
+  saveState();clearBulk();buildRoadmap();renderDetail();
+}
+function bulkDelete(){
+  if(!_bulkSelected.size)return;
+  if(!confirm('Delete '+_bulkSelected.size+' elements?'))return;
+  pushUndo();
+  ELEMENTS=ELEMENTS.filter(e=>!_bulkSelected.has(e.id));
+  saveState();clearBulk();buildRoadmap();renderDetail();
+}
 function setZoom(val){
   const scale=val/100;
   const gl=document.getElementById('goal-list');
@@ -1783,7 +2385,7 @@ function updateCounts(){
 }
 function toggleStatusFilter(status){
   _statusFilter.has(status)?_statusFilter.delete(status):_statusFilter.add(status);
-  buildRoadmap();
+  buildRoadmap();updateResetBtn();
 }
 function toggleView(){
   _viewMode=_viewMode==='tree'?'board':'tree';
@@ -1827,8 +2429,10 @@ function buildBoard(){
       const root=getRootNode(el.nodeId);
       if(root){
         const goalTag=document.createElement('div');
-        goalTag.style.cssText='font-size:9px;color:#94a3b8;margin-top:2px';
+        goalTag.style.cssText='font-size:9px;color:#3b82f6;margin-top:2px;cursor:pointer';
         goalTag.textContent=(root.icon||'')+' '+root.label;
+        goalTag.title='Switch to tree view';
+        goalTag.onclick=ev=>{ev.stopPropagation();_viewMode='tree';document.getElementById('view-toggle').textContent='\u2630 Board';document.getElementById('roadmap-title').textContent='Nodes';buildRoadmap();select('node',root.id);};
         card.appendChild(goalTag);
       }
       cards.appendChild(card);
@@ -1886,7 +2490,8 @@ function confirmAdd(){
   const nodeId=document.getElementById('add-node')?.value||NODES[0]?.id;
   const desc=(document.getElementById('add-desc')?.value||'').trim();
   const order=ELEMENTS.filter(x=>x.nodeId===nodeId).length;
-  ELEMENTS.push({id:_uid('el'),label,nodeId,status:'planned',desc,tags:[],replicates:[],custom:[],order});
+  const now=new Date().toISOString();
+  ELEMENTS.push({id:_uid('el'),label,nodeId,status:'planned',desc,tags:[],replicates:[],custom:[],links:[],log:[{time:now,msg:'Created'}],order,createdAt:now,modifiedAt:now,completedAt:null});
   saveState(); buildRoadmap(); closeAddModal();
 }
 
@@ -1975,7 +2580,7 @@ function handleImport(e){
           _projects.push({id:pid,name:proj.name||'Imported',created:new Date().toISOString()});
           const prefix='rg_'+pid+'_';
           // Validate and sanitize
-          const els=(proj.elements||[]).map(el=>({...el,id:el.id||_uid('el'),label:el.label||'(unnamed)',status:el.status||'planned',tags:el.tags||[],replicates:el.replicates||[],custom:el.custom||[]}));
+          const els=(proj.elements||[]).map(el=>({...el,id:el.id||_uid('el'),label:el.label||'(unnamed)',status:el.status||'planned',tags:el.tags||[],replicates:el.replicates||[],custom:el.custom||[],log:el.log||[]}));
           let nodes=proj.nodes||[];
           if(!nodes.length&&proj.goals){nodes=_migrateGoalsToNodes(proj.goals,els);}
           nodes=nodes.map(n=>({...n,id:n.id||_uid('node'),label:n.label||'(unnamed)',custom:n.custom||[]}));
@@ -2004,6 +2609,8 @@ function handleImport(e){
         if(!el.tags) el.tags=[];
         if(!el.replicates) el.replicates=[];
         if(!el.custom) el.custom=[];
+        if(!el.links) el.links=[];
+        if(!el.log) el.log=[];
       });
       if(d.nodes) d.nodes.forEach(n=>{
         if(!n.id) n.id=_uid('node');
@@ -2152,10 +2759,10 @@ function ghLogout(){
   sessionStorage.removeItem('rg_gh_token');localStorage.removeItem('rg_gh_gist');localStorage.removeItem('rg_gh_user');
   updateGhBtn();
 }
-// Auto-sync: nach jedem saveState auch zum Gist pushen (debounced)
+// Auto-sync: nach jedem saveState auch zum Gist pushen (debounced, only if logged in)
 const _origSave=saveState;
 let _ghSaveTimer;
-saveState=function(){_origSave();clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);};
+saveState=function(){_origSave();if(ghToken){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);}};
 
 // ─── PHASE 8: FULL RESET ─────────────────────────────────────────────────────
 function showHelp(){const o=document.getElementById('help-overlay');o.style.display='flex';}
@@ -2165,6 +2772,25 @@ function resetAll(){
     localStorage.removeItem(_pk(k));
   });
   location.reload();
+}
+
+// ─── PANEL TOGGLE ────────────────────────────────────────────────────────────
+function togglePanel(){
+  const panel=document.getElementById('panel');
+  const divider=document.getElementById('drag-divider');
+  const btn=document.getElementById('panel-toggle');
+  const collapsed=panel.classList.toggle('collapsed');
+  divider.style.display=collapsed?'none':'';
+  btn.textContent=collapsed?'▶':'◀';
+  localStorage.setItem('rg_panelCollapsed',collapsed?'1':'');
+}
+function restorePanel(){
+  if(localStorage.getItem('rg_panelCollapsed')==='1'){
+    const panel=document.getElementById('panel');
+    const divider=document.getElementById('drag-divider');
+    const btn=document.getElementById('panel-toggle');
+    panel.classList.add('collapsed');divider.style.display='none';btn.textContent='▶';
+  }
 }
 
 // ─── RESIZABLE PANEL ─────────────────────────────────────────────────────────
@@ -2178,7 +2804,7 @@ function initResizable(){
     divider.classList.add('dragging');
     const startX=e.clientX, startW=panel.offsetWidth;
     const onMove=e=>{
-      const w=Math.max(200,Math.min(700,startW+startX-e.clientX));
+      const w=Math.max(120,Math.min(700,startW+startX-e.clientX));
       panel.style.width=w+'px';panel.style.minWidth=w+'px';
     };
     const onUp=()=>{
@@ -2198,6 +2824,7 @@ buildTagManager();
 buildStatusManager();
 buildRoadmap();
 initResizable();
+restorePanel();
 updateGhBtn();
 if(ghToken)ghLoad();
 </script>
