@@ -304,9 +304,15 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .backlinks .bl-items{display:flex;flex-wrap:wrap;gap:4px}
 
 /* ── ACTIVITY LOG ── */
-.log-entry{font-size:10px;color:#64748b;padding:2px 0;display:flex;gap:6px}
+.log-entry{font-size:10px;color:#64748b;padding:2px 0;display:flex;gap:6px;position:relative}
 .log-entry .log-time{color:#94a3b8;white-space:nowrap;flex-shrink:0}
-.log-entry .log-msg{word-break:break-word}
+.log-entry .log-msg{word-break:break-word;flex:1}
+.log-entry .log-actions{display:none;gap:2px;align-items:center;flex-shrink:0}
+.log-entry:hover .log-actions{display:flex}
+.log-actions button{font-size:9px;padding:0 4px;border:none;background:rgba(0,0,0,.06);border-radius:3px;cursor:pointer;color:#64748b;line-height:1.6}
+.log-actions button:hover{background:rgba(0,0,0,.12)}
+.log-actions button.danger{color:#dc2626}
+.log-actions button.danger:hover{background:rgba(220,38,38,.12)}
 .log-add-row{display:flex;gap:4px;margin-top:4px}
 .log-add-row input{flex:1;font-size:10px;padding:3px 6px;border:1px solid #e2e8f0;border-radius:4px;outline:none}
 .log-add-row input:focus{border-color:#93c5fd}
@@ -1987,7 +1993,7 @@ function backlinksHTML(label){
 function activityLogHTML(id,log){
   const fmt=d=>{const dt=new Date(d);return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});};
   const recent=(log||[]).slice(-20).reverse();
-  const entries=recent.map(e=>`<div class="log-entry"><span class="log-time">${fmt(e.time)}</span><span class="log-msg">${escH(e.msg)}</span></div>`).join('');
+  const entries=recent.map((e,i)=>{const ri=(log||[]).length-1-i;return `<div class="log-entry"><span class="log-time">${fmt(e.time)}</span><span class="log-msg">${escH(e.msg)}</span><span class="log-actions"><button onclick="editLogNote('${escAttr(id)}',${ri})" title="Edit">✎</button><button class="danger" onclick="deleteLogNote('${escAttr(id)}',${ri})" title="Delete">×</button></span></div>`;}).join('');
   return `<div class="dsec"><div class="dsec-title">Activity${log?.length?` (${log.length})`:''}</div>
     <div class="log-add-row">
       <input id="log-note-${id}" type="text" placeholder="Add a note..." onkeydown="if(event.key==='Enter')addLogNote('${escAttr(id)}')" />
@@ -2003,6 +2009,20 @@ function addLogNote(id){
   const now=new Date().toISOString();
   el.log.push({time:now,msg});
   el.modifiedAt=now;
+  saveState();renderDetail();
+}
+function editLogNote(id,idx){
+  const el=ELEMENTS.find(x=>x.id===id);if(!el||!el.log?.[idx])return;
+  const cur=el.log[idx].msg;
+  const nv=prompt('Edit note:',cur);if(nv===null||!nv.trim())return;
+  el.log[idx].msg=nv.trim();
+  el.modifiedAt=new Date().toISOString();
+  saveState();renderDetail();
+}
+function deleteLogNote(id,idx){
+  const el=ELEMENTS.find(x=>x.id===id);if(!el||!el.log?.[idx])return;
+  el.log.splice(idx,1);
+  el.modifiedAt=new Date().toISOString();
   saveState();renderDetail();
 }
 
