@@ -2665,9 +2665,32 @@ async function ghLoad(){
     const r=await fetch('https://api.github.com/gists/'+ghGistId,{headers:{Authorization:'Bearer '+ghToken}});
     const d=await r.json();
     const content=d.files?.['researchgraph_data.json']?.content;
-    if(!content)return;
+    if(!content){ghSave();return;}
     const parsed=JSON.parse(content);
-    // Multi-project format
+    // Check for local data conflict
+    const hasLocal=ELEMENTS.length>0||NODES.length>0;
+    const hasRemote=parsed.projects?parsed.projects.some(p=>(p.elements||[]).length||(p.nodes||[]).length):(parsed.elements||[]).length>0;
+    if(hasLocal&&hasRemote){
+      const choice=prompt('Local and synced data both exist.\n\nType:\n  "local" = keep local, upload to sync\n  "sync" = load synced data (overwrites local)\n  "both" = keep both (merge projects)\n\nChoice:','sync');
+      if(!choice||choice.trim()==='') return;
+      const c=choice.trim().toLowerCase();
+      if(c==='local'){ghSave();return;}
+      if(c==='both'&&parsed.projects){
+        parsed.projects.forEach(proj=>{
+          const exists=_projects.find(p=>p.name===proj.name);
+          if(exists) return;
+          _projects.push({id:proj.id,name:proj.name,color:proj.color,created:proj.created||new Date().toISOString()});
+          const prefix='rg_'+proj.id+'_';
+          localStorage.setItem(prefix+'nodes',JSON.stringify(proj.nodes||[]));
+          localStorage.setItem(prefix+'elements',JSON.stringify(proj.elements||[]));
+          localStorage.setItem(prefix+'tags',JSON.stringify(proj.tags||{}));
+          localStorage.setItem(prefix+'statuses',JSON.stringify(proj.statuses||_DEFAULT_STATUSES));
+        });
+        localStorage.setItem('rg_projects',JSON.stringify(_projects));
+        buildRoadmap();updateProjectSelector();ghSave();return;
+      }
+    }
+    // Apply remote data
     if(parsed.projects&&Array.isArray(parsed.projects)){
       _projects.length=0;
       parsed.projects.forEach(proj=>{
@@ -2682,7 +2705,6 @@ async function ghLoad(){
       const target=parsed.activeProject||_projects[0]?.id;
       if(target)switchProject(target);
     }
-    // Legacy single-project format
     else{
       if(parsed.elements)ELEMENTS.splice(0,Infinity,...parsed.elements);
       if(parsed.nodes)NODES.splice(0,Infinity,...parsed.nodes);
