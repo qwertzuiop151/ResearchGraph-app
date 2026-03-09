@@ -161,7 +161,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:1
 .p-name{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .p-desc{font-size:12px;color:#64748b;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .p-status-icon{position:absolute;top:6px;right:7px;font-size:11px;font-weight:700}
-.inline-link{color:#3b82f6;cursor:pointer;text-decoration:underline dotted}
+.inline-link{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:1px 8px;border-radius:10px;background:#f1f5f9;border-left:3px solid #94a3b8;color:#334155;cursor:pointer;text-decoration:none;vertical-align:baseline;line-height:1.5}
 .mention-dropdown{position:absolute;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);max-height:180px;overflow-y:auto;z-index:999;min-width:160px}
 .mention-item{padding:5px 10px;font-size:12px;cursor:pointer}
 .mention-item:hover,.mention-item.active{background:#f1f5f9}
@@ -1027,11 +1027,15 @@ function getElementColor(el){
 
 // ─── INLINE LINKING (@Mention) ────────────────────────────────────────────────
 function renderInlineLinks(html){
-  const allLabels=[...ELEMENTS,...NODES].map(x=>x.label);
   return html.replace(/@([\w\-()]+)/g,(m,name)=>{
-    const match=allLabels.find(l=>l===name);
-    if(!match) return m;
-    return `<span class="inline-link" data-link-label="${escH(name)}">${m}</span>`;
+    const el=ELEMENTS.find(x=>x.label===name);
+    const nd=!el?NODES.find(x=>x.label===name):null;
+    if(!el&&!nd) return m;
+    if(el){
+      const si=statusIcon(el.status);const col=getElementColor(el);
+      return `<span class="inline-link" data-link-label="${escH(name)}" style="border-left-color:${col}"><span style="font-size:10px">${escH(si.icon)}</span>${escH(name)}</span>`;
+    }
+    return `<span class="inline-link" data-link-label="${escH(name)}" style="border-left-color:#94a3b8"><span style="font-size:10px">${nd.icon||'◈'}</span>${escH(name)}</span>`;
   });
 }
 document.addEventListener('click',e=>{
