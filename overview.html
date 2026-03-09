@@ -490,7 +490,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
   <button class="hdr-btn" onclick="exportData()">⬇ Export</button>
   <button class="hdr-btn" onclick="importData()">⬆ Import</button>
   <button class="hdr-btn" onclick="showHelp()" title="How to use">?</button>
-  <button class="hdr-btn" id="gh-btn" style="background:rgba(255,255,255,.22);display:none" onclick="ghAction()">⬡ GitHub</button>
+  <button class="hdr-btn" id="gh-btn" style="background:rgba(255,255,255,.22)" onclick="ghAction()">⬡ GitHub</button>
   <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
 </div>
 
@@ -543,12 +543,16 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
   </div>
 </div>
 
-<div id="gh-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:12px;padding:28px;max-width:360px;text-align:center;color:#1e293b">
+<div id="gh-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px;max-width:400px;text-align:center;color:#1e293b">
     <h3 style="margin-bottom:12px" id="gh-modal-title">Connect GitHub</h3>
     <p style="margin-bottom:16px;font-size:13px;color:#64748b" id="gh-modal-msg"></p>
-    <div id="gh-modal-code" style="font-size:28px;font-weight:800;letter-spacing:4px;margin:16px 0;display:none"></div>
-    <a id="gh-modal-link" href="#" target="_blank" style="display:none;color:#3b82f6;font-size:13px">Open GitHub to enter code →</a>
+    <div id="gh-modal-input" style="display:none">
+      <input id="gh-pat-input" type="password" placeholder="ghp_xxxxxxxxxxxx" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:monospace;margin-bottom:8px;outline:none;box-sizing:border-box" />
+      <p style="font-size:11px;color:#94a3b8;margin-bottom:12px">GitHub &rarr; Settings &rarr; Developer settings &rarr; Personal access tokens &rarr; Generate new token (classic) &rarr; scope: <b>gist</b></p>
+      <button class="hdr-btn" style="background:#1e3a5f;color:#fff;width:100%;padding:8px" onclick="ghConnectPAT()">Connect</button>
+    </div>
+    <div id="gh-modal-status" style="display:none;font-size:13px;margin:12px 0"></div>
     <div style="margin-top:16px"><button class="hdr-btn" style="background:#e2e8f0;color:#1e293b" onclick="closeGhModal()">Close</button></div>
   </div>
 </div>
@@ -2684,72 +2688,61 @@ function handleImport(e){
   r.readAsText(f);e.target.value='';
 }
 
-// ─── GITHUB SYNC (Device Flow + Gist) ────────────────────────────────────────
-const GH_CLIENT_ID='Ov23limUXGj7sIDx6kIb';
-let ghToken=sessionStorage.getItem('rg_gh_token');
+// ─── GITHUB SYNC (PAT + Gist, Multi-Project) ────────────────────────────────
+let ghToken=localStorage.getItem('rg_gh_token');
 let ghGistId=localStorage.getItem('rg_gh_gist');
 let ghUser=localStorage.getItem('rg_gh_user');
 function updateGhBtn(){
   const btn=document.getElementById('gh-btn');
   if(ghToken) btn.textContent='⬡ '+ghUser;
-  else btn.textContent='⬡ GitHub';
+  else btn.textContent='⬡ Sync';
 }
 function ghAction(){
   if(ghToken){
-    const c=confirm(`Logged in as ${ghUser}.\n\n• OK = Sync now\n• Cancel = Logout`);
+    const c=confirm(`Syncing as ${ghUser}.\n\n• OK = Sync now\n• Cancel = Disconnect`);
     if(c) ghSave();
     else ghLogout();
   } else ghLogin();
 }
 function closeGhModal(){document.getElementById('gh-modal').style.display='none';}
-function showGhModal(title,msg){
-  document.getElementById('gh-modal-title').textContent=title;
-  document.getElementById('gh-modal-msg').textContent=msg;
-  document.getElementById('gh-modal-code').style.display='none';
-  document.getElementById('gh-modal-link').style.display='none';
+function ghLogin(){
+  document.getElementById('gh-modal-title').textContent='Connect GitHub';
+  document.getElementById('gh-modal-msg').textContent='Paste your Personal Access Token (scope: gist):';
+  document.getElementById('gh-modal-input').style.display='block';
+  document.getElementById('gh-modal-status').style.display='none';
+  document.getElementById('gh-pat-input').value='';
   document.getElementById('gh-modal').style.display='flex';
 }
-async function ghLogin(){
-  showGhModal('Connect GitHub','Requesting device code...');
+async function ghConnectPAT(){
+  const token=(document.getElementById('gh-pat-input').value||'').trim();
+  if(!token){alert('Please paste a token.');return;}
+  const status=document.getElementById('gh-modal-status');
+  status.style.display='block';status.textContent='Validating...';
   try{
-    const r=await fetch('https://github.com/login/device/code',{method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({client_id:GH_CLIENT_ID,scope:'gist'})});
-    const d=await r.json();
-    if(!d.user_code){showGhModal('Error',d.error_description||'Failed to get device code.');return;}
-    document.getElementById('gh-modal-code').textContent=d.user_code;
-    document.getElementById('gh-modal-code').style.display='block';
-    document.getElementById('gh-modal-link').href=d.verification_uri;
-    document.getElementById('gh-modal-link').style.display='inline';
-    document.getElementById('gh-modal-msg').textContent='Enter this code on GitHub:';
-    ghPoll(d.device_code,d.interval||5);
-  }catch(e){showGhModal('Error','Network error: '+e.message);}
-}
-async function ghPoll(deviceCode,interval){
-  const poll=async()=>{
-    try{
-      const r=await fetch('https://github.com/login/oauth/access_token',{method:'POST',
-        headers:{'Content-Type':'application/json','Accept':'application/json'},
-        body:JSON.stringify({client_id:GH_CLIENT_ID,device_code:deviceCode,grant_type:'urn:ietf:params:oauth:grant-type:device_code'})});
-      const d=await r.json();
-      if(d.access_token){
-        ghToken=d.access_token;sessionStorage.setItem('rg_gh_token',ghToken);
-        const u=await fetch('https://api.github.com/user',{headers:{Authorization:'Bearer '+ghToken}});
-        const ud=await u.json();ghUser=ud.login;localStorage.setItem('rg_gh_user',ghUser);
-        updateGhBtn();
-        await ghLoad();
-        closeGhModal();return;
-      }
-      if(d.error==='authorization_pending') setTimeout(poll,(interval+1)*1000);
-      else if(d.error==='slow_down') setTimeout(poll,(interval+6)*1000);
-      else showGhModal('Error',d.error_description||d.error);
-    }catch(e){showGhModal('Error','Poll error: '+e.message);}
-  };
-  setTimeout(poll,(interval+1)*1000);
+    const r=await fetch('https://api.github.com/user',{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok){status.textContent='Invalid token ('+r.status+')';return;}
+    const ud=await r.json();
+    ghToken=token;ghUser=ud.login;
+    localStorage.setItem('rg_gh_token',ghToken);
+    localStorage.setItem('rg_gh_user',ghUser);
+    updateGhBtn();
+    status.textContent='Connected as '+ghUser+'. Loading data...';
+    await ghLoad();
+    closeGhModal();
+  }catch(e){status.textContent='Error: '+e.message;}
 }
 async function ghSave(){
   if(!ghToken)return;
-  const data=JSON.stringify({nodes:NODES,elements:ELEMENTS,tags:TAGS,statuses:STATUSES,saved:new Date().toISOString()},null,2);
+  saveState();saveTags();saveStatuses();
+  const allProjects=_projects.map(p=>{
+    const prefix='rg_'+p.id+'_';
+    return{id:p.id,name:p.name,color:p.color,
+      nodes:p.id===_activeProjectId?NODES:JSON.parse(localStorage.getItem(prefix+'nodes')||'[]'),
+      elements:p.id===_activeProjectId?ELEMENTS:JSON.parse(localStorage.getItem(prefix+'elements')||'[]'),
+      tags:p.id===_activeProjectId?TAGS:JSON.parse(localStorage.getItem(prefix+'tags')||'{}'),
+      statuses:p.id===_activeProjectId?STATUSES:JSON.parse(localStorage.getItem(prefix+'statuses')||'null')||JSON.parse(JSON.stringify(_DEFAULT_STATUSES))};
+  });
+  const data=JSON.stringify({projects:allProjects,activeProject:_activeProjectId,saved:new Date().toISOString()},null,2);
   const files={'researchgraph_data.json':{content:data}};
   try{
     if(ghGistId){
@@ -2759,7 +2752,7 @@ async function ghSave(){
     }else{
       const r=await fetch('https://api.github.com/gists',{method:'POST',
         headers:{Authorization:'Bearer '+ghToken,'Content-Type':'application/json'},
-        body:JSON.stringify({description:'ResearchGraph data',public:false,files})});
+        body:JSON.stringify({description:'ResearchGraph sync',public:false,files})});
       const d=await r.json();ghGistId=d.id;localStorage.setItem('rg_gh_gist',ghGistId);
     }
   }catch(e){console.error('Gist save error:',e);}
@@ -2767,11 +2760,10 @@ async function ghSave(){
 async function ghLoad(){
   if(!ghToken)return;
   if(!ghGistId){
-    // Search for existing Gist
     try{
       const r=await fetch('https://api.github.com/gists?per_page=100',{headers:{Authorization:'Bearer '+ghToken}});
       const gists=await r.json();
-      const found=gists.find(g=>g.files['researchgraph_data.json']);
+      const found=gists.find(g=>g.files?.['researchgraph_data.json']);
       if(found){ghGistId=found.id;localStorage.setItem('rg_gh_gist',ghGistId);}
     }catch(e){}
   }
@@ -2779,23 +2771,40 @@ async function ghLoad(){
   try{
     const r=await fetch('https://api.github.com/gists/'+ghGistId,{headers:{Authorization:'Bearer '+ghToken}});
     const d=await r.json();
-    const content=d.files['researchgraph_data.json']?.content;
+    const content=d.files?.['researchgraph_data.json']?.content;
     if(!content)return;
     const parsed=JSON.parse(content);
-    if(parsed.elements)ELEMENTS.splice(0,Infinity,...parsed.elements);
-    if(parsed.nodes){NODES.splice(0,Infinity,...parsed.nodes);}
-    else if(parsed.goals){NODES.splice(0,Infinity,..._migrateGoalsToNodes(parsed.goals,ELEMENTS));}
-    if(parsed.tags)Object.keys(TAGS).forEach(k=>delete TAGS[k]),Object.assign(TAGS,parsed.tags);
-    if(parsed.statuses){Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,parsed.statuses);saveStatuses();}
-    saveState();saveTags();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
+    // Multi-project format
+    if(parsed.projects&&Array.isArray(parsed.projects)){
+      _projects.length=0;
+      parsed.projects.forEach(proj=>{
+        _projects.push({id:proj.id,name:proj.name,color:proj.color,created:proj.created||new Date().toISOString()});
+        const prefix='rg_'+proj.id+'_';
+        localStorage.setItem(prefix+'nodes',JSON.stringify(proj.nodes||[]));
+        localStorage.setItem(prefix+'elements',JSON.stringify(proj.elements||[]));
+        localStorage.setItem(prefix+'tags',JSON.stringify(proj.tags||{}));
+        localStorage.setItem(prefix+'statuses',JSON.stringify(proj.statuses||_DEFAULT_STATUSES));
+      });
+      localStorage.setItem('rg_projects',JSON.stringify(_projects));
+      const target=parsed.activeProject||_projects[0]?.id;
+      if(target)switchProject(target);
+    }
+    // Legacy single-project format
+    else{
+      if(parsed.elements)ELEMENTS.splice(0,Infinity,...parsed.elements);
+      if(parsed.nodes)NODES.splice(0,Infinity,...parsed.nodes);
+      if(parsed.tags){Object.keys(TAGS).forEach(k=>delete TAGS[k]);Object.assign(TAGS,parsed.tags);}
+      if(parsed.statuses){Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,parsed.statuses);saveStatuses();}
+      saveState();saveTags();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
+    }
   }catch(e){console.error('Gist load error:',e);}
 }
 function ghLogout(){
   ghToken=null;ghGistId=null;ghUser=null;
-  sessionStorage.removeItem('rg_gh_token');localStorage.removeItem('rg_gh_gist');localStorage.removeItem('rg_gh_user');
+  localStorage.removeItem('rg_gh_token');localStorage.removeItem('rg_gh_gist');localStorage.removeItem('rg_gh_user');
   updateGhBtn();
 }
-// Auto-sync: push to Gist after every saveState (debounced, only if logged in)
+// Auto-sync: push to Gist after every saveState (debounced 3s)
 const _origSave=saveState;
 let _ghSaveTimer;
 saveState=function(){_origSave();if(ghToken){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);}};
