@@ -2671,11 +2671,11 @@ async function ghLoad(){
     const hasLocal=ELEMENTS.length>0||NODES.length>0;
     const hasRemote=parsed.projects?parsed.projects.some(p=>(p.elements||[]).length||(p.nodes||[]).length):(parsed.elements||[]).length>0;
     if(hasLocal&&hasRemote){
-      const choice=prompt('Local and synced data both exist.\n\nType:\n  "local" = keep local, upload to sync\n  "sync" = load synced data (overwrites local)\n  "both" = keep both (merge projects)\n\nChoice:','sync');
+      const choice=prompt('You have data on this device AND on GitHub.\n\nWhat would you like to do?\n\n  1 = Keep THIS device\'s data (and upload it)\n  2 = Load data FROM GitHub (replaces this device)\n  3 = Keep both (adds missing projects)\n\nEnter 1, 2, or 3:','2');
       if(!choice||choice.trim()==='') return;
-      const c=choice.trim().toLowerCase();
-      if(c==='local'){ghSave();return;}
-      if(c==='both'&&parsed.projects){
+      const c=choice.trim();
+      if(c==='1'){ghSave();return;}
+      if(c==='3'&&parsed.projects){
         parsed.projects.forEach(proj=>{
           const exists=_projects.find(p=>p.name===proj.name);
           if(exists) return;
