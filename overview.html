@@ -3132,7 +3132,7 @@ async function ghLoad(){
       });
       localStorage.setItem('rg_projects',JSON.stringify(_projects));
       const target=parsed.activeProject||_projects[0]?.id;
-      if(target)switchProject(target);
+      if(target){_activeProjectId=target;localStorage.setItem('rg_active_project',target);_loadProjectData();}
     }
     else{
       if(parsed.elements)ELEMENTS.splice(0,Infinity,...parsed.elements);
