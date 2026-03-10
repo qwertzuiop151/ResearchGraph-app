@@ -23,8 +23,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:1
 .dnd-insert-bar{width:3px;min-height:40px;background:#3b82f6;border-radius:2px;flex-shrink:0}
 .goal-drop-zone,.group-drop-zone{height:6px;transition:height .15s,background .15s;border-radius:3px}
 .goal-dz-active{height:12px;background:#bfdbfe}
-.sort-select{background:#fff;border:1px solid #cbd5e1;color:#334155;font-size:13px;padding:6px 10px;border-radius:8px;cursor:pointer;outline:none;font-weight:600}
-.sort-select:hover{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.proj-tabs{display:flex;gap:4px;align-items:center;overflow-x:auto;max-width:40vw}
+.proj-tab{font-size:12px;font-weight:600;padding:5px 12px;border-radius:6px;border:none;
+  cursor:pointer;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);
+  display:flex;align-items:center;gap:5px;white-space:nowrap;transition:all .15s;
+  border-bottom:2px solid transparent}
+.proj-tab.active{background:rgba(255,255,255,.22);color:#fff;border-bottom-color:var(--tab-color)}
+.proj-tab:hover:not(.active){background:rgba(255,255,255,.15);color:#fff}
+.view-tabs{display:flex;gap:2px;background:#e2e8f0;border-radius:8px;padding:2px}
+.view-tab{font-size:12px;font-weight:700;padding:5px 12px;border-radius:6px;border:none;cursor:pointer;
+  background:transparent;color:#64748b;transition:all .15s}
+.view-tab.active{background:#fff;color:#1e293b;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.view-tab:hover:not(.active){background:rgba(255,255,255,.5)}
 .view-toggle-btn{background:#1e3a5f;border:none;color:#fff;font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;letter-spacing:.3px}
 .zoom-bar{position:fixed;bottom:12px;left:12px;z-index:90;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:4px 10px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-size:12px;color:#64748b;max-width:calc(100vw - 380px)}
 .zoom-bar input[type=range]{width:100px;height:4px;accent-color:#3b82f6;cursor:pointer}
@@ -37,10 +47,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:1
 .hdr-btn{background:rgba(255,255,255,.12);border:none;color:#fff;font-size:13px;font-weight:600;padding:5px 14px;border-radius:6px;cursor:pointer;letter-spacing:.2px}
 .hdr-btn:hover{background:rgba(255,255,255,.22)}
 .proj-switch{position:relative}
-.proj-switch-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:5px 14px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:600;max-width:260px}
+.proj-switch-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:5px 10px;font-size:14px;cursor:pointer;display:flex;align-items:center;font-weight:600}
 .proj-switch-btn:hover{background:rgba(255,255,255,.28)}
-.proj-switch-btn .chevron{font-size:8px;opacity:.7;transition:transform .15s}
-.proj-switch.open .chevron{transform:rotate(180deg)}
 .proj-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)}
 .proj-dd .proj-dot{border-color:rgba(0,0,0,.1)}
 .proj-dd{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:280px;background:#fff;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.18);z-index:2000;overflow:hidden;color:#333;font-size:12px}
@@ -434,14 +442,78 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .dep-chip-nav:hover{color:#3b82f6}
 .dep-chip-rm{border:none;background:none;cursor:pointer;color:#cbd5e1;font-size:12px;padding:0 0 0 2px;line-height:1}
 .dep-chip-rm:hover{color:#64748b}
+
+/* ── LAB VIEW ── */
+.lab-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;height:100%;overflow:auto}
+.lab-col{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;flex-direction:column;overflow:hidden}
+.lab-col-hdr{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #e2e8f0;font-weight:700;font-size:14px;color:#1e293b}
+.lab-col-hdr .badge{font-size:11px;font-weight:600;background:#e2e8f0;color:#64748b;padding:2px 8px;border-radius:10px}
+.lab-col-body{flex:1;overflow-y:auto;padding:12px 16px}
+.lab-cat-hdr{font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid #f1f5f9}
+.lab-cat-hdr:first-child{margin-top:0}
+.lab-todo{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-radius:6px;transition:background .1s}
+.lab-todo:hover{background:#f8fafc}
+.lab-todo-cb{width:20px;height:20px;border-radius:5px;border:2px solid #cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:all .15s;margin-top:1px}
+.lab-todo-cb.st-open{border-color:#cbd5e1;background:#fff}
+.lab-todo-cb.st-in_progress{border-color:#0891b2;background:#0891b2;color:#fff}
+.lab-todo-cb.st-done{border-color:#64748b;background:#64748b;color:#fff}
+.lab-todo-text{flex:1;font-size:13px;line-height:1.4;color:#334155}
+.lab-todo.is-done .lab-todo-text{text-decoration:line-through;color:#94a3b8}
+.lab-todo-del{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:14px;padding:0 2px;opacity:0;transition:opacity .15s}
+.lab-todo:hover .lab-todo-del{opacity:1}
+.lab-todo-del:hover{color:#ef4444}
+.lab-todo-prio{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:11px;padding:0 2px;opacity:0;transition:opacity .15s;flex-shrink:0}
+.lab-todo:hover .lab-todo-prio{opacity:1}
+.lab-todo-prio.is-prio{color:#f59e0b;opacity:1}
+.lab-todo.is-priority{background:#fffbeb}
+.lab-todo.is-priority .lab-todo-text{font-weight:600}
+.lab-todo-grip{color:#cbd5e1;cursor:grab;font-size:14px;user-select:none;flex-shrink:0;line-height:1;padding:0 2px}
+.lab-todo-grip:active{cursor:grabbing}
+.todo-insert-bar{height:3px;background:#3b82f6;border-radius:2px;margin:0 4px}
+.lab-subtasks{margin-left:28px}
+.lab-subtask{display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:12px;color:#64748b}
+.lab-subtask-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid #cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:all .15s}
+.lab-subtask-cb.st-done{border-color:#64748b;background:#64748b;color:#fff}
+.lab-subtask-cb.st-in_progress{border-color:#0891b2;background:#0891b2;color:#fff}
+.lab-subtask.is-done{text-decoration:line-through;color:#94a3b8}
+.lab-subtask-del{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:12px;padding:0;opacity:0;transition:opacity .15s}
+.lab-subtask:hover .lab-subtask-del{opacity:1}
+.lab-add-row{display:flex;gap:6px;margin-top:8px}
+.lab-add-input{flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:12px;outline:none}
+.lab-add-input:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.12)}
+.lab-add-btn{border:none;background:#3b82f6;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;cursor:pointer}
+.lab-add-btn:hover{background:#2563eb}
+.lab-add-sub{border:none;background:none;color:#94a3b8;cursor:pointer;font-size:11px;padding:2px 4px;opacity:0;transition:opacity .15s}
+.lab-todo:hover .lab-add-sub{opacity:1}
+.lab-add-sub:hover{color:#3b82f6}
+
+.jnl-entry{margin-bottom:16px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+.jnl-date{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f8fafc;font-weight:700;font-size:13px;color:#334155;border-bottom:1px solid #e2e8f0}
+.jnl-date .jnl-del{margin-left:auto;border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:14px;opacity:0;transition:opacity .15s}
+.jnl-entry:hover .jnl-del{opacity:1}
+.jnl-del:hover{color:#ef4444!important}
+.jnl-section{padding:10px 14px;border-bottom:1px solid #f1f5f9}
+.jnl-section:last-child{border-bottom:none}
+.jnl-section-title{font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px;outline:none;min-width:40px}
+.jnl-section-title:focus{color:#1e293b}
+.jnl-section-content{font-size:13px;line-height:1.5;color:#334155;outline:none;min-height:24px;white-space:pre-wrap}
+.jnl-section-content:empty::before{content:'Write something…';color:#cbd5e1}
+.jnl-section-content:focus{background:#f8fafc;border-radius:4px;padding:4px}
+.jnl-section-del{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:12px;float:right;opacity:0;transition:opacity .15s}
+.jnl-section:hover .jnl-section-del{opacity:1}
+.jnl-add-sec{border:none;background:none;color:#94a3b8;cursor:pointer;font-size:12px;padding:8px 14px;width:100%}
+.jnl-add-sec:hover{color:#3b82f6;background:#f8fafc}
+.jnl-empty,.lab-empty{text-align:center;padding:40px 20px;color:#94a3b8;font-size:14px}
+@media(max-width:768px){.lab-wrap{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
 <div id="hdr">
   <h1>ResearchGraph</h1>
+  <div class="proj-tabs" id="proj-tabs"></div>
   <div class="proj-switch" id="proj-switch">
-    <button class="proj-switch-btn" onclick="toggleProjDD()" id="proj-switch-btn"><span id="proj-switch-label"></span><span class="chevron">▼</span></button>
+    <button class="proj-switch-btn" onclick="toggleProjDD()" id="proj-switch-btn" title="Manage projects">⚙</button>
     <div class="proj-dd" id="proj-dd"></div>
   </div>
   <div class="spacer"></div>
@@ -529,15 +601,11 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
         <span class="search-clear" id="search-clear" onclick="clearSearch()" style="display:none">×</span>
       </div>
       <button class="rh-btn rh-reset" id="btn-reset-filters" onclick="resetAllFilters()" title="Reset all filters" style="display:none">✕ Reset</button>
-      <select class="sort-select" id="sort-select" onchange="changeSort(this.value)" title="Sort elements">
-        <option value="manual">⇅ Manual</option>
-        <option value="name">A→Z Name</option>
-        <option value="name-desc">Z→A Name</option>
-        <option value="status">Status</option>
-        <option value="newest">Newest first</option>
-        <option value="oldest">Oldest first</option>
-      </select>
-      <button class="view-toggle-btn" id="view-toggle" onclick="toggleView()" title="Switch view">☰ Board</button>
+      <div class="view-tabs" id="view-tabs">
+        <button class="view-tab active" data-view="tree" onclick="setView('tree')">🌳 Tree</button>
+        <button class="view-tab" data-view="board" onclick="setView('board')">☰ Board</button>
+        <button class="view-tab" data-view="lab" onclick="setView('lab')">🧪 Lab</button>
+      </div>
     </div>
     <div id="goal-list"></div>
   </div>
@@ -606,7 +674,7 @@ function _selectAll(el){const range=document.createRange();range.selectNodeConte
 // Undo stack (max 30 snapshots)
 const _undoStack=[];
 function pushUndo(){
-  _undoStack.push({nodes:JSON.stringify(NODES),elements:JSON.stringify(ELEMENTS),tags:JSON.stringify(TAGS),statuses:JSON.stringify(STATUSES)});
+  _undoStack.push({nodes:JSON.stringify(NODES),elements:JSON.stringify(ELEMENTS),tags:JSON.stringify(TAGS),statuses:JSON.stringify(STATUSES),todos:JSON.stringify(TODOS),journal:JSON.stringify(JOURNAL)});
   if(_undoStack.length>30) _undoStack.shift();
 }
 function undo(){
@@ -616,6 +684,8 @@ function undo(){
   ELEMENTS.splice(0,Infinity,...JSON.parse(snap.elements));
   Object.keys(TAGS).forEach(k=>delete TAGS[k]);Object.assign(TAGS,JSON.parse(snap.tags));
   Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,JSON.parse(snap.statuses));
+  if(snap.todos){TODOS.splice(0,Infinity,...JSON.parse(snap.todos));saveTodos();}
+  if(snap.journal){JOURNAL.splice(0,Infinity,...JSON.parse(snap.journal));saveJournal();}
   saveState();saveTags();saveStatuses();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
 }
 document.addEventListener('keydown',e=>{
@@ -680,12 +750,15 @@ function _renderStatusBar(projId){
   return `<div class="proj-status-bar" title="${total} elements">${segs}</div>`;
 }
 function updateProjectSelector(){
-  const btn=document.getElementById('proj-switch-btn');
-  const cur=_projects.find(p=>p.id===_activeProjectId);
-  if(!btn)return;
-  const col=cur?_getProjColor(cur):PROJ_COLORS[0];
-  const name=cur?cur.name:'No Project';
-  btn.innerHTML=`<span class="proj-dot" style="background:${col}"></span><span id="proj-switch-label">${escH(name)}</span><span class="chevron">▼</span>`;
+  renderProjTabs();
+}
+function renderProjTabs(){
+  const c=document.getElementById('proj-tabs');if(!c)return;
+  c.innerHTML=_projects.map(p=>{
+    const col=_getProjColor(p);
+    const act=p.id===_activeProjectId?' active':'';
+    return `<button class="proj-tab${act}" style="--tab-color:${col}" onclick="switchProject('${escAttr(p.id)}')"><span class="proj-dot" style="background:${col}"></span>${escH(p.name)}</button>`;
+  }).join('');
 }
 function toggleProjDD(){
   const sw=document.getElementById('proj-switch');
@@ -709,7 +782,7 @@ function renderProjDD(){
     const active=p.id===_activeProjectId?' active':'';
     const col=_getProjColor(p);
     const borderStyle=p.id===_activeProjectId?`border-left-color:${col}`:'';
-    return `<div class="proj-dd-item${active}" style="${borderStyle}" onclick="switchProject('${escAttr(p.id)}')">
+    return `<div class="proj-dd-item${active}" style="${borderStyle}" data-proj-id="${escAttr(p.id)}">
       <span class="proj-dot" style="background:${col}"></span>
       <span class="proj-item-body">
         <span class="proj-name">${escH(p.name)}</span>
@@ -723,11 +796,30 @@ function renderProjDD(){
   }).join('');
   dd.innerHTML=`<div class="proj-dd-list">${items}</div><div class="proj-dd-sep"></div><div class="proj-dd-add" onclick="addProject()">+ New Project</div>`;
 }
+function _loadProjectData(){
+  NODES.splice(0,Infinity,..._load('nodes',[]));
+  ELEMENTS.splice(0,Infinity,..._load('elements',[]));
+  TODOS.splice(0,Infinity,..._load('todos',[]).map((t,i)=>({id:t.id,text:t.text,status:t.status||(t.done?'done':'open'),category:t.category||'general',order:t.order??i,subtasks:t.subtasks||[],createdAt:t.createdAt||null,modifiedAt:t.modifiedAt||null})));
+  JOURNAL.splice(0,Infinity,..._load('journal',[]));
+  Object.keys(TAGS).forEach(k=>delete TAGS[k]);Object.assign(TAGS,_load('tags',{}));
+  Object.keys(STATUSES).forEach(k=>delete STATUSES[k]);Object.assign(STATUSES,_load('statuses',null)||JSON.parse(JSON.stringify(_DEFAULT_STATUSES)));
+  collapsedNodes.clear();_load('cNodes',[]).forEach(i=>collapsedNodes.add(i));
+  selType=null;selId=null;_undoStack.length=0;
+  _searchQuery='';document.getElementById('search-input').value='';
+  document.getElementById('search-clear').style.display='none';
+  _statusFilter.clear();hiddenTags.clear();_bulkSelected.clear();
+  _sortMode='manual';_tagEditMode=false;_statusEditMode=false;
+  document.documentElement.style.setProperty('--proj-color',_getProjColor(_projects.find(p=>p.id===_activeProjectId)||{}));
+  updateProjectSelector();buildTagManager();buildStatusManager();
+  buildRoadmap();renderDetail();updateCounts();updateResetBtn();
+}
 function switchProject(id){
   if(id===_activeProjectId)return;
-  saveState();saveTags();saveStatuses();
+  saveState();saveTags();saveStatuses();saveTodos();saveJournal();
+  localStorage.setItem(_pk('cNodes'),JSON.stringify([...collapsedNodes]));
+  clearTimeout(_ghSaveTimer);
   _activeProjectId=id;localStorage.setItem('rg_active_project',id);
-  location.reload();
+  _loadProjectData();
 }
 function _projColorPalette(selColor){
   return `<span class="proj-color-palette">${PROJ_COLORS.map(c=>`<span class="proj-color-sw${c===selColor?' sel':''}" data-color="${c}" style="background:${c}" onclick="event.stopPropagation();_pickProjColor(this)"></span>`).join('')}</span>`;
@@ -781,7 +873,7 @@ function renameProjInline(id){
   const dd=document.getElementById('proj-dd');
   const items=dd.querySelectorAll('.proj-dd-item');
   for(const item of items){
-    if(item.getAttribute('onclick')&&item.getAttribute('onclick').includes(id)){
+    if(item.dataset.projId===id){
       const col=_getProjColor(proj);
       item.outerHTML=`<div class="proj-edit-row" onclick="event.stopPropagation()">
         <input class="proj-edit-input" id="proj-rename-input" value="${escAttr(proj.name)}">
@@ -806,13 +898,15 @@ function deleteProjectById(id){
   if(_projects.length<=1){alert('Cannot delete the only project.');return;}
   const proj=_projects.find(p=>p.id===id);
   if(!confirm(`Delete "${proj?proj.name:id}" and all its data?`))return;
-  ['elements','nodes','todos','tags','statuses','cNodes'].forEach(k=>{
+  ['elements','nodes','todos','journal','tags','statuses','cNodes'].forEach(k=>{
     localStorage.removeItem('rg_'+id+'_'+k);
   });
   _projects=_projects.filter(p=>p.id!==id);
   saveProjects();
-  if(id===_activeProjectId){switchProject(_projects[0].id);}
-  else{updateProjectSelector();renderProjDD();}
+  if(id===_activeProjectId){
+    _activeProjectId=_projects[0].id;localStorage.setItem('rg_active_project',_activeProjectId);
+    _loadProjectData();
+  } else{updateProjectSelector();renderProjDD();}
 }
 function deleteProject(){
   deleteProjectById(_activeProjectId);
@@ -838,7 +932,20 @@ const _migratedEls=(function(){
   return null;
 })();
 const ELEMENTS = _migratedEls || _DE;
-const TODOS    = _load('todos', []);
+const TODOS    = _load('todos', []).map((t,i)=>({
+  id:t.id, text:t.text,
+  status: t.status || (t.done ? 'done' : 'open'),
+  category: t.category || 'general',
+  order: t.order ?? i,
+  subtasks: t.subtasks || [],
+  createdAt: t.createdAt || null,
+  modifiedAt: t.modifiedAt || null
+}));
+const JOURNAL = _load('journal', []);
+function saveJournal(){
+  localStorage.setItem(_pk('journal'),JSON.stringify(JOURNAL));
+  if(typeof ghToken!=='undefined'&&ghToken){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);}
+}
 let TAGS = _load('tags', {});
 const _DEFAULT_STATUSES={
   planned:{label:'planned',icon:'○',color:'#e9d5ff;#4c1d95'},
@@ -1371,6 +1478,7 @@ function _nodeMatchesSearch(nodeId){
 function buildRoadmap(){
   const _curProj=_projects.find(p=>p.id===_activeProjectId);
   document.documentElement.style.setProperty('--proj-color',_getProjColor(_curProj||{}));
+  if(_viewMode==='lab') return buildLabView();
   if(_viewMode==='board') return buildBoard();
   const r=document.getElementById('goal-list');r.innerHTML='';
   // Zero-state
@@ -2244,17 +2352,17 @@ function _elSortFn(a,b){
     default: return (a.order||0)-(b.order||0);
   }
 }
-function changeSort(val){_sortMode=val;buildRoadmap();updateResetBtn();}
+
 function resetAllFilters(){
   _searchQuery='';document.getElementById('search-input').value='';
   document.getElementById('search-clear').style.display='none';
   _statusFilter.clear();
   hiddenTags.clear();
-  _sortMode='manual';document.getElementById('sort-select').value='manual';
+  _sortMode='manual';
   buildTagManager();buildStatusManager();buildRoadmap();updateResetBtn();
 }
 function updateResetBtn(){
-  const active=_searchQuery||_statusFilter.size||hiddenTags.size||_sortMode!=='manual';
+  const active=_searchQuery||_statusFilter.size||hiddenTags.size;
   document.getElementById('btn-reset-filters').style.display=active?'':'none';
 }
 
@@ -2320,18 +2428,21 @@ function toggleStatusFilter(status){
   _statusFilter.has(status)?_statusFilter.delete(status):_statusFilter.add(status);
   buildRoadmap();updateResetBtn();
 }
-function toggleView(){
-  _viewMode=_viewMode==='tree'?'board':'tree';
-  const btn=document.getElementById('view-toggle');
+function setView(mode){
+  _viewMode=mode;
+  document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===mode));
   const addBtn=document.getElementById('btn-add-goal');
   const title=document.getElementById('roadmap-title');
-  if(_viewMode==='board'){
-    btn.textContent='🌳 Tree';title.textContent='Status Board';addBtn.style.display='';
-  } else {
-    btn.textContent='☰ Board';title.textContent='Nodes';addBtn.style.display='';
-  }
+  const search=document.querySelector('.search-box');
+  const reset=document.getElementById('btn-reset-filters');
+  const isLab=mode==='lab';
+  if(addBtn)addBtn.style.display=isLab?'none':'';
+  if(search)search.style.display=isLab?'none':'';
+  if(reset&&isLab)reset.style.display='none';
+  title.textContent=mode==='board'?'Status Board':mode==='lab'?'Lab Dashboard':'Nodes';
   buildRoadmap();
 }
+function toggleView(){setView(_viewMode==='tree'?'board':'tree');}
 function buildBoard(){
   const r=document.getElementById('goal-list');r.innerHTML='';
   const allEls=ELEMENTS.filter(e=>e.status!=='abandoned'&&(!_searchQuery||_matchesSearch(e)));
@@ -2365,7 +2476,7 @@ function buildBoard(){
         goalTag.style.cssText='font-size:9px;color:#3b82f6;margin-top:2px;cursor:pointer';
         goalTag.textContent=(root.icon||'')+' '+root.label;
         goalTag.title='Switch to tree view';
-        goalTag.onclick=ev=>{ev.stopPropagation();_viewMode='tree';document.getElementById('view-toggle').textContent='\u2630 Board';document.getElementById('roadmap-title').textContent='Nodes';buildRoadmap();select('node',root.id);};
+        goalTag.onclick=ev=>{ev.stopPropagation();setView('tree');select('node',root.id);};
         card.appendChild(goalTag);
       }
       cards.appendChild(card);
@@ -2428,14 +2539,312 @@ function confirmAdd(){
   saveState(); buildRoadmap(); closeAddModal();
 }
 
+// ─── LAB VIEW ────────────────────────────────────────────────────────────────
+function buildLabView(){
+  const r=document.getElementById('goal-list');
+  const openCount=TODOS.filter(t=>t.status!=='done').length;
+  const jnlCount=JOURNAL.length;
+  r.innerHTML=`<div class="lab-wrap">
+    <div class="lab-col">
+      <div class="lab-col-hdr">📋 Tasks <span class="badge">${openCount} open</span></div>
+      <div class="lab-col-body" id="lab-todos"></div>
+    </div>
+    <div class="lab-col">
+      <div class="lab-col-hdr">📓 Journal <span class="badge">${jnlCount}</span>
+        <div style="flex:1"></div>
+        <button class="lab-add-btn" onclick="addJournalEntry()" style="font-size:11px;padding:4px 10px">+ Today</button>
+      </div>
+      <div class="lab-col-body" id="lab-journal"></div>
+    </div>
+  </div>`;
+  renderLabTodos();
+  renderLabJournal();
+}
+
+function renderLabTodos(){
+  const el=document.getElementById('lab-todos');
+  if(!el)return;
+  const cats=[{key:'labor',label:'Lab'},{key:'general',label:'General'}];
+  let html='';
+  cats.forEach(cat=>{
+    const items=TODOS.filter(t=>t.category===cat.key).sort((a,b)=>{const pa=a.priority?1:0,pb=b.priority?1:0;if(pa!==pb)return pb-pa;return(a.order||0)-(b.order||0);});
+    if(!items.length&&cat.key==='labor'){
+      // still show header+add row for labor even when empty
+    } else if(!items.length) {
+      html+=`<div class="lab-cat-hdr">${cat.label}</div>`;
+      html+=`<div class="lab-add-row"><input class="lab-add-input" placeholder="New ${cat.label.toLowerCase()} task…" onkeydown="if(event.key==='Enter')addLabTodo('${cat.key}',this)" /><button class="lab-add-btn" onclick="addLabTodo('${cat.key}',this.previousElementSibling)">+</button></div>`;
+      return;
+    }
+    html+=`<div class="lab-cat-hdr">${cat.label}</div>`;
+    items.forEach(t=>{
+      const isDone=t.status==='done';
+      const cbIcon=t.status==='done'?'✓':t.status==='in_progress'?'⟳':'';
+      const prioClass=t.priority?' is-priority':'';
+      html+=`<div class="lab-todo${isDone?' is-done':''}${prioClass}" draggable="true" data-todo-id="${escAttr(t.id)}" data-cat="${escAttr(t.category)}">
+        <span class="lab-todo-grip" title="Drag to reorder">⠿</span>
+        <div class="lab-todo-cb st-${t.status}" onclick="cycleTodoStatus('${escAttr(t.id)}')" title="${t.status}">${cbIcon}</div>
+        <div class="lab-todo-text" onclick="editTodoText(this,'${escAttr(t.id)}')">${renderInlineLinks(escH(t.text))}</div>
+        <button class="lab-todo-prio${t.priority?' is-prio':''}" onclick="toggleTodoPriority('${escAttr(t.id)}')" title="Toggle priority">▲</button>
+        <button class="lab-add-sub" onclick="addSubtask('${escAttr(t.id)}')" title="Add subtask">+sub</button>
+        <button class="lab-todo-del" onclick="deleteLabTodo('${escAttr(t.id)}')">×</button>
+      </div>`;
+      if(t.subtasks&&t.subtasks.length){
+        html+=`<div class="lab-subtasks">`;
+        t.subtasks.forEach(s=>{
+          const sDone=s.status==='done';
+          const sIcon=s.status==='done'?'✓':s.status==='in_progress'?'⟳':'';
+          html+=`<div class="lab-subtask${sDone?' is-done':''}">
+            <div class="lab-subtask-cb st-${s.status||'open'}" onclick="toggleSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">${sIcon}</div>
+            <span>${renderInlineLinks(escH(s.text))}</span>
+            <button class="lab-subtask-del" onclick="deleteSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">×</button>
+          </div>`;
+        });
+        html+=`</div>`;
+      }
+    });
+    html+=`<div class="lab-add-row"><input class="lab-add-input" placeholder="New ${cat.label.toLowerCase()} task…" onkeydown="if(event.key==='Enter')addLabTodo('${cat.key}',this)" /><button class="lab-add-btn" onclick="addLabTodo('${cat.key}',this.previousElementSibling)">+</button></div>`;
+  });
+  if(!TODOS.length) html+=`<div class="lab-empty">No tasks yet. Add your first task above.</div>`;
+  el.innerHTML=html;
+  _initTodoDnD();
+}
+
+function renderLabJournal(){
+  const el=document.getElementById('lab-journal');
+  if(!el)return;
+  if(!JOURNAL.length){el.innerHTML='<div class="jnl-empty">No journal entries yet. Click "+ Today" to start.</div>';return;}
+  const sorted=[...JOURNAL].sort((a,b)=>b.date.localeCompare(a.date));
+  let html='';
+  sorted.forEach(entry=>{
+    html+=`<div class="jnl-entry">
+      <div class="jnl-date">${escH(entry.date)}<button class="jnl-del" onclick="deleteJournalEntry('${escAttr(entry.id)}')" title="Delete entry">×</button></div>`;
+    (entry.sections||[]).forEach(sec=>{
+      html+=`<div class="jnl-section">
+        <button class="jnl-section-del" onclick="deleteJournalSection('${escAttr(entry.id)}','${escAttr(sec.id)}')" title="Delete section">×</button>
+        <div class="jnl-section-title" contenteditable="true" data-eid="${escAttr(entry.id)}" data-sid="${escAttr(sec.id)}" onblur="saveJournalTitle(this)">${escH(sec.title)}</div>
+        <div class="jnl-section-content" contenteditable="true" data-eid="${escAttr(entry.id)}" data-sid="${escAttr(sec.id)}" onblur="saveJournalContent(this)">${renderInlineLinks(escH(sec.content))}</div>
+      </div>`;
+    });
+    html+=`<button class="jnl-add-sec" onclick="addJournalSection('${escAttr(entry.id)}')">+ Add Section</button>`;
+    html+=`</div>`;
+  });
+  el.innerHTML=html;
+}
+
+// TODO interaction functions
+function cycleTodoStatus(id){
+  const t=TODOS.find(x=>x.id===id);if(!t)return;
+  pushUndo();
+  const cycle={open:'in_progress',in_progress:'done',done:'open'};
+  t.status=cycle[t.status]||'open';
+  t.modifiedAt=new Date().toISOString();
+  saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+}
+function toggleTodoPriority(id){
+  const t=TODOS.find(x=>x.id===id);if(!t)return;
+  pushUndo();t.priority=!t.priority;t.modifiedAt=new Date().toISOString();
+  saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+}
+function editTodoText(el,id){
+  if(el.isContentEditable)return;
+  el.contentEditable='true';el.focus();
+  // Select all text
+  const range=document.createRange();range.selectNodeContents(el);
+  const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);
+  const save=()=>{
+    el.contentEditable='false';
+    const t=TODOS.find(x=>x.id===id);if(!t)return;
+    const newText=el.textContent.trim();
+    if(newText&&newText!==t.text){pushUndo();t.text=newText;t.modifiedAt=new Date().toISOString();saveTodos();}
+    else{el.innerHTML=renderInlineLinks(escH(t.text));}
+  };
+  el.addEventListener('blur',save,{once:true});
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}if(e.key==='Escape'){el.textContent=TODOS.find(x=>x.id===id)?.text||'';el.blur();}},{once:true});
+}
+let _todoDragId=null;
+function _initTodoDnD(){
+  const container=document.getElementById('lab-todos');if(!container||container._dndInit)return;
+  container._dndInit=true;
+  container.addEventListener('dragstart',e=>{
+    const row=e.target.closest('.lab-todo[data-todo-id]');if(!row)return;
+    _todoDragId=row.dataset.todoId;
+    e.dataTransfer.effectAllowed='move';
+    row.style.opacity='.4';
+  });
+  container.addEventListener('dragend',e=>{
+    const row=e.target.closest('.lab-todo');if(row)row.style.opacity='';
+    container.querySelectorAll('.todo-insert-bar').forEach(b=>b.remove());
+    _todoDragId=null;
+  });
+  container.addEventListener('dragover',e=>{
+    if(!_todoDragId)return;e.preventDefault();e.dataTransfer.dropEffect='move';
+    container.querySelectorAll('.todo-insert-bar').forEach(b=>b.remove());
+    const rows=[...container.querySelectorAll('.lab-todo[data-todo-id]')];
+    const bar=document.createElement('div');bar.className='todo-insert-bar';
+    let inserted=false;
+    for(let i=0;i<rows.length;i++){
+      const rect=rows[i].getBoundingClientRect();
+      if(e.clientY<rect.top+rect.height/2){rows[i].before(bar);inserted=true;break;}
+    }
+    if(!inserted&&rows.length) rows[rows.length-1].after(bar);
+  });
+  container.addEventListener('dragleave',e=>{
+    if(!container.contains(e.relatedTarget))container.querySelectorAll('.todo-insert-bar').forEach(b=>b.remove());
+  });
+  container.addEventListener('drop',e=>{
+    e.preventDefault();
+    container.querySelectorAll('.todo-insert-bar').forEach(b=>b.remove());
+    if(!_todoDragId)return;
+    const dragT=TODOS.find(t=>t.id===_todoDragId);if(!dragT)return;
+    // Determine drop position by Y-coordinate
+    const rows=[...container.querySelectorAll('.lab-todo[data-todo-id]')];
+    let insertIdx=rows.length;
+    for(let i=0;i<rows.length;i++){
+      const rect=rows[i].getBoundingClientRect();
+      if(e.clientY<rect.top+rect.height/2){insertIdx=i;break;}
+    }
+    // Determine target category from nearest row
+    const nearRow=rows[Math.min(insertIdx,rows.length-1)];
+    const targetCat=nearRow?nearRow.dataset.cat:dragT.category;
+    pushUndo();
+    dragT.category=targetCat;
+    const catItems=TODOS.filter(t=>t.category===targetCat).sort((a,b)=>(a.order||0)-(b.order||0));
+    const filtered=catItems.filter(t=>t.id!==dragT.id);
+    // Find insert position within category
+    const catRows=rows.filter(r=>r.dataset.cat===targetCat);
+    let catIdx=filtered.length;
+    for(let i=0;i<catRows.length;i++){
+      const rect=catRows[i].getBoundingClientRect();
+      if(e.clientY<rect.top+rect.height/2){
+        const rowTodo=filtered.find(t=>t.id===catRows[i].dataset.todoId);
+        catIdx=rowTodo?filtered.indexOf(rowTodo):i;
+        break;
+      }
+    }
+    filtered.splice(catIdx,0,dragT);
+    filtered.forEach((t,i)=>t.order=i);
+    _todoDragId=null;
+    saveTodos();buildLabView();
+  });
+}
+function addLabTodo(category,inputEl){
+  const text=(inputEl?.value||'').trim();if(!text)return;
+  pushUndo();
+  const now=new Date().toISOString();
+  TODOS.push({id:_uid('t'),text,status:'open',category,order:TODOS.length,subtasks:[],createdAt:now,modifiedAt:now});
+  inputEl.value='';
+  saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+  buildLabView(); // update count badge
+}
+function deleteLabTodo(id){
+  const idx=TODOS.findIndex(x=>x.id===id);if(idx<0)return;
+  pushUndo();
+  TODOS.splice(idx,1);
+  saveTodos();
+  if(_viewMode==='lab') buildLabView();
+}
+function addSubtask(todoId){
+  const text=prompt('Subtask:');if(!text||!text.trim())return;
+  const t=TODOS.find(x=>x.id===todoId);if(!t)return;
+  pushUndo();
+  t.subtasks.push({id:_uid('st'),text:text.trim(),status:'open'});
+  t.modifiedAt=new Date().toISOString();
+  saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+}
+function toggleSubtask(tid,sid){
+  const t=TODOS.find(x=>x.id===tid);if(!t)return;
+  const s=t.subtasks.find(x=>x.id===sid);if(!s)return;
+  pushUndo();
+  const cycle={open:'in_progress',in_progress:'done',done:'open'};
+  s.status=cycle[s.status||'open']||'open';
+  t.modifiedAt=new Date().toISOString();
+  saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+}
+function deleteSubtask(tid,sid){
+  const t=TODOS.find(x=>x.id===tid);if(!t)return;
+  const idx=t.subtasks.findIndex(x=>x.id===sid);if(idx<0)return;
+  pushUndo();
+  t.subtasks.splice(idx,1);
+  t.modifiedAt=new Date().toISOString();
+  saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+}
+
+// Journal interaction functions
+function addJournalEntry(){
+  const today=new Date().toISOString().slice(0,10);
+  const existing=JOURNAL.find(e=>e.date===today);
+  if(existing){
+    // scroll to it
+    if(_viewMode==='lab') renderLabJournal();
+    return;
+  }
+  pushUndo();
+  const now=new Date().toISOString();
+  JOURNAL.push({id:_uid('jnl'),date:today,sections:[{id:_uid('js'),title:'Notes',content:''}],createdAt:now,modifiedAt:now});
+  saveJournal();
+  if(_viewMode==='lab') buildLabView();
+}
+function addJournalSection(entryId){
+  const entry=JOURNAL.find(e=>e.id===entryId);if(!entry)return;
+  pushUndo();
+  entry.sections.push({id:_uid('js'),title:'Notes',content:''});
+  entry.modifiedAt=new Date().toISOString();
+  saveJournal();
+  if(_viewMode==='lab') renderLabJournal();
+}
+let _jnlSaveTimer;
+function saveJournalContent(el){
+  const eid=el.dataset.eid,sid=el.dataset.sid;
+  const entry=JOURNAL.find(e=>e.id===eid);if(!entry)return;
+  const sec=entry.sections.find(s=>s.id===sid);if(!sec)return;
+  sec.content=el.textContent;
+  entry.modifiedAt=new Date().toISOString();
+  clearTimeout(_jnlSaveTimer);_jnlSaveTimer=setTimeout(()=>saveJournal(),500);
+}
+function saveJournalTitle(el){
+  const eid=el.dataset.eid,sid=el.dataset.sid;
+  const entry=JOURNAL.find(e=>e.id===eid);if(!entry)return;
+  const sec=entry.sections.find(s=>s.id===sid);if(!sec)return;
+  sec.title=el.textContent.trim()||'Notes';
+  entry.modifiedAt=new Date().toISOString();
+  saveJournal();
+}
+function deleteJournalEntry(id){
+  if(!confirm('Delete this journal entry?'))return;
+  pushUndo();
+  const idx=JOURNAL.findIndex(e=>e.id===id);if(idx<0)return;
+  JOURNAL.splice(idx,1);
+  saveJournal();
+  if(_viewMode==='lab') buildLabView();
+}
+function deleteJournalSection(eid,sid){
+  const entry=JOURNAL.find(e=>e.id===eid);if(!entry)return;
+  const idx=entry.sections.findIndex(s=>s.id===sid);if(idx<0)return;
+  pushUndo();
+  entry.sections.splice(idx,1);
+  entry.modifiedAt=new Date().toISOString();
+  saveJournal();
+  if(_viewMode==='lab') renderLabJournal();
+}
+
 // ─── TODO ─────────────────────────────────────────────────────────────────────
-function saveTodos(){localStorage.setItem(_pk('todos'),JSON.stringify(TODOS));}
+function saveTodos(){
+  localStorage.setItem(_pk('todos'),JSON.stringify(TODOS));
+  if(typeof ghToken!=='undefined'&&ghToken){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);}
+}
 function openTodo(){document.getElementById('todo-modal').style.display='block';renderTodo();}
 function closeTodo(){document.getElementById('todo-modal').style.display='none';}
 function switchTodoTab(tab){todoTab=tab;renderTodo();}
 function renderTodo(){
   const body=document.getElementById('todo-body');
-  const open=TODOS.filter(t=>!t.done), done=TODOS.filter(t=>t.done);
+  const _prioSort=(a,b)=>{const pa=a.priority?1:0,pb=b.priority?1:0;return pb-pa;};
+  const open=TODOS.filter(t=>t.status!=='done').sort(_prioSort), done=TODOS.filter(t=>t.status==='done');
   const list=todoTab==='open'?open:done;
   const statusRows=NODES.filter(n=>!n.parentId).map(n=>{
     const chips=nodeStatusChips(n.id);
@@ -2445,13 +2854,15 @@ function renderTodo(){
       <span class="tsr-badge" style="background:${allDone?'#bfdbfe':'#fed7aa'};color:${allDone?'#1e3a8a':'#7c2d12'}">${allDone?'✓ done':'⟳ in progress'}</span>
       <div style="display:flex;gap:3px">${chips}</div></div>`;
   }).join('');
-  const itemsHTML=list.length?list.map(t=>`
-    <div class="todo-item${t.done?' done':''}">
-      <div class="todo-cb" onclick="toggleTodo('${t.id}')">${t.done?'✓':''}</div>
-      <span class="todo-text" onclick="toggleTodo('${t.id}')">${escH(t.text)}</span>
-      ${t.done?`<button class="todo-undo" onclick="toggleTodo('${escAttr(t.id)}')">undo</button>`:''}
-      <button class="todo-item-del" onclick="deleteTodo('${t.id}')">×</button>
-    </div>`).join(''):`<div class="todo-empty">${todoTab==='open'?'No open tasks.':'Nothing completed yet.'}</div>`;
+  const itemsHTML=list.length?list.map(t=>{
+    const isDone=t.status==='done';
+    return `<div class="todo-item${isDone?' done':''}">
+      <div class="todo-cb" onclick="toggleTodo('${escAttr(t.id)}')">${isDone?'✓':''}</div>
+      ${t.priority?'<span style="color:#f59e0b;font-size:11px;font-weight:700">▲</span>':''}
+      <span class="todo-text" onclick="toggleTodo('${escAttr(t.id)}')">${escH(t.text)}</span>
+      ${isDone?`<button class="todo-undo" onclick="toggleTodo('${escAttr(t.id)}')">undo</button>`:''}
+      <button class="todo-item-del" onclick="deleteTodo('${escAttr(t.id)}')">×</button>
+    </div>`;}).join(''):`<div class="todo-empty">${todoTab==='open'?'No open tasks.':'Nothing completed yet.'}</div>`;
   body.innerHTML=`
     <div class="todo-tabs">
       <div class="todo-tab ${todoTab==='open'?'active':''}" onclick="switchTodoTab('open')">Open (${open.length})</div>
@@ -2468,12 +2879,20 @@ function renderTodo(){
     </div>`;
   if(todoTab==='open') setTimeout(()=>document.getElementById('todo-new-input')?.focus(),50);
 }
-function toggleTodo(id){const t=TODOS.find(x=>x.id===id);if(!t)return;t.done=!t.done;saveTodos();renderTodo();}
+function toggleTodo(id){
+  const t=TODOS.find(x=>x.id===id);if(!t)return;
+  const cycle={open:'done',in_progress:'done',done:'open'};
+  t.status=cycle[t.status]||'open';
+  t.modifiedAt=new Date().toISOString();
+  saveTodos();renderTodo();
+}
 function deleteTodo(id){const idx=TODOS.findIndex(x=>x.id===id);if(idx<0)return;TODOS.splice(idx,1);saveTodos();renderTodo();}
 function addTodo(){
   const inp=document.getElementById('todo-new-input');
   const text=(inp?.value||'').trim();if(!text)return;
-  TODOS.push({id:_uid('t'),text,done:false});inp.value='';saveTodos();renderTodo();
+  const now=new Date().toISOString();
+  TODOS.push({id:_uid('t'),text,status:'open',category:'general',order:TODOS.length,subtasks:[],createdAt:now,modifiedAt:now});
+  inp.value='';saveTodos();renderTodo();
 }
 
 // ─── EXPORT / IMPORT ─────────────────────────────────────────────────────────
@@ -2487,7 +2906,9 @@ function exportData(){
     const pEls=p.id===_activeProjectId?ELEMENTS:JSON.parse(localStorage.getItem(prefix+'elements')||'[]');
     const pTags=p.id===_activeProjectId?TAGS:JSON.parse(localStorage.getItem(prefix+'tags')||'{}');
     const pStatuses=p.id===_activeProjectId?STATUSES:JSON.parse(localStorage.getItem(prefix+'statuses')||'null')||JSON.parse(JSON.stringify(_DEFAULT_STATUSES));
-    return{id:p.id,name:p.name,nodes:pNodes,elements:pEls,tags:pTags,statuses:pStatuses};
+    const pTodos=p.id===_activeProjectId?TODOS:JSON.parse(localStorage.getItem(prefix+'todos')||'[]');
+    const pJournal=p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]');
+    return{id:p.id,name:p.name,nodes:pNodes,elements:pEls,tags:pTags,statuses:pStatuses,todos:pTodos,journal:pJournal};
   });
   const data={projects:allProjects,exported:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -2525,6 +2946,8 @@ function handleImport(e){
           localStorage.setItem(prefix+'elements',JSON.stringify(els));
           if(proj.tags) localStorage.setItem(prefix+'tags',JSON.stringify(proj.tags));
           if(proj.statuses) localStorage.setItem(prefix+'statuses',JSON.stringify(proj.statuses));
+          if(proj.todos) localStorage.setItem(prefix+'todos',JSON.stringify(proj.todos));
+          if(proj.journal) localStorage.setItem(prefix+'journal',JSON.stringify(proj.journal));
           lastPid=pid;
         });
         saveProjects();
@@ -2633,7 +3056,9 @@ async function ghSave(){
       nodes:p.id===_activeProjectId?NODES:JSON.parse(localStorage.getItem(prefix+'nodes')||'[]'),
       elements:p.id===_activeProjectId?ELEMENTS:JSON.parse(localStorage.getItem(prefix+'elements')||'[]'),
       tags:p.id===_activeProjectId?TAGS:JSON.parse(localStorage.getItem(prefix+'tags')||'{}'),
-      statuses:p.id===_activeProjectId?STATUSES:JSON.parse(localStorage.getItem(prefix+'statuses')||'null')||JSON.parse(JSON.stringify(_DEFAULT_STATUSES))};
+      statuses:p.id===_activeProjectId?STATUSES:JSON.parse(localStorage.getItem(prefix+'statuses')||'null')||JSON.parse(JSON.stringify(_DEFAULT_STATUSES)),
+      todos:p.id===_activeProjectId?TODOS:JSON.parse(localStorage.getItem(prefix+'todos')||'[]'),
+      journal:p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]')};
   });
   const data=JSON.stringify({projects:allProjects,activeProject:_activeProjectId,saved:new Date().toISOString()},null,2);
   const files={'researchgraph_data.json':{content:data}};
@@ -2685,6 +3110,8 @@ async function ghLoad(){
           localStorage.setItem(prefix+'elements',JSON.stringify(proj.elements||[]));
           localStorage.setItem(prefix+'tags',JSON.stringify(proj.tags||{}));
           localStorage.setItem(prefix+'statuses',JSON.stringify(proj.statuses||_DEFAULT_STATUSES));
+          localStorage.setItem(prefix+'todos',JSON.stringify(proj.todos||[]));
+          localStorage.setItem(prefix+'journal',JSON.stringify(proj.journal||[]));
         });
         localStorage.setItem('rg_projects',JSON.stringify(_projects));
         buildRoadmap();updateProjectSelector();ghSave();return;
@@ -2700,6 +3127,8 @@ async function ghLoad(){
         localStorage.setItem(prefix+'elements',JSON.stringify(proj.elements||[]));
         localStorage.setItem(prefix+'tags',JSON.stringify(proj.tags||{}));
         localStorage.setItem(prefix+'statuses',JSON.stringify(proj.statuses||_DEFAULT_STATUSES));
+        localStorage.setItem(prefix+'todos',JSON.stringify(proj.todos||[]));
+        localStorage.setItem(prefix+'journal',JSON.stringify(proj.journal||[]));
       });
       localStorage.setItem('rg_projects',JSON.stringify(_projects));
       const target=parsed.activeProject||_projects[0]?.id;
@@ -2728,7 +3157,7 @@ saveState=function(){_origSave();if(ghToken){clearTimeout(_ghSaveTimer);_ghSaveT
 function showHelp(){const o=document.getElementById('help-overlay');o.style.display='flex';}
 function resetAll(){
   if(!confirm('Reset current project data? This will delete all saved changes and load defaults.'))return;
-  ['elements','nodes','todos','tags','statuses','cNodes'].forEach(k=>{
+  ['elements','nodes','todos','journal','tags','statuses','cNodes'].forEach(k=>{
     localStorage.removeItem(_pk(k));
   });
   location.reload();
