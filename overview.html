@@ -332,7 +332,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 
 
 /* ── PHASE 5: GOAL MANAGEMENT ── */
-#roadmap-header{display:flex;align-items:center;padding:8px 4px 14px 4px;gap:10px}
+#roadmap-header{display:flex;align-items:center;padding:12px 18px 14px 18px;gap:10px;position:sticky;top:-12px;z-index:10;background:#f1f5f9;margin:-12px -18px 0 -18px}
 #roadmap-header span{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:#64748b}
 .rh-btn{font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:700;border:none;letter-spacing:.3px}
 .rh-add{background:#3b82f6;color:#fff}
@@ -744,6 +744,7 @@ function renderProjDD(){
       <div class="proj-dd-action" onclick="closeProjDD();exportData()"><span class="pda-icon">⬆</span>Export JSON</div>
       <div class="proj-dd-action" onclick="closeProjDD();importData()"><span class="pda-icon">⬇</span>Import JSON</div>
       <div class="proj-dd-action" onclick="closeProjDD();showHelp()"><span class="pda-icon">?</span>Help</div>
+      <div class="proj-dd-action" style="color:#ef4444" onclick="closeProjDD();resetAll()"><span class="pda-icon">⟲</span>Reset Project</div>
       ${!ghConnected?'<div class="proj-dd-action" onclick="closeProjDD();ghAction()"><span class="pda-icon">⬡</span>Connect GitHub</div>':''}
     </div>`;
 }
@@ -860,11 +861,12 @@ function deleteProjectById(id){
 // ─── LOAD / SAVE STATE ───────────────────────────────────────────────────────
 function _load(key, def){ try{const v=JSON.parse(localStorage.getItem(_pk(key)));return v!=null?v:def;}catch{return def;} }
 let _savedTimer;
+let _initializing=true;
 function saveState(){
   localStorage.setItem(_pk('elements'),JSON.stringify(ELEMENTS));
   localStorage.setItem(_pk('nodes'),JSON.stringify(NODES));
-  const si=document.getElementById('saved-indicator');
-  if(si){si.style.opacity='1';clearTimeout(_savedTimer);_savedTimer=setTimeout(()=>si.style.opacity='0',1500);}
+  if(!_initializing){const si=document.getElementById('saved-indicator');
+  if(si){si.style.opacity='1';clearTimeout(_savedTimer);_savedTimer=setTimeout(()=>si.style.opacity='0',1500);}}
 }
 function saveTags(){
   localStorage.setItem(_pk('tags'),JSON.stringify(TAGS));
@@ -2954,6 +2956,7 @@ async function ghSave(){
         body:JSON.stringify({description:'ResearchGraph sync',public:false,files})});
       const d=await r.json();ghGistId=d.id;localStorage.setItem('rg_gh_gist',ghGistId);
     }
+    localStorage.setItem('rg_lastSync',new Date().toISOString());
   }catch(e){console.error('Gist save error:',e);}
 }
 async function ghLoad(){
@@ -2974,9 +2977,10 @@ async function ghLoad(){
     if(!content){ghSave();return;}
     const parsed=JSON.parse(content);
     // Check for local data conflict
+    const lastSync=localStorage.getItem('rg_lastSync');
     const hasLocal=ELEMENTS.length>0||NODES.length>0;
     const hasRemote=parsed.projects?parsed.projects.some(p=>(p.elements||[]).length||(p.nodes||[]).length):(parsed.elements||[]).length>0;
-    if(hasLocal&&hasRemote){
+    if(hasLocal&&hasRemote&&(!lastSync||lastSync!==parsed.saved)){
       const choice=prompt('You have data on this device AND on GitHub.\n\nWhat would you like to do?\n\n  1 = Keep THIS device\'s data (and upload it)\n  2 = Load data FROM GitHub (replaces this device)\n  3 = Keep both (adds missing projects)\n\nEnter 1, 2, or 3:','2');
       if(!choice||choice.trim()==='') return;
       const c=choice.trim();
@@ -3022,6 +3026,7 @@ async function ghLoad(){
       if(parsed.statuses){_replaceObj(STATUSES,parsed.statuses);saveStatuses();}
       saveState();saveTags();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
     }
+    localStorage.setItem('rg_lastSync',parsed.saved||new Date().toISOString());
   }catch(e){console.error('Gist load error:',e);}
 }
 function ghLogout(){
@@ -3096,7 +3101,9 @@ buildRoadmap();
 initResizable();
 restorePanel();
 updateGhBtn();
+if(!localStorage.getItem('rg_helpSeen')){showHelp();localStorage.setItem('rg_helpSeen','1');}
 if(ghToken)ghLoad();
+setTimeout(()=>{_initializing=false;},500);
 </script>
 </body>
 </html>
