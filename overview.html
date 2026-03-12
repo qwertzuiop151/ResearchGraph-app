@@ -944,6 +944,8 @@ function _applyDemoData(d){
   d.elements.forEach(e=>ELEMENTS.push(e));
   if(d.tags) Object.assign(TAGS,d.tags);
   if(d.statuses){_replaceObj(STATUSES,d.statuses);}
+  if(d.todos){TODOS.splice(0,Infinity,..._normalizeTodos(d.todos));saveTodos();}
+  if(d.journal){JOURNAL.splice(0,Infinity,...d.journal);saveJournal();}
   if(d.collapsedNodes) d.collapsedNodes.forEach(id=>collapsedNodes.add(id));
   localStorage.setItem(_pk('cNodes'),JSON.stringify([...collapsedNodes]));
   saveState();saveStatuses();saveTags();

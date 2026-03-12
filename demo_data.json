@@ -490,6 +490,207 @@
     "abandoned": {"label": "abandoned", "icon": "✕", "color": "#fecaca;#991b1b"}
   },
   "projectName": "Organelle Engineering (Demo)",
+  "todos": [
+    {
+      "id": "t_001",
+      "text": "Re-digest @CARGO-v4 fragments — try isothermal assembly",
+      "status": "in_progress",
+      "category": "labor",
+      "order": 0,
+      "priority": true,
+      "subtasks": [
+        {"id": "st_001a", "text": "Order new Gibson Assembly kit", "status": "done"},
+        {"id": "st_001b", "text": "Gel-purify insert and backbone", "status": "in_progress"},
+        {"id": "st_001c", "text": "Run assembly + transform", "status": "open"}
+      ],
+      "createdAt": "2026-02-21T09:00:00.000Z",
+      "modifiedAt": "2026-03-10T14:30:00.000Z"
+    },
+    {
+      "id": "t_002",
+      "text": "Repeat qPCR with DNase-treated RNA (3 bio reps)",
+      "status": "open",
+      "category": "labor",
+      "order": 1,
+      "priority": true,
+      "subtasks": [
+        {"id": "st_002a", "text": "Extract RNA from fresh tissue", "status": "open"},
+        {"id": "st_002b", "text": "DNase I treatment + cleanup", "status": "open"},
+        {"id": "st_002c", "text": "RT-qPCR with editing-specific primers", "status": "open"}
+      ],
+      "createdAt": "2026-03-02T10:00:00.000Z",
+      "modifiedAt": "2026-03-02T10:00:00.000Z"
+    },
+    {
+      "id": "t_003",
+      "text": "Finish @CTRL-MUT mutagenesis PCR",
+      "status": "open",
+      "category": "labor",
+      "order": 2,
+      "priority": false,
+      "subtasks": [
+        {"id": "st_003a", "text": "Run overlap extension PCR", "status": "done"},
+        {"id": "st_003b", "text": "DpnI digest + transform", "status": "open"}
+      ],
+      "createdAt": "2026-03-05T08:00:00.000Z",
+      "modifiedAt": "2026-03-08T11:00:00.000Z"
+    },
+    {
+      "id": "t_004",
+      "text": "Book confocal for co-localization (@CAR-002 + organelle dye)",
+      "status": "open",
+      "category": "labor",
+      "order": 3,
+      "priority": false,
+      "subtasks": [],
+      "createdAt": "2026-03-06T09:00:00.000Z",
+      "modifiedAt": "2026-03-06T09:00:00.000Z"
+    },
+    {
+      "id": "t_005",
+      "text": "Prepare @CTRL-001 and @CTRL-002 for infiltration batch",
+      "status": "open",
+      "category": "labor",
+      "order": 4,
+      "priority": false,
+      "subtasks": [
+        {"id": "st_005a", "text": "Miniprep both controls", "status": "done"},
+        {"id": "st_005b", "text": "Transform into Agrobacterium", "status": "open"}
+      ],
+      "createdAt": "2026-03-01T10:00:00.000Z",
+      "modifiedAt": "2026-03-07T15:00:00.000Z"
+    },
+    {
+      "id": "t_006",
+      "text": "Order primers for Sanger sequencing of edited positions",
+      "status": "done",
+      "category": "labor",
+      "order": 5,
+      "priority": false,
+      "subtasks": [],
+      "createdAt": "2026-02-28T08:00:00.000Z",
+      "modifiedAt": "2026-03-03T09:00:00.000Z"
+    },
+    {
+      "id": "t_007",
+      "text": "Write Phase 1 methods section for thesis",
+      "status": "in_progress",
+      "category": "general",
+      "order": 0,
+      "priority": false,
+      "subtasks": [
+        {"id": "st_007a", "text": "Cloning strategy figure", "status": "done"},
+        {"id": "st_007b", "text": "Microscopy results section", "status": "in_progress"},
+        {"id": "st_007c", "text": "Western blot figure", "status": "open"}
+      ],
+      "createdAt": "2026-02-15T10:00:00.000Z",
+      "modifiedAt": "2026-03-09T16:00:00.000Z"
+    },
+    {
+      "id": "t_008",
+      "text": "Prepare slides for lab meeting (March 18)",
+      "status": "open",
+      "category": "general",
+      "order": 1,
+      "priority": false,
+      "subtasks": [],
+      "createdAt": "2026-03-10T08:00:00.000Z",
+      "modifiedAt": "2026-03-10T08:00:00.000Z"
+    },
+    {
+      "id": "t_009",
+      "text": "Update lab inventory — restock competent cells & ligase",
+      "status": "open",
+      "category": "general",
+      "order": 2,
+      "priority": false,
+      "subtasks": [],
+      "createdAt": "2026-03-08T11:00:00.000Z",
+      "modifiedAt": "2026-03-08T11:00:00.000Z"
+    }
+  ],
+  "journal": [
+    {
+      "id": "jnl_001",
+      "date": "2026-03-11",
+      "sections": [
+        {
+          "id": "js_001a",
+          "title": "qPCR Troubleshooting",
+          "content": "Repeated qPCR with strict DNase protocol. Got a faint but reproducible band from @CARGO-v1 + @CAR-003 co-transformed samples. No band in untransformed control — promising! Need to replicate with n=3 before getting excited. Sanger sequencing of the amplicon sent out today."
+        },
+        {
+          "id": "js_001b",
+          "title": "CARGO-v4 Assembly",
+          "content": "Isothermal assembly attempt #1 failed — no colonies. Suspect the insert:backbone ratio was off. Will gel-purify both fragments and try 3:1 molar ratio tomorrow. Also considering ordering the fragment as a gBlock."
+        }
+      ],
+      "createdAt": "2026-03-11T09:00:00.000Z",
+      "modifiedAt": "2026-03-11T17:30:00.000Z"
+    },
+    {
+      "id": "jnl_002",
+      "date": "2026-03-07",
+      "sections": [
+        {
+          "id": "js_002a",
+          "title": "Microscopy Session",
+          "content": "Confocal session for @CAR-002 co-localization. GFP signal clearly in target compartment, but lots of background in the green channel. Need to optimize laser power and detector gain. MitoTracker signal was clean. Will try 488nm at 2% power next time."
+        },
+        {
+          "id": "js_002b",
+          "title": "Meeting with Supervisor",
+          "content": "Discussed Phase 2 progress. Supervisor suggests prioritizing the @CTRL-MUT control — reviewers will ask for it. Also mentioned we should think about Phase 3 timeline. Native gel protocol from the neighboring lab might work for us."
+        }
+      ],
+      "createdAt": "2026-03-07T08:30:00.000Z",
+      "modifiedAt": "2026-03-07T18:00:00.000Z"
+    },
+    {
+      "id": "jnl_003",
+      "date": "2026-03-03",
+      "sections": [
+        {
+          "id": "js_003a",
+          "title": "qPCR Results",
+          "content": "First qPCR attempt after DNase treatment: faint band at correct size! Previous failures were likely gDNA contamination. Protocol change: added extra DNase step + heat inactivation. Need to replicate, but this could be the first evidence of cargo transcription in the target."
+        }
+      ],
+      "createdAt": "2026-03-03T10:00:00.000Z",
+      "modifiedAt": "2026-03-03T16:00:00.000Z"
+    },
+    {
+      "id": "jnl_004",
+      "date": "2026-02-25",
+      "sections": [
+        {
+          "id": "js_004a",
+          "title": "Failed qPCR",
+          "content": "qPCR showed signal in both transformed AND untransformed samples — genomic DNA contamination. Need to add rigorous DNase treatment. Ordered TURBO DNase kit. Will also include a no-RT control in every run from now on."
+        },
+        {
+          "id": "js_004b",
+          "title": "CARGO-v4 Cloning",
+          "content": "Ligation of @CARGO-v4 failed. Colonies on plate but all are empty vector. Gel showed insert band was faint — probably not enough DNA. Will re-digest with fresh enzymes and try higher insert concentration."
+        }
+      ],
+      "createdAt": "2026-02-25T09:00:00.000Z",
+      "modifiedAt": "2026-02-25T17:00:00.000Z"
+    },
+    {
+      "id": "jnl_005",
+      "date": "2026-02-18",
+      "sections": [
+        {
+          "id": "js_005a",
+          "title": "Phase 1 Complete!",
+          "content": "Western blot replicate confirmed: protease cleavage products visible at expected sizes in nuclear and organellar fractions. Combined with the microscopy data, Phase 1 is conclusively done. Transport mechanism works. Moving to Phase 2 cargo delivery experiments next week."
+        }
+      ],
+      "createdAt": "2026-02-18T09:00:00.000Z",
+      "modifiedAt": "2026-02-18T14:00:00.000Z"
+    }
+  ],
   "collapsedNodes": ["constructs", "controls_poc", "validation_poc"],
   "exported": "2026-03-04T21:00:00.000Z"
 }
