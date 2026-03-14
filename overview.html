@@ -614,7 +614,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function _uid(prefix){return (prefix||'id')+'_'+crypto.randomUUID().replace(/-/g,'').slice(0,12);}
 function _replaceObj(target,src){Object.keys(target).forEach(k=>delete target[k]);Object.assign(target,src);}
-function _scheduleGhSave(){if(typeof ghToken!=='undefined'&&ghToken){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);}}
+function _scheduleGhSave(){if(_initializing)return;if(typeof ghToken!=='undefined'&&ghToken){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);}}
 function _selectAll(el){const range=document.createRange();range.selectNodeContents(el);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);}
 
 // Undo stack (max 30 snapshots)
@@ -2945,7 +2945,8 @@ async function ghSave(){
       todos:p.id===_activeProjectId?TODOS:JSON.parse(localStorage.getItem(prefix+'todos')||'[]'),
       journal:p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]')};
   });
-  const data=JSON.stringify({projects:allProjects,activeProject:_activeProjectId,saved:new Date().toISOString()},null,2);
+  const now=new Date().toISOString();
+  const data=JSON.stringify({projects:allProjects,activeProject:_activeProjectId,saved:now},null,2);
   const files={'researchgraph_data.json':{content:data}};
   try{
     if(ghGistId){
@@ -2958,7 +2959,7 @@ async function ghSave(){
         body:JSON.stringify({description:'ResearchGraph sync',public:false,files})});
       const d=await r.json();ghGistId=d.id;localStorage.setItem('rg_gh_gist',ghGistId);
     }
-    localStorage.setItem('rg_lastSync',new Date().toISOString());
+    localStorage.setItem('rg_lastSync',now);
   }catch(e){console.error('Gist save error:',e);}
 }
 async function ghLoad(){
