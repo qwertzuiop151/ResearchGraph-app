@@ -83,6 +83,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:1
 
 /* ── GOAL BLOCK ── */
 .goal-block{display:flex;flex-direction:column;gap:0;margin-bottom:2px}
+.goal-header,.rg-group-hdr,.el-card{scroll-margin-top:80px}
 .goal-header{border-radius:12px;padding:0 20px 0 0;cursor:pointer;border:3px solid transparent;
   transition:box-shadow .15s;display:flex;align-items:stretch;gap:8px;min-height:72px;position:relative}
 .goal-header:hover{box-shadow:0 2px 12px rgba(0,0,0,.1)}
@@ -1073,6 +1074,14 @@ function getElementColor(el){
 }
 
 // ─── INLINE LINKING (@Mention) ────────────────────────────────────────────────
+function extractRawText(el){
+  // Convert inline-link pills back to @Label before extracting text
+  const clone=el.cloneNode(true);
+  clone.querySelectorAll('.inline-link[data-link-label]').forEach(pill=>{
+    pill.replaceWith('@'+pill.dataset.linkLabel);
+  });
+  return clone.textContent;
+}
 function renderInlineLinks(html){
   return html.replace(/@([\w\-()]+)/g,(m,name)=>{
     const el=ELEMENTS.find(x=>x.label===name);
@@ -1737,11 +1746,24 @@ function toggleNode(nodeId){
 }
 
 // ─── SELECTION ────────────────────────────────────────────────────────────────
-function select(type,id){
+function select(type,id,opts){
   if(selType===type&&selId===id){selType=null;selId=null;}
   else{selType=type;selId=id;}
+  if(opts?.scroll){
+    // Expand all ancestor nodes so target is visible
+    let cur=type==='node'?NODES.find(n=>n.id===id):null;
+    if(type==='element'){const el=ELEMENTS.find(e=>e.id===id);if(el)cur=NODES.find(n=>n.id===el.nodeId);}
+    while(cur){collapsedNodes.delete(cur.id);cur=NODES.find(n=>n.id===cur.parentId);}
+    localStorage.setItem(_pk('cNodes'),JSON.stringify([...collapsedNodes]));
+    buildRoadmap();
+  }
   updateSelectionHighlight();
   renderDetail();
+  if(opts?.scroll) setTimeout(()=>{
+    const el=document.querySelector(`[data-type="${type}"][data-id="${id}"]`);
+    if(!el) return;
+    el.scrollIntoView({block:'start',behavior:'smooth'});
+  },50);
 }
 function updateSelectionHighlight(){
   document.querySelectorAll('.goal-header,.rg-group-hdr,.el-card').forEach(el=>el.classList.remove('selected'));
@@ -1761,7 +1783,7 @@ function escAttr(s){ return String(s||'').replace(/[^a-zA-Z0-9_.-]/g,''); }
 function saveField(el){
   const {type,id,field}=el.dataset;
   const data=getItem(type,id); if(!data)return;
-  data[field]=el.innerText.trim();
+  data[field]=(field==='desc'?extractRawText(el):el.innerText).trim();
   if(type==='element'&&data.modifiedAt!==undefined) data.modifiedAt=new Date().toISOString();
   saveState();
   if(field==='label') buildRoadmap();
@@ -1829,7 +1851,7 @@ function removeCustomSection(type,id,sid){
 function saveCustomField(el,type,id,sid,field){
   const data=getItem(type,id); if(!data)return;
   const sec=data.custom.find(s=>s.id===sid); if(!sec)return;
-  sec[field]=el.innerText.trim();
+  sec[field]=extractRawText(el).trim();
   saveState();
 }
 function customSectionsHTML(type,id,custom){
@@ -2080,6 +2102,7 @@ function renderDetail(){
       <div class="dh" style="color:${elColor}">Element${firstTagLabel?' · '+firstTagLabel:''}</div>
       ${ed('element',el.id,'label',el.label,'div','dtitle')}
       <span class="dbadge" style="background:${statusColors(el.status).bg};color:${statusColors(el.status).fg};border:2px solid ${elColor}">${escH(si.icon)} ${escH(si.text)}</span>
+      ${(()=>{const path=[];let cur=NODES.find(n=>n.id===el.nodeId);while(cur){path.unshift(cur);cur=NODES.find(n=>n.id===cur.parentId);}if(!path.length)return '';return `<div style="font-size:11px;color:#64748b;margin:4px 0 6px;display:flex;flex-wrap:wrap;align-items:center;gap:2px">${path.map((n,i)=>`<span style="cursor:pointer;text-decoration:underline;text-decoration-color:#cbd5e1" onclick="setView('tree');select('node','${escAttr(n.id)}',{scroll:true})" title="Go to node in tree">${escH((n.icon||'')+' '+n.label)}</span>${i<path.length-1?'<span style="opacity:.5"> › </span>':''}`).join('')}</div>`})()}
       <p class="ddesc editable" contenteditable="true"
         data-type="element" data-id="${el.id}" data-field="desc"
         onblur="saveField(this)">${renderInlineLinks(escH(el.desc))}</p>
@@ -2409,10 +2432,8 @@ function buildBoard(){
       const root=getRootNode(el.nodeId);
       if(root){
         const goalTag=document.createElement('div');
-        goalTag.style.cssText='font-size:9px;color:#3b82f6;margin-top:2px;cursor:pointer';
+        goalTag.style.cssText='font-size:9px;color:#94a3b8;margin-top:2px';
         goalTag.textContent=(root.icon||'')+' '+root.label;
-        goalTag.title='Switch to tree view';
-        goalTag.onclick=ev=>{ev.stopPropagation();setView('tree');select('node',root.id);};
         card.appendChild(goalTag);
       }
       cards.appendChild(card);
@@ -2744,7 +2765,7 @@ function saveJournalContent(el){
   const eid=el.dataset.eid,sid=el.dataset.sid;
   const entry=JOURNAL.find(e=>e.id===eid);if(!entry)return;
   const sec=entry.sections.find(s=>s.id===sid);if(!sec)return;
-  sec.content=el.textContent;
+  sec.content=extractRawText(el);
   entry.modifiedAt=new Date().toISOString();
   clearTimeout(_jnlSaveTimer);_jnlSaveTimer=setTimeout(()=>saveJournal(),500);
 }
