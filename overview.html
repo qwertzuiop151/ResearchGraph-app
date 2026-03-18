@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>ResearchGraph</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231e3a5f'/><text x='16' y='23' text-anchor='middle' font-size='20' fill='white'>R</text></svg>">
 <style>
@@ -2880,7 +2881,9 @@ function handleImport(e){
         if(!n.custom) n.custom=[];
       });
       pushUndo();
-      const overwrite=confirm('Overwrite current project with imported data?\n\nOK = Overwrite current\nCancel = Import as new project');
+      const choice=prompt('How do you want to import?\n\n  1 = Replace current project with imported data\n  2 = Add as new project (keeps current data)\n  3 = Cancel\n\nEnter 1, 2, or 3:','2');
+      if(!choice||choice.trim()==='3') return;
+      const overwrite=choice.trim()==='1';
       const asNew=!overwrite;
       if(asNew){
         const name=d.projectName||f.name.replace(/\.json$/,'')||'Imported';
@@ -2921,9 +2924,10 @@ function updateGhBtn(){
 }
 function ghAction(){
   if(ghToken){
-    const c=confirm(`Syncing as ${ghUser}.\n\n• OK = Sync now\n• Cancel = Disconnect`);
-    if(c) ghSave();
-    else ghLogout();
+    const choice=prompt(`Connected as ${ghUser}.\n\n  1 = Sync now (upload your data)\n  2 = Disconnect from GitHub\n  3 = Cancel\n\nEnter 1, 2, or 3:`,'1');
+    if(!choice||choice.trim()==='3') return;
+    if(choice.trim()==='1') ghSave();
+    else if(choice.trim()==='2') ghLogout();
   } else ghLogin();
 }
 function closeGhModal(){document.getElementById('gh-modal').style.display='none';}
@@ -2955,6 +2959,23 @@ async function ghConnectPAT(){
 }
 async function ghSave(){
   if(!ghToken)return;
+  // Pre-save conflict check: if remote is newer than our last sync, ask first
+  if(ghGistId){
+    try{
+      const r=await fetch('https://api.github.com/gists/'+ghGistId,{headers:{Authorization:'Bearer '+ghToken}});
+      const d=await r.json();
+      const content=d.files?.['researchgraph_data.json']?.content;
+      if(content){
+        const remote=JSON.parse(content);
+        const lastSync=localStorage.getItem('rg_lastSync');
+        if(remote.saved&&lastSync&&remote.saved>lastSync){
+          const choice=prompt('GitHub has newer data (saved '+remote.saved.slice(0,16).replace('T',' ')+').\n\n  1 = Overwrite GitHub with YOUR local data\n  2 = Load data FROM GitHub (replaces local)\n  3 = Cancel (do nothing)\n\nEnter 1, 2, or 3:','2');
+          if(!choice||choice.trim()==='3') return;
+          if(choice.trim()==='2'){await ghLoad();return;}
+        }
+      }
+    }catch(e){}
+  }
   saveState();saveTags();saveStatuses();
   const allProjects=_projects.map(p=>{
     const prefix='rg_'+p.id+'_';
@@ -3005,8 +3026,8 @@ async function ghLoad(){
     const hasLocal=ELEMENTS.length>0||NODES.length>0;
     const hasRemote=parsed.projects?parsed.projects.some(p=>(p.elements||[]).length||(p.nodes||[]).length):(parsed.elements||[]).length>0;
     if(hasLocal&&hasRemote&&(!lastSync||lastSync!==parsed.saved)){
-      const choice=prompt('You have data on this device AND on GitHub.\n\nWhat would you like to do?\n\n  1 = Keep THIS device\'s data (and upload it)\n  2 = Load data FROM GitHub (replaces this device)\n  3 = Keep both (adds missing projects)\n\nEnter 1, 2, or 3:','2');
-      if(!choice||choice.trim()==='') return;
+      const choice=prompt('You have data on this device AND on GitHub.\n\nWhat would you like to do?\n\n  1 = Keep this device\'s data and upload it to GitHub\n  2 = Load from GitHub (replaces data on this device)\n  3 = Merge both (adds missing projects, no data is lost)\n  4 = Cancel (do nothing)\n\nEnter 1, 2, 3, or 4:','2');
+      if(!choice||choice.trim()===''||choice.trim()==='4') return;
       const c=choice.trim();
       if(c==='1'){ghSave();return;}
       if(c==='3'&&parsed.projects){
