@@ -565,6 +565,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
         <button class="view-tab active" data-view="tree" onclick="setView('tree')">🌳 Tree</button>
         <button class="view-tab" data-view="board" onclick="setView('board')">☰ Board</button>
         <button class="view-tab" data-view="lab" onclick="setView('lab')">🧪 Lab</button>
+        <button class="view-tab" data-view="ideas" onclick="setView('ideas')">💡 Ideas</button>
       </div>
     </div>
     <div id="goal-list"></div>
@@ -627,7 +628,7 @@ function _selectAll(el){const range=document.createRange();range.selectNodeConte
 // Undo stack (max 30 snapshots)
 const _undoStack=[];
 function pushUndo(){
-  _undoStack.push({nodes:JSON.stringify(NODES),elements:JSON.stringify(ELEMENTS),tags:JSON.stringify(TAGS),statuses:JSON.stringify(STATUSES),todos:JSON.stringify(TODOS),journal:JSON.stringify(JOURNAL)});
+  _undoStack.push({nodes:JSON.stringify(NODES),elements:JSON.stringify(ELEMENTS),tags:JSON.stringify(TAGS),statuses:JSON.stringify(STATUSES),todos:JSON.stringify(TODOS),journal:JSON.stringify(JOURNAL),ideas:JSON.stringify(IDEAS)});
   if(_undoStack.length>30) _undoStack.shift();
 }
 function undo(){
@@ -639,6 +640,7 @@ function undo(){
   _replaceObj(STATUSES,JSON.parse(snap.statuses));
   if(snap.todos){TODOS.splice(0,Infinity,...JSON.parse(snap.todos));saveTodos();}
   if(snap.journal){JOURNAL.splice(0,Infinity,...JSON.parse(snap.journal));saveJournal();}
+  if(snap.ideas){IDEAS.splice(0,Infinity,...JSON.parse(snap.ideas));saveIdeas();}
   saveState();saveTags();saveStatuses();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
 }
 document.addEventListener('keydown',e=>{
@@ -760,6 +762,7 @@ function _loadProjectData(){
   ELEMENTS.splice(0,Infinity,..._load('elements',[]));
   TODOS.splice(0,Infinity,..._normalizeTodos(_load('todos',[])));
   JOURNAL.splice(0,Infinity,..._load('journal',[]));
+  IDEAS.splice(0,Infinity,..._load('ideas',[]));
   _replaceObj(TAGS,_load('tags',{}));
   _replaceObj(STATUSES,_load('statuses',null)||JSON.parse(JSON.stringify(_DEFAULT_STATUSES)));
   collapsedNodes.clear();_load('cNodes',[]).forEach(i=>collapsedNodes.add(i));
@@ -882,8 +885,13 @@ function saveTags(){
 const ELEMENTS = _load('elements', null) || _DE;
 const TODOS    = _normalizeTodos(_load('todos', []));
 const JOURNAL = _load('journal', []);
+const IDEAS = _load('ideas', []);
 function saveJournal(){
   localStorage.setItem(_pk('journal'),JSON.stringify(JOURNAL));
+  _scheduleGhSave();
+}
+function saveIdeas(){
+  localStorage.setItem(_pk('ideas'),JSON.stringify(IDEAS));
   _scheduleGhSave();
 }
 let TAGS = _load('tags', {});
@@ -1434,6 +1442,7 @@ function buildRoadmap(){
   const _curProj=_projects.find(p=>p.id===_activeProjectId);
   document.documentElement.style.setProperty('--proj-color',_getProjColor(_curProj||{}));
   if(_viewMode==='lab') return buildLabView();
+  if(_viewMode==='ideas') return buildIdeasView();
   if(_viewMode==='board') return buildBoard();
   const r=document.getElementById('goal-list');r.innerHTML='';
   // Zero-state
@@ -2401,11 +2410,11 @@ function setView(mode){
   const title=document.getElementById('roadmap-title');
   const search=document.querySelector('.search-box');
   const reset=document.getElementById('btn-reset-filters');
-  const isLab=mode==='lab';
-  if(addBtn)addBtn.style.display=isLab?'none':'';
-  if(search)search.style.display=isLab?'none':'';
-  if(reset&&isLab)reset.style.display='none';
-  title.textContent=mode==='board'?'Status Board':mode==='lab'?'Lab Dashboard':'Nodes';
+  const hideControls=mode==='lab'||mode==='ideas';
+  if(addBtn)addBtn.style.display=hideControls?'none':'';
+  if(search)search.style.display=hideControls?'none':'';
+  if(reset&&hideControls)reset.style.display='none';
+  title.textContent=mode==='board'?'Status Board':mode==='lab'?'Lab Dashboard':mode==='ideas'?'Ideas':'Nodes';
   buildRoadmap();
 }
 function buildBoard(){
@@ -2816,6 +2825,60 @@ function saveTodos(){
   _scheduleGhSave();
 }
 
+// ─── IDEAS VIEW ──────────────────────────────────────────────────────────────
+function buildIdeasView(){
+  const r=document.getElementById('goal-list');
+  let html='<div style="max-width:700px;margin:0 auto;padding:12px 0">';
+  html+=`<div style="display:flex;gap:8px;margin-bottom:16px">
+    <input type="text" id="idea-title-input" placeholder="New idea..." style="flex:1;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px" onkeydown="if(event.key==='Enter')addIdea()">
+    <button onclick="addIdea()" style="padding:8px 16px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">+ Add</button>
+  </div>`;
+  if(!IDEAS.length){
+    html+='<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px">No ideas yet. Capture spontaneous thoughts here!</div>';
+  } else {
+    IDEAS.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).forEach(idea=>{
+      const date=idea.createdAt?new Date(idea.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
+      const linked=idea.elementId?ELEMENTS.find(e=>e.id===idea.elementId):null;
+      html+=`<div class="idea-card" style="background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:3px solid #8b5cf6;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:14px;color:#1e293b">${escH(idea.title)}</div>
+            ${idea.desc?`<div style="font-size:13px;color:#475569;margin-top:4px;white-space:pre-wrap">${renderInlineLinks(escH(idea.desc))}</div>`:''}
+            <div style="font-size:11px;color:#94a3b8;margin-top:6px">${date}${linked?' · linked to '+escH(linked.label):''}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button onclick="promoteIdea('${escAttr(idea.id)}')" title="Promote to TODO" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 4px">📋</button>
+            <button onclick="deleteIdea('${escAttr(idea.id)}')" title="Delete" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 4px;color:#cbd5e1">×</button>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+  html+='</div>';
+  r.innerHTML=html;
+}
+function addIdea(){
+  const input=document.getElementById('idea-title-input');
+  const title=(input?.value||'').trim();if(!title)return;
+  pushUndo();
+  IDEAS.push({id:_uid('idea'),title,desc:'',elementId:null,createdAt:new Date().toISOString()});
+  input.value='';
+  saveIdeas();buildIdeasView();
+}
+function deleteIdea(id){
+  const idx=IDEAS.findIndex(x=>x.id===id);if(idx<0)return;
+  pushUndo();IDEAS.splice(idx,1);
+  saveIdeas();buildIdeasView();
+}
+function promoteIdea(id){
+  const idea=IDEAS.find(x=>x.id===id);if(!idea)return;
+  pushUndo();
+  const now=new Date().toISOString();
+  TODOS.push({id:_uid('t'),text:idea.title+(idea.desc?' — '+idea.desc:''),status:'open',category:'general',priority:'low',order:TODOS.length,subtasks:[],dueDate:null,elementId:idea.elementId,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
+  IDEAS.splice(IDEAS.indexOf(idea),1);
+  saveIdeas();saveTodos();buildIdeasView();
+}
+
 // ─── EXPORT / IMPORT ─────────────────────────────────────────────────────────
 function exportData(){
   // Save current project first
@@ -2829,7 +2892,8 @@ function exportData(){
     const pStatuses=p.id===_activeProjectId?STATUSES:JSON.parse(localStorage.getItem(prefix+'statuses')||'null')||JSON.parse(JSON.stringify(_DEFAULT_STATUSES));
     const pTodos=p.id===_activeProjectId?TODOS:JSON.parse(localStorage.getItem(prefix+'todos')||'[]');
     const pJournal=p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]');
-    return{id:p.id,name:p.name,nodes:pNodes,elements:pEls,tags:pTags,statuses:pStatuses,todos:pTodos,journal:pJournal};
+    const pIdeas=p.id===_activeProjectId?IDEAS:JSON.parse(localStorage.getItem(prefix+'ideas')||'[]');
+    return{id:p.id,name:p.name,nodes:pNodes,elements:pEls,tags:pTags,statuses:pStatuses,todos:pTodos,journal:pJournal,ideas:pIdeas};
   });
   const data={projects:allProjects,exported:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -2869,6 +2933,7 @@ function handleImport(e){
           if(proj.statuses) localStorage.setItem(prefix+'statuses',JSON.stringify(proj.statuses));
           if(proj.todos) localStorage.setItem(prefix+'todos',JSON.stringify(proj.todos));
           if(proj.journal) localStorage.setItem(prefix+'journal',JSON.stringify(proj.journal));
+          if(proj.ideas) localStorage.setItem(prefix+'ideas',JSON.stringify(proj.ideas));
           lastPid=pid;
         });
         saveProjects();
@@ -2999,7 +3064,8 @@ async function ghSave(){
       tags:p.id===_activeProjectId?TAGS:JSON.parse(localStorage.getItem(prefix+'tags')||'{}'),
       statuses:p.id===_activeProjectId?STATUSES:JSON.parse(localStorage.getItem(prefix+'statuses')||'null')||JSON.parse(JSON.stringify(_DEFAULT_STATUSES)),
       todos:p.id===_activeProjectId?TODOS:JSON.parse(localStorage.getItem(prefix+'todos')||'[]'),
-      journal:p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]')};
+      journal:p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]'),
+      ideas:p.id===_activeProjectId?IDEAS:JSON.parse(localStorage.getItem(prefix+'ideas')||'[]')};
   });
   const now=new Date().toISOString();
   const data=JSON.stringify({projects:allProjects,activeProject:_activeProjectId,saved:now},null,2);
@@ -3056,6 +3122,7 @@ async function ghLoad(){
           localStorage.setItem(prefix+'statuses',JSON.stringify(proj.statuses||_DEFAULT_STATUSES));
           localStorage.setItem(prefix+'todos',JSON.stringify(proj.todos||[]));
           localStorage.setItem(prefix+'journal',JSON.stringify(proj.journal||[]));
+          localStorage.setItem(prefix+'ideas',JSON.stringify(proj.ideas||[]));
         });
         localStorage.setItem('rg_projects',JSON.stringify(_projects));
         buildRoadmap();renderProjTabs();ghSave();return;
@@ -3073,6 +3140,7 @@ async function ghLoad(){
         localStorage.setItem(prefix+'statuses',JSON.stringify(proj.statuses||_DEFAULT_STATUSES));
         localStorage.setItem(prefix+'todos',JSON.stringify(proj.todos||[]));
         localStorage.setItem(prefix+'journal',JSON.stringify(proj.journal||[]));
+        localStorage.setItem(prefix+'ideas',JSON.stringify(proj.ideas||[]));
       });
       localStorage.setItem('rg_projects',JSON.stringify(_projects));
       const target=parsed.activeProject||_projects[0]?.id;
