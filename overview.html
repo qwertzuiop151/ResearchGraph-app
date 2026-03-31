@@ -2592,7 +2592,7 @@ function renderLabTodos(){
   const cats=[{key:'labor',label:'Lab'},{key:'general',label:'General'}];
   let html='';
   cats.forEach(cat=>{
-    const allItems=TODOS.filter(t=>t.category===cat.key).sort((a,b)=>{const pa=a.priority?1:0,pb=b.priority?1:0;if(pa!==pb)return pb-pa;return(a.order||0)-(b.order||0);});
+    const allItems=TODOS.filter(t=>t.category===cat.key).sort((a,b)=>(a.order||0)-(b.order||0));
     const active=allItems.filter(t=>t.status!=='done');
     const done=allItems.filter(t=>t.status==='done');
     html+=`<div class="lab-cat-hdr">${cat.label}<button class="lab-sort-btn" onclick="sortTodosByPriority('${cat.key}')" title="Sort by priority">↕ Sort</button></div>`;
