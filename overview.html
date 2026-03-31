@@ -428,6 +428,12 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-add-sub{border:none;background:none;color:#94a3b8;cursor:pointer;font-size:11px;padding:2px 4px;opacity:0;transition:opacity .15s}
 .lab-todo:hover .lab-add-sub{opacity:1}
 .lab-add-sub:hover{color:#3b82f6}
+.lab-done-toggle{display:flex;align-items:center;gap:6px;padding:6px 4px;margin-top:4px;cursor:pointer;font-size:12px;color:#94a3b8;border-radius:6px;user-select:none;transition:background .1s}
+.lab-done-toggle:hover{background:#f8fafc;color:#64748b}
+.lab-done-toggle .lab-done-arrow{font-size:10px;transition:transform .15s}
+.lab-done-toggle.open .lab-done-arrow{transform:rotate(90deg)}
+.lab-done-items{overflow:hidden;max-height:0;transition:max-height .2s ease-out}
+.lab-done-items.open{max-height:9999px;transition:max-height .3s ease-in}
 .lab-subtask-add{display:flex;gap:4px;margin-left:28px;margin-top:2px}
 .lab-subtask-add input{flex:1;font-size:11px;padding:3px 6px;border:1px solid #e2e8f0;border-radius:4px;outline:none}
 .lab-subtask-add input:focus{border-color:#3b82f6}
@@ -2534,49 +2540,71 @@ function buildLabView(){
   renderLabJournal();
 }
 
+function _renderTodoItem(t,isDone,cbIcon,prioClass,statusClass,blockedInfo){
+  return `<div class="lab-todo${isDone?' is-done':''}${prioClass}${statusClass}" draggable="true" data-todo-id="${escAttr(t.id)}" data-cat="${escAttr(t.category)}">
+    <span class="lab-todo-grip" title="Drag to reorder">⠿</span>
+    <div class="lab-todo-cb st-${t.status}" onclick="cycleTodoStatus('${escAttr(t.id)}')" title="${t.status}${blockedInfo}">${cbIcon}</div>
+    <div class="lab-todo-text" onclick="editTodoText(this,'${escAttr(t.id)}')">${renderInlineLinks(escH(t.text))}${blockedInfo?'<span style=\"font-size:10px;color:#94a3b8\">'+blockedInfo+'</span>':''}</div>
+    <button class="lab-todo-prio${t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':''}" onclick="toggleTodoPriority('${escAttr(t.id)}')" title="Priority: ${t.priority||'low'}">▲</button>
+    <button class="lab-add-sub" onclick="addSubtask('${escAttr(t.id)}')" title="Add subtask">+sub</button>
+    <button class="lab-todo-del" onclick="deleteLabTodo('${escAttr(t.id)}')">×</button>
+  </div>`;
+}
+function _renderSubtasks(t){
+  if(!t.subtasks||!t.subtasks.length)return '';
+  let h='<div class="lab-subtasks">';
+  t.subtasks.forEach(s=>{
+    const sDone=s.status==='done';
+    const sIcon=s.status==='done'?'✓':s.status==='in_progress'?'⟳':'';
+    h+=`<div class="lab-subtask${sDone?' is-done':''}">
+      <div class="lab-subtask-cb st-${s.status||'open'}" onclick="toggleSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">${sIcon}</div>
+      <span>${renderInlineLinks(escH(s.text))}</span>
+      <button class="lab-subtask-del" onclick="deleteSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">×</button>
+    </div>`;
+  });
+  h+='</div>';
+  return h;
+}
+function toggleDoneSection(id,toggleEl){
+  const sec=document.getElementById(id);if(!sec)return;
+  const isOpen=sec.classList.toggle('open');
+  toggleEl.classList.toggle('open',isOpen);
+}
+
 function renderLabTodos(){
   const el=document.getElementById('lab-todos');
   if(!el)return;
   const cats=[{key:'labor',label:'Lab'},{key:'general',label:'General'}];
   let html='';
   cats.forEach(cat=>{
-    const items=TODOS.filter(t=>t.category===cat.key).sort((a,b)=>{const pa=a.priority?1:0,pb=b.priority?1:0;if(pa!==pb)return pb-pa;return(a.order||0)-(b.order||0);});
-    if(!items.length) {
-      html+=`<div class="lab-cat-hdr">${cat.label}</div>`;
+    const allItems=TODOS.filter(t=>t.category===cat.key).sort((a,b)=>{const pa=a.priority?1:0,pb=b.priority?1:0;if(pa!==pb)return pb-pa;return(a.order||0)-(b.order||0);});
+    const active=allItems.filter(t=>t.status!=='done');
+    const done=allItems.filter(t=>t.status==='done');
+    html+=`<div class="lab-cat-hdr">${cat.label}</div>`;
+    if(!active.length && !done.length){
       html+=`<div class="lab-add-row"><input class="lab-add-input" placeholder="New ${cat.label.toLowerCase()} task…" onkeydown="if(event.key==='Enter')addLabTodo('${cat.key}',this)" /><button class="lab-add-btn" onclick="addLabTodo('${cat.key}',this.previousElementSibling)">+</button></div>`;
       return;
     }
-    html+=`<div class="lab-cat-hdr">${cat.label}</div>`;
-    items.forEach(t=>{
-      const isDone=t.status==='done';
+    active.forEach(t=>{
       const isBlocked=t.status==='blocked';
-      const cbIcon=t.status==='done'?'✓':t.status==='in_progress'?'⟳':t.status==='blocked'?'⊘':'';
+      const cbIcon=t.status==='in_progress'?'⟳':t.status==='blocked'?'⊘':'';
       const prioClass=t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':'';
       const statusClass=isBlocked?' status-blocked':'';
       const blockedInfo=isBlocked&&t.blockedBy?` — blocked: ${escH(t.blockedBy)}`:'';
-      html+=`<div class="lab-todo${isDone?' is-done':''}${prioClass}${statusClass}" draggable="true" data-todo-id="${escAttr(t.id)}" data-cat="${escAttr(t.category)}">
-        <span class="lab-todo-grip" title="Drag to reorder">⠿</span>
-        <div class="lab-todo-cb st-${t.status}" onclick="cycleTodoStatus('${escAttr(t.id)}')" title="${t.status}${blockedInfo}">${cbIcon}</div>
-        <div class="lab-todo-text" onclick="editTodoText(this,'${escAttr(t.id)}')">${renderInlineLinks(escH(t.text))}${blockedInfo?'<span style=\"font-size:10px;color:#94a3b8\">'+blockedInfo+'</span>':''}</div>
-        <button class="lab-todo-prio${t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':''}" onclick="toggleTodoPriority('${escAttr(t.id)}')" title="Priority: ${t.priority||'low'}">▲</button>
-        <button class="lab-add-sub" onclick="addSubtask('${escAttr(t.id)}')" title="Add subtask">+sub</button>
-        <button class="lab-todo-del" onclick="deleteLabTodo('${escAttr(t.id)}')">×</button>
-      </div>`;
-      if(t.subtasks&&t.subtasks.length){
-        html+=`<div class="lab-subtasks">`;
-        t.subtasks.forEach(s=>{
-          const sDone=s.status==='done';
-          const sIcon=s.status==='done'?'✓':s.status==='in_progress'?'⟳':'';
-          html+=`<div class="lab-subtask${sDone?' is-done':''}">
-            <div class="lab-subtask-cb st-${s.status||'open'}" onclick="toggleSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">${sIcon}</div>
-            <span>${renderInlineLinks(escH(s.text))}</span>
-            <button class="lab-subtask-del" onclick="deleteSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">×</button>
-          </div>`;
-        });
-        html+=`</div>`;
-      }
+      html+=_renderTodoItem(t,false,cbIcon,prioClass,statusClass,blockedInfo);
+      html+=_renderSubtasks(t);
     });
     html+=`<div class="lab-add-row"><input class="lab-add-input" placeholder="New ${cat.label.toLowerCase()} task…" onkeydown="if(event.key==='Enter')addLabTodo('${cat.key}',this)" /><button class="lab-add-btn" onclick="addLabTodo('${cat.key}',this.previousElementSibling)">+</button></div>`;
+    if(done.length){
+      const cid=`done-${cat.key}`;
+      html+=`<div class="lab-done-toggle" onclick="toggleDoneSection('${cid}',this)"><span class="lab-done-arrow">▶</span> Completed (${done.length})</div>`;
+      html+=`<div class="lab-done-items" id="${cid}">`;
+      done.forEach(t=>{
+        html+=_renderTodoItem(t,true,'✓','','','');
+        html+=_renderSubtasks(t);
+      });
+      html+=`</div>`;
+    }
   });
   if(!TODOS.length) html+=`<div class="lab-empty">No tasks yet. Add your first task above.</div>`;
   el.innerHTML=html;
@@ -2839,18 +2867,23 @@ function buildIdeasView(){
     IDEAS.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).forEach(idea=>{
       const date=idea.createdAt?new Date(idea.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
       const linked=idea.elementId?ELEMENTS.find(e=>e.id===idea.elementId):null;
-      html+=`<div class="idea-card" style="background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:3px solid #8b5cf6;box-shadow:0 1px 3px rgba(0,0,0,.06)">
-        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:14px;color:#1e293b">${escH(idea.title)}</div>
-            ${idea.desc?`<div style="font-size:13px;color:#475569;margin-top:4px;white-space:pre-wrap">${renderInlineLinks(escH(idea.desc))}</div>`:''}
-            <div style="font-size:11px;color:#94a3b8;margin-top:6px">${date}${linked?' · linked to '+escH(linked.label):''}</div>
-          </div>
-          <div style="display:flex;gap:4px;flex-shrink:0">
+      const hasDetail=!!(idea.desc||linked);
+      html+=`<div class="idea-card" style="background:#fff;border-radius:10px;margin-bottom:8px;border-left:3px solid #8b5cf6;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:${hasDetail?'pointer':'default'}" ${hasDetail?`onclick="toggleIdeaDetail('${escAttr(idea.id)}')"`:''}>
+          ${hasDetail?`<span class="idea-arrow" id="idea-arrow-${escAttr(idea.id)}" style="font-size:10px;color:#94a3b8;transition:transform .15s;flex-shrink:0">▶</span>`:''}
+          <div style="font-weight:600;font-size:14px;color:#1e293b;flex:1">${escH(idea.title)}</div>
+          <span style="font-size:11px;color:#94a3b8;flex-shrink:0">${date}</span>
+          <div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
             <button onclick="promoteIdea('${escAttr(idea.id)}')" title="Promote to TODO" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 4px">📋</button>
             <button onclick="deleteIdea('${escAttr(idea.id)}')" title="Delete" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 4px;color:#cbd5e1">×</button>
           </div>
         </div>
+        ${hasDetail?`<div id="idea-detail-${escAttr(idea.id)}" style="max-height:0;overflow:hidden;transition:max-height .2s ease-out">
+          <div style="padding:0 14px 12px${hasDetail&&!idea.desc?'':';padding-top:0'}">
+            ${idea.desc?`<div style="font-size:13px;color:#475569;white-space:pre-wrap;border-top:1px solid #f1f5f9;padding-top:8px">${renderInlineLinks(escH(idea.desc))}</div>`:''}
+            ${linked?`<div style="font-size:11px;color:#94a3b8;margin-top:6px">linked to ${escH(linked.label)}</div>`:''}
+          </div>
+        </div>`:''}
       </div>`;
     });
   }
@@ -2877,6 +2910,14 @@ function promoteIdea(id){
   TODOS.push({id:_uid('t'),text:idea.title+(idea.desc?' — '+idea.desc:''),status:'open',category:'general',priority:'low',order:TODOS.length,subtasks:[],dueDate:null,elementId:idea.elementId,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
   IDEAS.splice(IDEAS.indexOf(idea),1);
   saveIdeas();saveTodos();buildIdeasView();
+}
+function toggleIdeaDetail(id){
+  const det=document.getElementById('idea-detail-'+id);
+  const arrow=document.getElementById('idea-arrow-'+id);
+  if(!det)return;
+  const isOpen=det.style.maxHeight&&det.style.maxHeight!=='0px';
+  if(isOpen){det.style.maxHeight='0';if(arrow)arrow.style.transform='';}
+  else{det.style.maxHeight=det.scrollHeight+'px';if(arrow)arrow.style.transform='rotate(90deg)';}
 }
 
 // ─── EXPORT / IMPORT ─────────────────────────────────────────────────────────
