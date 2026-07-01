@@ -3057,6 +3057,20 @@ function updateGhBtn(){
   if(ghToken) btn.textContent='⬡ '+ghUser;
   else btn.textContent='⬡ Sync';
 }
+// Visible sync-failure warning: reuses the saved-indicator + colours the GitHub button red.
+// Stays until the next successful sync (does NOT auto-fade) so failures can't go unnoticed.
+function showSyncError(msg){
+  const si=document.getElementById('saved-indicator');
+  if(si){clearTimeout(_savedTimer);si.textContent='⚠ '+msg;si.style.color='#ef4444';si.style.opacity='1';si.title=msg;}
+  const btn=document.getElementById('gh-btn');
+  if(btn){btn.style.background='rgba(239,68,68,.9)';btn.title=msg;}
+}
+function clearSyncError(){
+  const si=document.getElementById('saved-indicator');
+  if(si){si.textContent='✓ Saved';si.style.color='#4ade80';si.title='';}
+  const btn=document.getElementById('gh-btn');
+  if(btn){btn.style.background='rgba(255,255,255,.22)';btn.title='';}
+}
 function ghAction(){
   if(ghToken){
     const choice=prompt(`Connected as ${ghUser}.\n\n  1 = Sync now (upload your data)\n  2 = Disconnect from GitHub\n  3 = Cancel\n\nEnter 1, 2, or 3:`,'1');
@@ -3127,18 +3141,27 @@ async function ghSave(){
   const data=JSON.stringify({projects:allProjects,activeProject:_activeProjectId,saved:now},null,2);
   const files={'researchgraph_data.json':{content:data}};
   try{
+    let r;
     if(ghGistId){
-      await fetch('https://api.github.com/gists/'+ghGistId,{method:'PATCH',
+      r=await fetch('https://api.github.com/gists/'+ghGistId,{method:'PATCH',
         headers:{Authorization:'Bearer '+ghToken,'Content-Type':'application/json'},
         body:JSON.stringify({files})});
     }else{
-      const r=await fetch('https://api.github.com/gists',{method:'POST',
+      r=await fetch('https://api.github.com/gists',{method:'POST',
         headers:{Authorization:'Bearer '+ghToken,'Content-Type':'application/json'},
         body:JSON.stringify({description:'ResearchGraph sync',public:false,files})});
-      const d=await r.json();ghGistId=d.id;localStorage.setItem('rg_gh_gist',ghGistId);
     }
+    // fetch() only rejects on network errors — an expired/invalid token returns 401 without throwing.
+    // Must check r.ok explicitly, or a failed save silently looks like success (the 3-week bug).
+    if(!r.ok){
+      showSyncError(r.status===401?'Sync failed: GitHub token expired — reconnect':'Sync failed (HTTP '+r.status+')');
+      console.error('Gist save error:',r.status,await r.text().catch(()=>''));
+      return;
+    }
+    if(!ghGistId){const d=await r.json();ghGistId=d.id;localStorage.setItem('rg_gh_gist',ghGistId);}
     localStorage.setItem('rg_lastSync',now);
-  }catch(e){console.error('Gist save error:',e);}
+    clearSyncError();
+  }catch(e){showSyncError('Sync failed: no connection');console.error('Gist save error:',e);}
 }
 async function ghLoad(){
   if(!ghToken)return;
@@ -3153,6 +3176,7 @@ async function ghLoad(){
   if(!ghGistId)return;
   try{
     const r=await fetch('https://api.github.com/gists/'+ghGistId,{headers:{Authorization:'Bearer '+ghToken}});
+    if(!r.ok){showSyncError(r.status===401?'Sync failed: GitHub token expired — reconnect':'Sync failed (HTTP '+r.status+')');console.error('Gist load error:',r.status);return;}
     const d=await r.json();
     const content=d.files?.['researchgraph_data.json']?.content;
     if(!content){ghSave();return;}
@@ -3210,7 +3234,8 @@ async function ghLoad(){
       saveState();saveTags();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
     }
     localStorage.setItem('rg_lastSync',parsed.saved||new Date().toISOString());
-  }catch(e){console.error('Gist load error:',e);}
+    clearSyncError();
+  }catch(e){showSyncError('Sync failed: no connection');console.error('Gist load error:',e);}
 }
 function ghLogout(){
   ghToken=null;ghGistId=null;ghUser=null;
