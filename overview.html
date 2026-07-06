@@ -635,7 +635,34 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function _uid(prefix){return (prefix||'id')+'_'+crypto.randomUUID().replace(/-/g,'').slice(0,12);}
 function _replaceObj(target,src){Object.keys(target).forEach(k=>delete target[k]);Object.assign(target,src);}
-function _scheduleGhSave(){if(_initializing)return;if(typeof ghToken!=='undefined'&&ghToken){clearTimeout(_ghSaveTimer);_ghSaveTimer=setTimeout(ghSave,3000);}}
+// ── GistSync: local-first, debounced, content-hash-guarded remote sync ──────────
+// Fixes the write-storm: localStorage is the source of truth (written synchronously by
+// every save*()); the remote gist is only PATCHed when content actually changed
+// (hash guard), bursts coalesce (5s debounce), continuously-dirty sessions write at
+// most once / 30s, and 403/429 rate-limits back off instead of hammering.
+let _ghSaveTimer=null,_ghLastFlush=0,_ghBackoff=0,_ghInFlight=false,_ghDirty=false;
+const _GH_DEBOUNCE=5000,_GH_MAXINT=30000;
+function _cyrb53(str,seed=0){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36);}
+function _scheduleGhSave(){
+  if(_initializing)return;
+  if(!(typeof ghToken!=='undefined'&&ghToken))return;
+  _ghDirty=true;
+  clearTimeout(_ghSaveTimer);
+  const sinceFlush=Date.now()-_ghLastFlush;
+  const wait=_ghBackoff>0?_ghBackoff:Math.min(_GH_DEBOUNCE,Math.max(500,_GH_MAXINT-sinceFlush));
+  _ghSaveTimer=setTimeout(()=>_flushGhSave(false),wait);
+}
+async function _flushGhSave(force){
+  clearTimeout(_ghSaveTimer);
+  if(!(typeof ghToken!=='undefined'&&ghToken))return;
+  if(_ghInFlight){_scheduleGhSave();return;}
+  _ghInFlight=true;
+  try{
+    const res=await ghSave(force);
+    if(res&&res.s==='rate'){_ghBackoff=res.retryMs||Math.min(_ghBackoff?_ghBackoff*2:5000,300000);_scheduleGhSave();return;}
+    _ghBackoff=0;_ghLastFlush=Date.now();_ghDirty=false;
+  }finally{_ghInFlight=false;}
+}
 function _selectAll(el){const range=document.createRange();range.selectNodeContents(el);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);}
 
 // Undo stack (max 30 snapshots)
@@ -3036,7 +3063,7 @@ function ghAction(){
   if(ghToken){
     const choice=prompt(`Connected as ${ghUser}.\n\n  1 = Sync now (upload your data)\n  2 = Disconnect from GitHub\n  3 = Cancel\n\nEnter 1, 2, or 3:`,'1');
     if(!choice||choice.trim()==='3') return;
-    if(choice.trim()==='1') ghSave();
+    if(choice.trim()==='1') _flushGhSave(true);
     else if(choice.trim()==='2') ghLogout();
   } else ghLogin();
 }
@@ -3067,26 +3094,9 @@ async function ghConnectPAT(){
     closeGhModal();
   }catch(e){status.textContent='Error: '+e.message;}
 }
-async function ghSave(){
-  if(!ghToken)return;
-  // Pre-save conflict check: if remote is newer than our last sync, ask first
-  if(ghGistId){
-    try{
-      const r=await fetch('https://api.github.com/gists/'+ghGistId,{headers:{Authorization:'Bearer '+ghToken}});
-      const d=await r.json();
-      const content=d.files?.['researchgraph_data.json']?.content;
-      if(content){
-        const remote=JSON.parse(content);
-        const lastSync=localStorage.getItem('rg_lastSync');
-        if(remote.saved&&lastSync&&remote.saved>lastSync){
-          const choice=prompt('GitHub has newer data (saved '+remote.saved.slice(0,16).replace('T',' ')+').\n\n  1 = Overwrite GitHub with YOUR local data\n  2 = Load data FROM GitHub (replaces local)\n  3 = Cancel (do nothing)\n\nEnter 1, 2, or 3:','2');
-          if(!choice||choice.trim()==='3') return;
-          if(choice.trim()==='2'){await ghLoad();return;}
-        }
-      }
-    }catch(e){}
-  }
-  saveState();saveTags();saveStatuses();
+// Serialize all projects into the sync payload (excludes the volatile `saved` stamp
+// so identical state hashes identically — that's what the hash guard compares).
+function _ghBuildPayload(){
   const allProjects=_projects.map(p=>{
     const prefix='rg_'+p.id+'_';
     return{id:p.id,name:p.name,color:p.color,
@@ -3098,10 +3108,43 @@ async function ghSave(){
       journal:p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]'),
       ideas:p.id===_activeProjectId?IDEAS:JSON.parse(localStorage.getItem(prefix+'ideas')||'[]')};
   });
+  return {projects:allProjects,activeProject:_activeProjectId};
+}
+// Low-level remote writer. Returns {s:'ok'|'skip'|'rate'|'error', retryMs?}. `force` bypasses the hash guard.
+// NOTE: uses _origSave() (not saveState) to persist in-memory state without re-triggering the debounce.
+async function ghSave(force){
+  if(!ghToken)return{s:'error'};
+  _origSave();saveTags();saveStatuses();
+  const payload=_ghBuildPayload();
+  // CONTENT-HASH GUARD — this is what kills the write-storm: never PATCH unchanged content.
+  const h=_cyrb53(JSON.stringify(payload));
+  if(!force&&h===localStorage.getItem('rg_gh_hash')){clearSyncError();return{s:'skip'};}
+  // Pre-save conflict check: only runs on a real change (rare now), asks before clobbering newer remote.
+  if(ghGistId){
+    try{
+      const rc=await fetch('https://api.github.com/gists/'+ghGistId,{headers:{Authorization:'Bearer '+ghToken}});
+      if(rc.ok){
+        const dc=await rc.json();
+        const content=dc.files?.['researchgraph_data.json']?.content;
+        if(content){
+          const remote=JSON.parse(content);
+          const lastSync=localStorage.getItem('rg_lastSync');
+          if(remote.saved&&lastSync&&remote.saved>lastSync){
+            const choice=prompt('GitHub has newer data (saved '+remote.saved.slice(0,16).replace('T',' ')+').\n\n  1 = Overwrite GitHub with YOUR local data\n  2 = Load data FROM GitHub (replaces local)\n  3 = Cancel (do nothing)\n\nEnter 1, 2, or 3:','2');
+            if(!choice||choice.trim()==='3')return{s:'skip'};
+            if(choice.trim()==='2'){await ghLoad();return{s:'skip'};}
+          }
+        }
+      }
+    }catch(e){}
+  }
   const now=new Date().toISOString();
-  const data=JSON.stringify({projects:allProjects,activeProject:_activeProjectId,saved:now},null,2);
+  const data=JSON.stringify({...payload,saved:now},null,2);
   const files={'researchgraph_data.json':{content:data}};
   try{
+    // NOTE: no keepalive — the fetch keepalive spec caps the body at 64KB and RG payloads
+    // exceed that, which throws a network error. beforeunload flush is best-effort; the
+    // blur flush (fires while the page is still alive) covers the common "leaving tab" case.
     let r;
     if(ghGistId){
       r=await fetch('https://api.github.com/gists/'+ghGistId,{method:'PATCH',
@@ -3115,14 +3158,24 @@ async function ghSave(){
     // fetch() only rejects on network errors — an expired/invalid token returns 401 without throwing.
     // Must check r.ok explicitly, or a failed save silently looks like success (the 3-week bug).
     if(!r.ok){
+      if(r.status===403||r.status===429){
+        let retryMs=0;const ra=r.headers.get('Retry-After');
+        if(ra)retryMs=parseInt(ra,10)*1000;
+        else{const reset=r.headers.get('X-RateLimit-Reset');if(reset)retryMs=Math.max(0,parseInt(reset,10)*1000-Date.now());}
+        if(!retryMs||isNaN(retryMs))retryMs=15000;
+        showSyncError('Sync rate-limited — retrying in '+Math.round(retryMs/1000)+'s');
+        return{s:'rate',retryMs};
+      }
       showSyncError(r.status===401?'Sync failed: GitHub token expired — reconnect':'Sync failed (HTTP '+r.status+')');
       console.error('Gist save error:',r.status,await r.text().catch(()=>''));
-      return;
+      return{s:'error'};
     }
     if(!ghGistId){const d=await r.json();ghGistId=d.id;localStorage.setItem('rg_gh_gist',ghGistId);}
+    localStorage.setItem('rg_gh_hash',h);
     localStorage.setItem('rg_lastSync',now);
     clearSyncError();
-  }catch(e){showSyncError('Sync failed: no connection');console.error('Gist save error:',e);}
+    return{s:'ok'};
+  }catch(e){showSyncError('Sync failed: no connection');console.error('Gist save error:',e);return{s:'error'};}
 }
 async function ghLoad(){
   if(!ghToken)return;
@@ -3140,7 +3193,7 @@ async function ghLoad(){
     if(!r.ok){showSyncError(r.status===401?'Sync failed: GitHub token expired — reconnect':'Sync failed (HTTP '+r.status+')');console.error('Gist load error:',r.status);return;}
     const d=await r.json();
     const content=d.files?.['researchgraph_data.json']?.content;
-    if(!content){ghSave();return;}
+    if(!content){ghSave(true);return;}
     const parsed=JSON.parse(content);
     // Check for local data conflict
     const lastSync=localStorage.getItem('rg_lastSync');
@@ -3150,7 +3203,7 @@ async function ghLoad(){
       const choice=prompt('You have data on this device AND on GitHub.\n\nWhat would you like to do?\n\n  1 = Keep this device\'s data and upload it to GitHub\n  2 = Load from GitHub (replaces data on this device)\n  3 = Merge both (adds missing projects, no data is lost)\n  4 = Cancel (do nothing)\n\nEnter 1, 2, 3, or 4:','2');
       if(!choice||choice.trim()===''||choice.trim()==='4') return;
       const c=choice.trim();
-      if(c==='1'){ghSave();return;}
+      if(c==='1'){ghSave(true);return;}
       if(c==='3'&&parsed.projects){
         parsed.projects.forEach(proj=>{
           const exists=_projects.find(p=>p.name===proj.name);
@@ -3166,7 +3219,7 @@ async function ghLoad(){
           localStorage.setItem(prefix+'ideas',JSON.stringify(proj.ideas||[]));
         });
         localStorage.setItem('rg_projects',JSON.stringify(_projects));
-        buildRoadmap();renderProjTabs();ghSave();return;
+        buildRoadmap();renderProjTabs();ghSave(true);return;
       }
     }
     // Apply remote data
@@ -3195,17 +3248,19 @@ async function ghLoad(){
       saveState();saveTags();buildTagManager();buildStatusManager();buildRoadmap();renderDetail();
     }
     localStorage.setItem('rg_lastSync',parsed.saved||new Date().toISOString());
+    // Seed the hash guard with what we just loaded, so an unchanged session won't re-upload.
+    try{localStorage.setItem('rg_gh_hash',_cyrb53(JSON.stringify(_ghBuildPayload())));}catch(e){}
     clearSyncError();
   }catch(e){showSyncError('Sync failed: no connection');console.error('Gist load error:',e);}
 }
 function ghLogout(){
   ghToken=null;ghGistId=null;ghUser=null;
-  localStorage.removeItem('rg_gh_token');localStorage.removeItem('rg_gh_gist');localStorage.removeItem('rg_gh_user');
+  localStorage.removeItem('rg_gh_token');localStorage.removeItem('rg_gh_gist');localStorage.removeItem('rg_gh_user');localStorage.removeItem('rg_gh_hash');
   updateGhBtn();
 }
-// Auto-sync: push to Gist after every saveState (debounced 3s)
+// Auto-sync: every saveState persists to localStorage NOW, then schedules a debounced,
+// hash-guarded remote flush via GistSync (_scheduleGhSave). _ghSaveTimer et al. declared up top.
 const _origSave=saveState;
-let _ghSaveTimer;
 saveState=function(){_origSave();_scheduleGhSave();};
 
 // ─── FULL RESET ──────────────────────────────────────────────────────────────
@@ -3272,6 +3327,9 @@ restorePanel();
 updateGhBtn();
 if(!localStorage.getItem('rg_helpSeen')){showHelp();localStorage.setItem('rg_helpSeen','1');}
 if(ghToken)ghLoad();
+// Flush pending changes when leaving/backgrounding the tab (keepalive fetch finishes the write).
+window.addEventListener('beforeunload',()=>{if(ghToken&&_ghDirty)_flushGhSave(true);});
+window.addEventListener('blur',()=>{if(ghToken&&_ghDirty)_flushGhSave(true);});
 setTimeout(()=>{_initializing=false;},500);
 </script>
 </body>
