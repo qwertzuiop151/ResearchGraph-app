@@ -685,7 +685,7 @@ if(!localStorage.getItem('rg_projects')){
 let _projects=_loadRaw('rg_projects',[]);
 let _activeProjectId=localStorage.getItem('rg_active_project')||_projects[0]?.id||'proj_default';
 function _pk(key){return 'rg_'+_activeProjectId+'_'+key;}
-function saveProjects(){localStorage.setItem('rg_projects',JSON.stringify(_projects));}
+function saveProjects(){localStorage.setItem('rg_projects',JSON.stringify(_projects));_scheduleGhSave();}
 const PROJ_COLORS=['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ec4899','#14b8a6','#f97316','#6366f1'];
 let _projEditing=false;
 function _getProjColor(p){return p.color||PROJ_COLORS[0];}
