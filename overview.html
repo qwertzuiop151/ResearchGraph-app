@@ -390,8 +390,9 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-sort-btn{border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;font-size:13px;padding:3px 10px;border-radius:6px;transition:all .15s;margin-left:auto;font-weight:600}
 .lab-sort-btn:hover{color:#7c3aed;background:#ede9fe;border-color:#c4b5fd}
 .lab-cat-hdr:first-child{margin-top:0}
-.lab-todo{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-radius:6px;transition:background .1s}
+.lab-todo{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-radius:6px;transition:background .1s;cursor:pointer}
 .lab-todo:hover{background:#f8fafc}
+.lab-todo-text{cursor:text}
 .lab-todo-cb{width:20px;height:20px;border-radius:5px;border:2px solid #cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:all .15s;margin-top:1px}
 .lab-todo-cb.st-open{border-color:#cbd5e1;background:#fff}
 .lab-todo-cb.st-in_progress{border-color:#0891b2;background:#0891b2;color:#fff}
@@ -411,9 +412,13 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-todo.prio-medium .lab-todo-text{font-weight:600}
 .lab-todo.status-blocked{background:#f1f5f9;opacity:.75}
 .lab-todo.status-blocked .lab-todo-text{color:#64748b;font-style:italic}
-.lab-todo-grip{color:#cbd5e1;cursor:grab;font-size:14px;user-select:none;flex-shrink:0;line-height:1;padding:0 2px}
-.lab-todo-grip:active{cursor:grabbing}
-.todo-insert-bar{height:3px;background:#3b82f6;border-radius:2px;margin:0 4px}
+.lab-todo-arrow{color:#cbd5e1;font-size:20px;flex-shrink:0;line-height:1;margin-top:0;width:18px;text-align:center;user-select:none;transition:transform .15s,color .15s}
+.lab-todo:hover .lab-todo-arrow{color:#94a3b8}
+.lab-todo-arrow.has-notes{color:#8b5cf6}
+.lab-todo-notes{max-height:0;overflow:hidden;transition:max-height .2s ease-out;margin-left:28px}
+.lab-todo-notes-edit{font-size:12px;color:#475569;line-height:1.5;padding:6px 9px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;margin:2px 0 8px;outline:none;min-height:1.3em;white-space:pre-wrap}
+.lab-todo-notes-edit:focus{border-color:#8b5cf6;background:#fff;box-shadow:0 0 0 2px rgba(139,92,246,.12)}
+.lab-todo-notes-edit:empty:before{content:attr(data-ph);color:#cbd5e1}
 .lab-subtasks{margin-left:28px}
 .lab-subtask{display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:12px;color:#64748b}
 .lab-subtask-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid #cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:all .15s}
@@ -1053,7 +1058,7 @@ function getItem(type,id){
 }
 const _TODO_CYCLE={open:'in_progress',in_progress:'done',done:'open',blocked:'open'};
 function _normalizeTodos(raw){
-  return (raw||[]).map((t,i)=>({id:t.id,text:t.text,status:t.status||(t.done?'done':'open'),category:t.category||'general',order:t.order??i,subtasks:t.subtasks||[],priority:typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low'),dueDate:t.dueDate||null,elementId:t.elementId||null,blockedBy:t.blockedBy||null,completedAt:t.completedAt||(t.status==='done'?t.modifiedAt:null),createdAt:t.createdAt||null,modifiedAt:t.modifiedAt||null}));
+  return (raw||[]).map((t,i)=>({id:t.id,text:t.text,notes:t.notes||'',status:t.status||(t.done?'done':'open'),category:t.category||'general',order:t.order??i,subtasks:t.subtasks||[],priority:typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low'),dueDate:t.dueDate||null,elementId:t.elementId||null,blockedBy:t.blockedBy||null,completedAt:t.completedAt||(t.status==='done'?t.modifiedAt:null),createdAt:t.createdAt||null,modifiedAt:t.modifiedAt||null}));
 }
 // Helper: get direct child nodes
 function getChildNodes(nodeId){return NODES.filter(n=>n.parentId===nodeId).sort((a,b)=>(a.order||0)-(b.order||0));}
@@ -2543,14 +2548,16 @@ function buildLabView(){
 }
 
 function _renderTodoItem(t,isDone,cbIcon,prioClass,statusClass,blockedInfo){
-  return `<div class="lab-todo${isDone?' is-done':''}${prioClass}${statusClass}" draggable="true" data-todo-id="${escAttr(t.id)}" data-cat="${escAttr(t.category)}">
-    <span class="lab-todo-grip" title="Drag to reorder">⠿</span>
-    <div class="lab-todo-cb st-${t.status}" onclick="cycleTodoStatus('${escAttr(t.id)}')" title="${t.status}${blockedInfo}">${cbIcon}</div>
-    <div class="lab-todo-text" onclick="editTodoText(this,'${escAttr(t.id)}')">${renderInlineLinks(escH(t.text))}${blockedInfo?'<span style=\"font-size:10px;color:#94a3b8\">'+blockedInfo+'</span>':''}</div>
-    <button class="lab-todo-prio${t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':''}" onclick="toggleTodoPriority('${escAttr(t.id)}')" title="Priority: ${t.priority||'low'}">▲</button>
-    <button class="lab-add-sub" onclick="addSubtask('${escAttr(t.id)}')" title="Add subtask">+sub</button>
-    <button class="lab-todo-del" onclick="deleteLabTodo('${escAttr(t.id)}')">×</button>
-  </div>`;
+  const hasNotes=!!(t.notes&&t.notes.trim());
+  return `<div class="lab-todo${isDone?' is-done':''}${prioClass}${statusClass}" data-todo-id="${escAttr(t.id)}" data-cat="${escAttr(t.category)}" onclick="toggleTodoNotes('${escAttr(t.id)}')">
+    <span class="lab-todo-arrow${hasNotes?' has-notes':''}" id="todo-arrow-${escAttr(t.id)}">▶</span>
+    <div class="lab-todo-cb st-${t.status}" onclick="event.stopPropagation();cycleTodoStatus('${escAttr(t.id)}')" title="${t.status}${blockedInfo}">${cbIcon}</div>
+    <div class="lab-todo-text" onclick="event.stopPropagation();editTodoText(this,'${escAttr(t.id)}')">${renderInlineLinks(escH(t.text))}${blockedInfo?'<span style=\"font-size:10px;color:#94a3b8\">'+blockedInfo+'</span>':''}</div>
+    <button class="lab-todo-prio${t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':''}" onclick="event.stopPropagation();toggleTodoPriority('${escAttr(t.id)}')" title="Priority: ${t.priority||'low'}">▲</button>
+    <button class="lab-add-sub" onclick="event.stopPropagation();addSubtask('${escAttr(t.id)}')" title="Add subtask">+sub</button>
+    <button class="lab-todo-del" onclick="event.stopPropagation();deleteLabTodo('${escAttr(t.id)}')">×</button>
+  </div>
+  <div class="lab-todo-notes" id="todo-notes-${escAttr(t.id)}"><div class="lab-todo-notes-edit" contenteditable="true" data-todo-id="${escAttr(t.id)}" data-ph="Add notes…" onclick="event.stopPropagation()" oninput="_growTodoNotes(this)" onblur="saveTodoNotes(this)">${escH(t.notes||'')}</div></div>`;
 }
 function _renderSubtasks(t){
   if(!t.subtasks||!t.subtasks.length)return '';
@@ -2623,7 +2630,6 @@ function renderLabTodos(){
   });
   if(!TODOS.length) html+=`<div class="lab-empty">No tasks yet. Add your first task above.</div>`;
   el.innerHTML=html;
-  _initTodoDnD();
 }
 
 function renderLabJournal(){
@@ -2682,76 +2688,31 @@ function editTodoText(el,id){
   el.addEventListener('blur',save,{once:true});
   el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}if(e.key==='Escape'){el.textContent=TODOS.find(x=>x.id===id)?.text||'';el.blur();}},{once:true});
 }
-let _todoDragId=null;
-function _initTodoDnD(){
-  const container=document.getElementById('lab-todos');if(!container)return;
-  container.addEventListener('dragstart',e=>{
-    const row=e.target.closest('.lab-todo[data-todo-id]');if(!row)return;
-    _todoDragId=row.dataset.todoId;
-    e.dataTransfer.effectAllowed='move';
-    row.style.opacity='.4';
-  });
-  container.addEventListener('dragend',e=>{
-    const row=e.target.closest('.lab-todo');if(row)row.style.opacity='';
-    container.querySelectorAll('.todo-insert-bar').forEach(b=>b.remove());
-    _todoDragId=null;
-  });
-  container.addEventListener('dragover',e=>{
-    if(!_todoDragId)return;e.preventDefault();e.dataTransfer.dropEffect='move';
-    container.querySelectorAll('.todo-insert-bar').forEach(b=>b.remove());
-    const rows=[...container.querySelectorAll('.lab-todo[data-todo-id]')];
-    const bar=document.createElement('div');bar.className='todo-insert-bar';
-    let inserted=false;
-    for(let i=0;i<rows.length;i++){
-      const rect=rows[i].getBoundingClientRect();
-      if(e.clientY<rect.top+rect.height/2){rows[i].before(bar);inserted=true;break;}
-    }
-    if(!inserted&&rows.length) rows[rows.length-1].after(bar);
-  });
-  container.addEventListener('dragleave',e=>{
-    if(!container.contains(e.relatedTarget))container.querySelectorAll('.todo-insert-bar').forEach(b=>b.remove());
-  });
-  container.addEventListener('drop',e=>{
-    e.preventDefault();
-    container.querySelectorAll('.todo-insert-bar').forEach(b=>b.remove());
-    if(!_todoDragId)return;
-    const dragT=TODOS.find(t=>t.id===_todoDragId);if(!dragT)return;
-    // Determine drop position by Y-coordinate
-    const rows=[...container.querySelectorAll('.lab-todo[data-todo-id]')];
-    let insertIdx=rows.length;
-    for(let i=0;i<rows.length;i++){
-      const rect=rows[i].getBoundingClientRect();
-      if(e.clientY<rect.top+rect.height/2){insertIdx=i;break;}
-    }
-    // Determine target category from nearest row
-    const nearRow=rows[Math.min(insertIdx,rows.length-1)];
-    const targetCat=nearRow?nearRow.dataset.cat:dragT.category;
-    pushUndo();
-    dragT.category=targetCat;
-    const catItems=TODOS.filter(t=>t.category===targetCat).sort((a,b)=>(a.order||0)-(b.order||0));
-    const filtered=catItems.filter(t=>t.id!==dragT.id);
-    // Find insert position within category
-    const catRows=rows.filter(r=>r.dataset.cat===targetCat);
-    let catIdx=filtered.length;
-    for(let i=0;i<catRows.length;i++){
-      const rect=catRows[i].getBoundingClientRect();
-      if(e.clientY<rect.top+rect.height/2){
-        const rowTodo=filtered.find(t=>t.id===catRows[i].dataset.todoId);
-        catIdx=rowTodo?filtered.indexOf(rowTodo):i;
-        break;
-      }
-    }
-    filtered.splice(catIdx,0,dragT);
-    filtered.forEach((t,i)=>t.order=i);
-    _todoDragId=null;
-    saveTodos();buildLabView();
-  });
+function toggleTodoNotes(id){
+  const det=document.getElementById('todo-notes-'+id);
+  const arrow=document.getElementById('todo-arrow-'+id);
+  if(!det)return;
+  const isOpen=det.style.maxHeight&&det.style.maxHeight!=='0px';
+  if(isOpen){det.style.maxHeight='0';if(arrow)arrow.style.transform='';}
+  else{det.style.maxHeight=det.scrollHeight+'px';if(arrow)arrow.style.transform='rotate(90deg)';const ed=det.querySelector('.lab-todo-notes-edit');if(ed)setTimeout(()=>ed.focus(),60);}
+}
+function _growTodoNotes(el){
+  const det=el.closest('.lab-todo-notes');
+  if(det&&det.style.maxHeight&&det.style.maxHeight!=='0px')det.style.maxHeight=det.scrollHeight+'px';
+}
+function saveTodoNotes(el){
+  const id=el.dataset.todoId;const t=TODOS.find(x=>x.id===id);if(!t)return;
+  const v=el.innerText.replace(/ /g,' ').replace(/\n{3,}/g,'\n\n').trim();
+  if(v===(t.notes||''))return;
+  pushUndo();t.notes=v;t.modifiedAt=new Date().toISOString();saveTodos();
+  const arrow=el.closest('.lab-todo-notes')?.previousElementSibling?.querySelector?.('.lab-todo-arrow');
+  if(arrow)arrow.classList.toggle('has-notes',!!v);
 }
 function addLabTodo(category,inputEl){
   const text=(inputEl?.value||'').trim();if(!text)return;
   pushUndo();
   const now=new Date().toISOString();
-  TODOS.push({id:_uid('t'),text,status:'open',category,order:TODOS.length,subtasks:[],priority:'low',dueDate:null,elementId:null,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
+  TODOS.push({id:_uid('t'),text,notes:'',status:'open',category,order:TODOS.length,subtasks:[],priority:'low',dueDate:null,elementId:null,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
   inputEl.value='';
   saveTodos();
   if(_viewMode==='lab') buildLabView();
@@ -2922,7 +2883,7 @@ function promoteIdea(id){
   const idea=IDEAS.find(x=>x.id===id);if(!idea)return;
   pushUndo();
   const now=new Date().toISOString();
-  TODOS.push({id:_uid('t'),text:idea.title+(idea.desc?' — '+idea.desc:''),status:'open',category:'general',priority:'low',order:TODOS.length,subtasks:[],dueDate:null,elementId:idea.elementId,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
+  TODOS.push({id:_uid('t'),text:idea.title,notes:idea.desc||'',status:'open',category:'general',priority:'low',order:TODOS.length,subtasks:[],dueDate:null,elementId:idea.elementId,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
   IDEAS.splice(IDEAS.indexOf(idea),1);
   saveIdeas();saveTodos();buildIdeasView();
 }
