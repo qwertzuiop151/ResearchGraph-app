@@ -234,12 +234,6 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .dsec-title .rm-sec:hover{color:#64748b}
 .dsec-content{font-size:13px;color:#334155;line-height:1.6}
 
-/* array list items */
-.arr-item{display:flex;align-items:flex-start;gap:5px;margin-bottom:3px}
-.arr-item-text{flex:1;font-size:12px;color:#334155;line-height:1.5;padding:3px 5px;border-radius:4px;outline:none}
-.arr-item-text:focus{background:#f0f9ff;outline:1px solid #bae6fd}
-.arr-item-del{color:#cbd5e1;border:none;background:none;cursor:pointer;font-size:13px;padding:2px;line-height:1;flex-shrink:0;margin-top:2px}
-.arr-item-del:hover{color:#64748b}
 .add-arr-btn{font-size:10px;padding:3px 8px;border:1px dashed #cbd5e1;border-radius:5px;
   background:none;cursor:pointer;color:#94a3b8;margin-top:3px}
 .add-arr-btn:hover{border-color:#94a3b8;color:#475569}
@@ -374,11 +368,6 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .picker-item:hover{background:#f0f9ff}
 .picker-item-label{font-weight:700}
 .picker-item-desc{font-size:10px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.dep-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:8px;background:#f1f5f9;color:#334155;margin:2px 2px 0 0}
-.dep-chip-nav{cursor:pointer;color:#475569;font-weight:700;background:none;border:none;padding:0;font-size:11px}
-.dep-chip-nav:hover{color:#3b82f6}
-.dep-chip-rm{border:none;background:none;cursor:pointer;color:#cbd5e1;font-size:12px;padding:0 0 0 2px;line-height:1}
-.dep-chip-rm:hover{color:#64748b}
 
 /* ── LAB VIEW ── */
 .lab-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;height:100%;overflow:auto}
@@ -627,7 +616,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 </div>
 
 <div id="el-picker">
-  <input class="picker-search" id="picker-search-inp" placeholder="Search…" oninput="filterPicker()" onkeydown="if(event.key==='Escape')closePicker()" />
+  <input class="picker-search" id="picker-search-inp" placeholder="Search…" oninput="filterLinkPicker()" onkeydown="if(event.key==='Escape')closePicker()" />
   <div class="picker-list" id="picker-list-inner"></div>
 </div>
 
@@ -652,13 +641,13 @@ function _scheduleGhSave(){
   const wait=_ghBackoff>0?_ghBackoff:Math.min(_GH_DEBOUNCE,Math.max(500,_GH_MAXINT-sinceFlush));
   _ghSaveTimer=setTimeout(()=>_flushGhSave(false),wait);
 }
-async function _flushGhSave(force){
+async function _flushGhSave(force,mode){
   clearTimeout(_ghSaveTimer);
   if(!(typeof ghToken!=='undefined'&&ghToken))return;
   if(_ghInFlight){_scheduleGhSave();return;}
   _ghInFlight=true;
   try{
-    const res=await ghSave(force);
+    const res=await ghSave(force,mode);
     if(res&&res.s==='rate'){_ghBackoff=res.retryMs||Math.min(_ghBackoff?_ghBackoff*2:5000,300000);_scheduleGhSave();return;}
     _ghBackoff=0;_ghLastFlush=Date.now();_ghDirty=false;
   }finally{_ghInFlight=false;}
@@ -806,7 +795,7 @@ function _loadProjectData(){
   _replaceObj(TAGS,_load('tags',{}));
   _replaceObj(STATUSES,_load('statuses',null)||JSON.parse(JSON.stringify(_DEFAULT_STATUSES)));
   collapsedNodes.clear();_load('cNodes',[]).forEach(i=>collapsedNodes.add(i));
-  selType=null;selId=null;_undoStack.length=0;
+  selType=null;selId=null;_undoStack.length=0;_jnlLimit=20;
   _searchQuery='';document.getElementById('search-input').value='';
   document.getElementById('search-clear').style.display='none';
   _statusFilter.clear();hiddenTags.clear();_bulkSelected.clear();
@@ -897,7 +886,7 @@ function deleteProjectById(id){
   if(_projects.length<=1){alert('Cannot delete the only project.');return;}
   const proj=_projects.find(p=>p.id===id);
   if(!confirm(`Delete "${proj?proj.name:id}" and all its data?`))return;
-  ['elements','nodes','todos','journal','tags','statuses','cNodes'].forEach(k=>{
+  ['elements','nodes','todos','journal','ideas','tags','statuses','cNodes'].forEach(k=>{
     localStorage.removeItem('rg_'+id+'_'+k);
   });
   _projects=_projects.filter(p=>p.id!==id);
@@ -920,6 +909,7 @@ function saveState(){
 }
 function saveTags(){
   localStorage.setItem(_pk('tags'),JSON.stringify(TAGS));
+  _scheduleGhSave();
 }
 
 const ELEMENTS = _load('elements', null) || _DE;
@@ -942,7 +932,7 @@ const _DEFAULT_STATUSES={
   abandoned:{label:'abandoned',icon:'✕',color:'#e2e8f0;#334155'}
 };
 let STATUSES=_load('statuses',null)||JSON.parse(JSON.stringify(_DEFAULT_STATUSES));
-function saveStatuses(){localStorage.setItem(_pk('statuses'),JSON.stringify(STATUSES));}
+function saveStatuses(){localStorage.setItem(_pk('statuses'),JSON.stringify(STATUSES));_scheduleGhSave();}
 
 // ─── MIGRATION: Goals+Groups → unified NODES ─────────────────────────────────
 function _migrateGoalsToNodes(goals, elements){
@@ -1064,9 +1054,6 @@ let _newTagColor=COLOR_PALETTE[0];
 // DnD
 let _dragType=null, _dragId=null;
 
-// Element-Picker
-let _pickerMode=null,_pickerTarget=null;
-
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function statusIcon(s){
   const st=STATUSES[s];
@@ -1163,11 +1150,12 @@ function selectByLabel(label){
 let _mentionState=null;
 document.addEventListener('input',e=>{
   if(!e.target.isContentEditable) return;
-  const text=e.target.innerText;
   const sel=window.getSelection();
   if(!sel.rangeCount) return;
   const range=sel.getRangeAt(0);
-  const before=text.substring(0,range.startOffset);
+  const node=range.startContainer;
+  if(node.nodeType!==3){closeMentionDropdown();return;}
+  const before=node.textContent.substring(0,range.startOffset);
   const atMatch=before.match(/@([\w\-()]*)$/);
   if(!atMatch){closeMentionDropdown();return;}
   const query=atMatch[1].toLowerCase();
@@ -1193,9 +1181,17 @@ function closeMentionDropdown(){
   const dd=document.getElementById('mention-dd');if(dd)dd.remove();
   _mentionState=null;
 }
-function insertMention(el,label,atPos){
-  const text=el.innerText;
-  el.innerText=text.substring(0,atPos)+'@'+label+' '+text.substring(text.indexOf(' ',atPos+1)<0?text.length:text.indexOf(' ',atPos+1));
+function insertMention(el,label){
+  // Edit only the caret's text node so existing inline-link pills stay intact
+  const sel=window.getSelection();
+  if(!sel.rangeCount){closeMentionDropdown();return;}
+  const range=sel.getRangeAt(0);
+  const node=range.startContainer;
+  if(node.nodeType!==3){closeMentionDropdown();return;}
+  const before=node.textContent.substring(0,range.startOffset);
+  const m=before.match(/@([\w\-()]*)$/);
+  if(!m){closeMentionDropdown();return;}
+  node.textContent=before.substring(0,m.index)+'@'+label+' '+node.textContent.substring(range.startOffset);
   closeMentionDropdown();
   el.blur(); // triggers save
 }
@@ -1290,6 +1286,7 @@ function deleteTag(key){
 function addNewTag(){
   const inp=document.getElementById('new-tag-inp');
   const label=(inp?.value||'').trim();if(!label)return;
+  pushUndo();
   const key=_uid('tag');
   TAGS[key]={label,color:_newTagColor};
   saveTags();inp.value='';buildTagManager();
@@ -1425,6 +1422,7 @@ function onTagDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
 function onTagDrop(e,type,id,targetIdx){
   e.preventDefault();if(_tagDragIdx===null||_tagDragIdx===targetIdx)return;
   const data=getItem(type,id);if(!data)return;
+  pushUndo();
   const tag=data.tags.splice(_tagDragIdx,1)[0];
   data.tags.splice(targetIdx,0,tag);
   _tagDragIdx=null;saveState();buildRoadmap();renderDetail();
@@ -1437,7 +1435,9 @@ function removeElementTag(type,id,idx){
 function addElementTag(type,id,key){
   const data=getItem(type,id);if(!data)return;
   if(!data.tags)data.tags=[];
-  if(!data.tags.includes(key))data.tags.push(key);
+  if(data.tags.includes(key))return;
+  pushUndo();
+  data.tags.push(key);
   saveState();buildRoadmap();renderDetail();
 }
 
@@ -1838,45 +1838,14 @@ function escAttr(s){ return String(s||'').replace(/[^a-zA-Z0-9_.-]/g,''); }
 function saveField(el){
   const {type,id,field}=el.dataset;
   const data=getItem(type,id); if(!data)return;
-  data[field]=(field==='desc'?extractRawText(el):el.innerText).trim();
+  const nv=(field==='desc'?extractRawText(el):el.innerText).trim();
+  if(nv===(data[field]||''))return;
+  pushUndo();
+  data[field]=nv;
   if(type==='element'&&data.modifiedAt!==undefined) data.modifiedAt=new Date().toISOString();
   saveState();
   if(field==='label') buildRoadmap();
 }
-function saveArrField(el){
-  const {type,id,field,idx}=el.dataset;
-  const data=getItem(type,id); if(!data)return;
-  data[field][parseInt(idx)]=el.innerText.trim();
-  saveState();
-}
-function removeArrItem(type,id,field,idx){
-  const data=getItem(type,id); if(!data)return;
-  pushUndo();
-  data[field].splice(idx,1);
-  saveState(); renderDetail();
-}
-function addArrItem(type,id,field){
-  const data=getItem(type,id); if(!data)return;
-  if(!data[field]) data[field]=[];
-  data[field].push('New entry');
-  saveState(); renderDetail();
-  setTimeout(()=>{
-    const els=document.querySelectorAll(`[data-type="${type}"][data-id="${id}"][data-field="${field}"]`);
-    if(els.length){const last=els[els.length-1];last.focus();_selectAll(last);}
-  },30);
-}
-function arrListHTML(type,id,field,items,boxClass){
-  if(!items) return '';
-  return items.map((s,i)=>`
-    <div class="arr-item">
-      <div class="${boxClass} arr-item-text editable" contenteditable="true"
-        data-type="${type}" data-id="${id}" data-field="${field}" data-idx="${i}"
-        onblur="saveArrField(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"
-        >${escH(s)}</div>
-      <button class="arr-item-del" onclick="removeArrItem('${type}','${id}','${field}',${i})">×</button>
-    </div>`).join('');
-}
-
 // ─── CUSTOM SECTIONS ─────────────────────────────────────────────────────────
 function addCustomSection(type,id,secType){
   secType=secType||'text';
@@ -1941,32 +1910,10 @@ function abandonElement(type,id){
   if(selId===id){selType=null;selId=null;renderDetail();}
 }
 
-// ─── ELEMENT PICKER ──────────────────────────────────────────────────────────
-function openPicker(mode,type,id,anchorEl){
-  _pickerMode=mode;_pickerTarget={type,id};
-  const picker=document.getElementById('el-picker');
-  picker.style.display='block';
-  const rect=anchorEl.getBoundingClientRect();
-  picker.style.top=(rect.bottom+4)+'px';
-  picker.style.left=Math.min(rect.left,window.innerWidth-250)+'px';
-  picker.querySelector('.picker-search').value='';
-  filterPicker();
-  picker.querySelector('.picker-search').focus();
-}
+// ─── ELEMENT PICKER (link mode only — see openSecLinkPicker) ─────────────────
 function closePicker(){
   document.getElementById('el-picker').style.display='none';
-  _pickerMode=null;_pickerTarget=null;_secLinkCtx=null;
-}
-function filterPicker(){
-  if(_pickerMode==='link'){filterLinkPicker();return;}
-  const q=(document.getElementById('picker-search-inp')?.value||'').toLowerCase();
-  const all=ELEMENTS.filter(x=>x.status!=='abandoned');
-  const list=document.getElementById('picker-list-inner');if(!list)return;
-  const items=all.filter(x=>!q||x.label.toLowerCase().includes(q)||(x.desc||'').toLowerCase().includes(q));
-  list.innerHTML=items.map(x=>`<div class="picker-item" onclick="closePicker()">
-    <span class="picker-item-label">${escH(x.label)}</span>
-    <span class="picker-item-desc">${escH((x.desc||'').substring(0,40))}</span>
-  </div>`).join('')||'<div style="padding:10px 12px;font-size:11px;color:#94a3b8">No matches</div>';
+  _secLinkCtx=null;
 }
 
 document.addEventListener('click',e=>{
@@ -1988,7 +1935,6 @@ function timestampsHTML(el){
 let _secLinkCtx=null; // {itemType,itemId,secId}
 function openSecLinkPicker(itemType,itemId,secId,btn){
   _secLinkCtx={itemType,itemId,secId};
-  _pickerMode='link';
   const picker=document.getElementById('el-picker');
   picker.style.display='block';
   const rect=btn.getBoundingClientRect();
@@ -2084,6 +2030,7 @@ function addLogNote(id){
   const el=ELEMENTS.find(x=>x.id===id);if(!el)return;
   const input=document.getElementById('log-note-'+id);
   const msg=(input?.value||'').trim();if(!msg)return;
+  pushUndo();
   if(!el.log) el.log=[];
   const now=new Date().toISOString();
   el.log.push({time:now,msg});
@@ -2106,6 +2053,7 @@ function editLogNote(id,idx){
 }
 function deleteLogNote(id,idx){
   const el=ELEMENTS.find(x=>x.id===id);if(!el||!el.log?.[idx])return;
+  pushUndo();
   el.log.splice(idx,1);
   el.modifiedAt=new Date().toISOString();
   saveState();renderDetail();
@@ -2445,15 +2393,11 @@ function toggleStatusFilter(status){
 }
 function setView(mode){
   _viewMode=mode;
+  localStorage.setItem('rg_view',mode);
   document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===mode));
   const addBtn=document.getElementById('btn-add-goal');
   const title=document.getElementById('roadmap-title');
-  const search=document.querySelector('.search-box');
-  const reset=document.getElementById('btn-reset-filters');
-  const hideControls=mode==='lab'||mode==='ideas';
-  if(addBtn)addBtn.style.display=hideControls?'none':'';
-  if(search)search.style.display=hideControls?'none':'';
-  if(reset&&hideControls)reset.style.display='none';
+  if(addBtn)addBtn.style.display=(mode==='lab'||mode==='ideas')?'none':'';
   title.textContent=mode==='board'?'Status Board':mode==='lab'?'Lab Dashboard':mode==='ideas'?'Ideas':'Nodes';
   buildRoadmap();
 }
@@ -2580,7 +2524,7 @@ function _renderTodoItem(t,isDone,cbIcon,prioClass,statusClass,blockedInfo){
     <span class="lab-todo-arrow${hasNotes?' has-notes':''}" id="todo-arrow-${escAttr(t.id)}">▶</span>
     <div class="lab-todo-cb st-${t.status}" onclick="event.stopPropagation();cycleTodoStatus('${escAttr(t.id)}')" title="${t.status}${blockedInfo}">${cbIcon}</div>
     <div class="lab-todo-text" onclick="event.stopPropagation();editTodoText(this,'${escAttr(t.id)}')">${renderInlineLinks(escH(t.text))}${blockedInfo?'<span style=\"font-size:10px;color:#94a3b8\">'+blockedInfo+'</span>':''}</div>
-    <button class="lab-todo-prio${t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':''}" onclick="event.stopPropagation();toggleTodoPriority('${escAttr(t.id)}')" title="Priority: ${t.priority||'low'}">▲</button>
+    <button class="lab-todo-prio${t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':''}" onclick="event.stopPropagation();toggleTodoPriority('${escAttr(t.id)}')" title="Priority: ${t.priority||'low'}">${t.priority==='high'?'▲▲':t.priority==='medium'?'▲':'△'}</button>
     <button class="lab-add-sub" onclick="event.stopPropagation();addSubtask('${escAttr(t.id)}')" title="Add subtask">+sub</button>
     <button class="lab-todo-del" onclick="event.stopPropagation();deleteLabTodo('${escAttr(t.id)}')">×</button>
   </div>
@@ -2620,13 +2564,23 @@ function sortTodosByPriority(catKey){
   saveTodos();renderLabTodos();
 }
 
+// Search matchers for Lab/Ideas views (share the header search box)
+function _todoMatches(t){
+  if(!_searchQuery)return true;const q=_searchQuery;
+  return (t.text||'').toLowerCase().includes(q)||(t.notes||'').toLowerCase().includes(q)||(t.subtasks||[]).some(s=>(s.text||'').toLowerCase().includes(q));
+}
+function _jnlMatches(e){
+  if(!_searchQuery)return true;const q=_searchQuery;
+  if((e.date||'').includes(q))return true;
+  return (e.sections||[]).some(s=>(s.title||'').toLowerCase().includes(q)||(s.content||'').toLowerCase().includes(q));
+}
 function renderLabTodos(){
   const el=document.getElementById('lab-todos');
   if(!el)return;
   const cats=[{key:'labor',label:'Lab'},{key:'general',label:'General'}];
   let html='';
   cats.forEach(cat=>{
-    const allItems=TODOS.filter(t=>t.category===cat.key).sort((a,b)=>(a.order||0)-(b.order||0));
+    const allItems=TODOS.filter(t=>t.category===cat.key&&_todoMatches(t)).sort((a,b)=>(a.order||0)-(b.order||0));
     const active=allItems.filter(t=>t.status!=='done');
     const done=allItems.filter(t=>t.status==='done');
     html+=`<div class="lab-cat-hdr">${cat.label}<button class="lab-sort-btn" onclick="sortTodosByPriority('${cat.key}')" title="Sort by priority">↕ Sort</button></div>`;
@@ -2659,13 +2613,17 @@ function renderLabTodos(){
   el.innerHTML=html;
 }
 
+let _jnlLimit=20; // render newest N entries; "Show older" raises it
 function renderLabJournal(){
   const el=document.getElementById('lab-journal');
   if(!el)return;
   if(!JOURNAL.length){el.innerHTML='<div class="jnl-empty">No journal entries yet. Click "+ Today" to start.</div>';return;}
-  const sorted=[...JOURNAL].sort((a,b)=>b.date.localeCompare(a.date));
+  const matching=JOURNAL.filter(_jnlMatches);
+  if(!matching.length){el.innerHTML='<div class="jnl-empty">No matching journal entries.</div>';return;}
+  const sorted=[...matching].sort((a,b)=>b.date.localeCompare(a.date));
+  const visible=sorted.slice(0,_jnlLimit);
   let html='';
-  sorted.forEach(entry=>{
+  visible.forEach(entry=>{
     html+=`<div class="jnl-entry">
       <div class="jnl-date">${escH(entry.date)}<button class="jnl-del" onclick="deleteJournalEntry('${escAttr(entry.id)}')" title="Delete entry">×</button></div>`;
     (entry.sections||[]).forEach(sec=>{
@@ -2678,6 +2636,7 @@ function renderLabJournal(){
     html+=`<button class="jnl-add-sec" onclick="addJournalSection('${escAttr(entry.id)}')">+ Add Section</button>`;
     html+=`</div>`;
   });
+  if(sorted.length>_jnlLimit) html+=`<button class="jnl-add-sec" onclick="_jnlLimit+=20;renderLabJournal()">▼ Show older entries (${sorted.length-_jnlLimit} more)</button>`;
   el.innerHTML=html;
 }
 
@@ -2822,7 +2781,11 @@ function saveJournalContent(el){
   const sec=entry.sections.find(s=>s.id===sid);if(!sec)return;
   sec.content=extractRawText(el);
   entry.modifiedAt=new Date().toISOString();
-  clearTimeout(_jnlSaveTimer);_jnlSaveTimer=setTimeout(()=>saveJournal(),500);
+  clearTimeout(_jnlSaveTimer);_jnlSaveTimer=setTimeout(()=>{_jnlSaveTimer=null;saveJournal();},500);
+}
+// Flush a pending debounced journal save immediately (called on blur/beforeunload)
+function _flushJournalSave(){
+  if(_jnlSaveTimer){clearTimeout(_jnlSaveTimer);_jnlSaveTimer=null;saveJournal();}
 }
 function saveJournalTitle(el){
   const eid=el.dataset.eid,sid=el.dataset.sid;
@@ -2864,10 +2827,13 @@ function buildIdeasView(){
     <input type="text" id="idea-title-input" placeholder="New idea..." style="flex:1;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px" onkeydown="if(event.key==='Enter')addIdea()">
     <button onclick="addIdea()" style="padding:8px 16px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">+ Add</button>
   </div>`;
+  const ideasFiltered=IDEAS.filter(i=>!_searchQuery||(i.title||'').toLowerCase().includes(_searchQuery)||(i.desc||'').toLowerCase().includes(_searchQuery));
   if(!IDEAS.length){
     html+='<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px">No ideas yet. Capture spontaneous thoughts here!</div>';
+  } else if(!ideasFiltered.length){
+    html+='<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px">No matching ideas.</div>';
   } else {
-    IDEAS.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).forEach(idea=>{
+    ideasFiltered.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).forEach(idea=>{
       const date=idea.createdAt?new Date(idea.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
       const linked=idea.elementId?ELEMENTS.find(e=>e.id===idea.elementId):null;
       const hasDetail=!!(idea.desc||linked);
@@ -2937,7 +2903,7 @@ function exportData(){
     const pTodos=p.id===_activeProjectId?TODOS:JSON.parse(localStorage.getItem(prefix+'todos')||'[]');
     const pJournal=p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]');
     const pIdeas=p.id===_activeProjectId?IDEAS:JSON.parse(localStorage.getItem(prefix+'ideas')||'[]');
-    return{id:p.id,name:p.name,nodes:pNodes,elements:pEls,tags:pTags,statuses:pStatuses,todos:pTodos,journal:pJournal,ideas:pIdeas};
+    return{id:p.id,name:p.name,color:p.color,nodes:pNodes,elements:pEls,tags:pTags,statuses:pStatuses,todos:pTodos,journal:pJournal,ideas:pIdeas};
   });
   const data={projects:allProjects,exported:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -2950,7 +2916,7 @@ function importData(){document.getElementById('import-file').click();}
 function handleImport(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=()=>{
+  r.onload=async()=>{
     try{
       const d=JSON.parse(r.result);
       // Multi-project format
@@ -2960,7 +2926,7 @@ function handleImport(e){
         let lastPid=null;
         d.projects.forEach(proj=>{
           const pid=_uid('proj');
-          _projects.push({id:pid,name:proj.name||'Imported',created:new Date().toISOString()});
+          _projects.push({id:pid,name:proj.name||'Imported',color:proj.color||PROJ_COLORS[_projects.length%PROJ_COLORS.length],created:new Date().toISOString()});
           const prefix='rg_'+pid+'_';
           // Validate and sanitize
           const els=(proj.elements||[]).map(el=>({...el,id:el.id||_uid('el'),label:el.label||'(unnamed)',status:el.status||'planned',tags:el.tags||[],custom:el.custom||[],log:el.log||[]}));
@@ -3003,15 +2969,17 @@ function handleImport(e){
         if(!n.label) n.label='(unnamed)';
         if(!n.custom) n.custom=[];
       });
+      const choice=await showChoice('Import','How do you want to import "'+f.name+'"?',[
+        {label:'Add as new project (keeps current data)',value:'new'},
+        {label:'Replace current project with imported data',value:'replace',danger:true},
+        {label:'Cancel',value:null}]);
+      if(!choice) return;
       pushUndo();
-      const choice=prompt('How do you want to import?\n\n  1 = Replace current project with imported data\n  2 = Add as new project (keeps current data)\n  3 = Cancel\n\nEnter 1, 2, or 3:','2');
-      if(!choice||choice.trim()==='3') return;
-      const overwrite=choice.trim()==='1';
-      const asNew=!overwrite;
+      const asNew=choice==='new';
       if(asNew){
         const name=d.projectName||f.name.replace(/\.json$/,'')||'Imported';
         const pid=_uid('proj');
-        _projects.push({id:pid,name,created:new Date().toISOString()});
+        _projects.push({id:pid,name,color:PROJ_COLORS[_projects.length%PROJ_COLORS.length],created:new Date().toISOString()});
         saveProjects();
         _activeProjectId=pid;localStorage.setItem('rg_active_project',pid);
       }
@@ -3034,6 +3002,31 @@ function handleImport(e){
     }catch(err){alert('Invalid JSON file: '+err.message);}
   };
   r.readAsText(f);e.target.value='';
+}
+
+// ─── CHOICE MODAL (replaces prompt()-based "type 1/2/3" dialogs) ─────────────
+// options: [{label, value, danger?}] — resolves to the chosen value, null on cancel/backdrop.
+function showChoice(title,msg,options){
+  return new Promise(res=>{
+    const ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1200;display:flex;align-items:center;justify-content:center';
+    const box=document.createElement('div');
+    box.style.cssText='background:#fff;border-radius:12px;padding:24px;max-width:420px;width:92%;color:#1e293b;box-shadow:0 20px 60px rgba(0,0,0,.25)';
+    box.innerHTML='<h3 style="margin-bottom:8px;font-size:15px">'+escH(title)+'</h3><p style="font-size:13px;color:#64748b;margin-bottom:16px;white-space:pre-wrap">'+escH(msg)+'</p>';
+    const btns=document.createElement('div');
+    btns.style.cssText='display:flex;flex-direction:column;gap:8px';
+    options.forEach(o=>{
+      const b=document.createElement('button');
+      b.textContent=o.label;
+      b.style.cssText='font-size:13px;font-weight:600;padding:9px 14px;border-radius:8px;cursor:pointer;text-align:left;border:1px solid '+(o.danger?'#fca5a5;background:#fef2f2;color:#dc2626':'#e2e8f0;background:#f8fafc;color:#1e293b');
+      b.onclick=()=>{ov.remove();res(o.value);};
+      btns.appendChild(b);
+    });
+    box.appendChild(btns);
+    ov.appendChild(box);
+    ov.addEventListener('click',e=>{if(e.target===ov){ov.remove();res(null);}});
+    document.body.appendChild(ov);
+  });
 }
 
 // ─── GITHUB SYNC (PAT + Gist, Multi-Project) ────────────────────────────────
@@ -3059,12 +3052,14 @@ function clearSyncError(){
   const btn=document.getElementById('gh-btn');
   if(btn){btn.style.background='rgba(255,255,255,.22)';btn.title='';}
 }
-function ghAction(){
+async function ghAction(){
   if(ghToken){
-    const choice=prompt(`Connected as ${ghUser}.\n\n  1 = Sync now (upload your data)\n  2 = Disconnect from GitHub\n  3 = Cancel\n\nEnter 1, 2, or 3:`,'1');
-    if(!choice||choice.trim()==='3') return;
-    if(choice.trim()==='1') _flushGhSave(true);
-    else if(choice.trim()==='2') ghLogout();
+    const choice=await showChoice('GitHub Sync','Connected as '+ghUser+'.',[
+      {label:'⟳ Sync now (upload your data)',value:'sync'},
+      {label:'Disconnect from GitHub',value:'logout',danger:true},
+      {label:'Cancel',value:null}]);
+    if(choice==='sync') _flushGhSave(true,'manual');
+    else if(choice==='logout') ghLogout();
   } else ghLogin();
 }
 function closeGhModal(){document.getElementById('gh-modal').style.display='none';}
@@ -3111,8 +3106,10 @@ function _ghBuildPayload(){
   return {projects:allProjects,activeProject:_activeProjectId};
 }
 // Low-level remote writer. Returns {s:'ok'|'skip'|'rate'|'error', retryMs?}. `force` bypasses the hash guard.
+// `mode`: 'auto' (default; conflicts never prompt — skip + warn), 'manual' (user-initiated; conflicts
+// show a choice modal), 'trusted' (user already resolved the conflict upstream; skip the check).
 // NOTE: uses _origSave() (not saveState) to persist in-memory state without re-triggering the debounce.
-async function ghSave(force){
+async function ghSave(force,mode){
   if(!ghToken)return{s:'error'};
   _origSave();saveTags();saveStatuses();
   const payload=_ghBuildPayload();
@@ -3120,7 +3117,7 @@ async function ghSave(force){
   const h=_cyrb53(JSON.stringify(payload));
   if(!force&&h===localStorage.getItem('rg_gh_hash')){clearSyncError();return{s:'skip'};}
   // Pre-save conflict check: only runs on a real change (rare now), asks before clobbering newer remote.
-  if(ghGistId){
+  if(mode!=='trusted'&&ghGistId){
     try{
       const rc=await fetch('https://api.github.com/gists/'+ghGistId,{headers:{Authorization:'Bearer '+ghToken}});
       if(rc.ok){
@@ -3130,9 +3127,14 @@ async function ghSave(force){
           const remote=JSON.parse(content);
           const lastSync=localStorage.getItem('rg_lastSync');
           if(remote.saved&&lastSync&&remote.saved>lastSync){
-            const choice=prompt('GitHub has newer data (saved '+remote.saved.slice(0,16).replace('T',' ')+').\n\n  1 = Overwrite GitHub with YOUR local data\n  2 = Load data FROM GitHub (replaces local)\n  3 = Cancel (do nothing)\n\nEnter 1, 2, or 3:','2');
-            if(!choice||choice.trim()==='3')return{s:'skip'};
-            if(choice.trim()==='2'){await ghLoad();return{s:'skip'};}
+            // Background autosave/blur flush must never pop a blocking dialog — warn instead.
+            if(mode!=='manual'){showSyncError('Sync paused: GitHub has newer data — click ⬡ to resolve');return{s:'skip'};}
+            const choice=await showChoice('Sync conflict','GitHub has newer data (saved '+remote.saved.slice(0,16).replace('T',' ')+').',[
+              {label:'Load data FROM GitHub (replaces local)',value:'load'},
+              {label:'Overwrite GitHub with YOUR local data',value:'overwrite',danger:true},
+              {label:'Cancel',value:null}]);
+            if(!choice)return{s:'skip'};
+            if(choice==='load'){await ghLoad();return{s:'skip'};}
           }
         }
       }
@@ -3193,18 +3195,21 @@ async function ghLoad(){
     if(!r.ok){showSyncError(r.status===401?'Sync failed: GitHub token expired — reconnect':'Sync failed (HTTP '+r.status+')');console.error('Gist load error:',r.status);return;}
     const d=await r.json();
     const content=d.files?.['researchgraph_data.json']?.content;
-    if(!content){ghSave(true);return;}
+    if(!content){ghSave(true,'trusted');return;}
     const parsed=JSON.parse(content);
     // Check for local data conflict
     const lastSync=localStorage.getItem('rg_lastSync');
     const hasLocal=ELEMENTS.length>0||NODES.length>0;
     const hasRemote=parsed.projects?parsed.projects.some(p=>(p.elements||[]).length||(p.nodes||[]).length):(parsed.elements||[]).length>0;
     if(hasLocal&&hasRemote&&(!lastSync||lastSync!==parsed.saved)){
-      const choice=prompt('You have data on this device AND on GitHub.\n\nWhat would you like to do?\n\n  1 = Keep this device\'s data and upload it to GitHub\n  2 = Load from GitHub (replaces data on this device)\n  3 = Merge both (adds missing projects, no data is lost)\n  4 = Cancel (do nothing)\n\nEnter 1, 2, 3, or 4:','2');
-      if(!choice||choice.trim()===''||choice.trim()==='4') return;
-      const c=choice.trim();
-      if(c==='1'){ghSave(true);return;}
-      if(c==='3'&&parsed.projects){
+      const c=await showChoice('Sync conflict','You have data on this device AND on GitHub. What would you like to do?',[
+        {label:'Load from GitHub (replaces data on this device)',value:'remote'},
+        {label:'Merge both (adds missing projects, no data is lost)',value:'merge'},
+        {label:'Keep this device’s data and upload it to GitHub',value:'local',danger:true},
+        {label:'Cancel (do nothing)',value:null}]);
+      if(!c) return;
+      if(c==='local'){ghSave(true,'trusted');return;}
+      if(c==='merge'&&parsed.projects){
         parsed.projects.forEach(proj=>{
           const exists=_projects.find(p=>p.name===proj.name);
           if(exists) return;
@@ -3219,7 +3224,7 @@ async function ghLoad(){
           localStorage.setItem(prefix+'ideas',JSON.stringify(proj.ideas||[]));
         });
         localStorage.setItem('rg_projects',JSON.stringify(_projects));
-        buildRoadmap();renderProjTabs();ghSave(true);return;
+        buildRoadmap();renderProjTabs();ghSave(true,'trusted');return;
       }
     }
     // Apply remote data
@@ -3267,7 +3272,7 @@ saveState=function(){_origSave();_scheduleGhSave();};
 function showHelp(){const o=document.getElementById('help-overlay');o.style.display='flex';}
 function resetAll(){
   if(!confirm('Reset current project data? This will delete all saved changes and load defaults.'))return;
-  ['elements','nodes','todos','journal','tags','statuses','cNodes'].forEach(k=>{
+  ['elements','nodes','todos','journal','ideas','tags','statuses','cNodes'].forEach(k=>{
     localStorage.removeItem(_pk(k));
   });
   location.reload();
@@ -3321,15 +3326,15 @@ function initResizable(){
 renderProjTabs();
 buildTagManager();
 buildStatusManager();
-buildRoadmap();
+setView(localStorage.getItem('rg_view')||'tree'); // restore last used view
 initResizable();
 restorePanel();
 updateGhBtn();
 if(!localStorage.getItem('rg_helpSeen')){showHelp();localStorage.setItem('rg_helpSeen','1');}
 if(ghToken)ghLoad();
-// Flush pending changes when leaving/backgrounding the tab (keepalive fetch finishes the write).
-window.addEventListener('beforeunload',()=>{if(ghToken&&_ghDirty)_flushGhSave(true);});
-window.addEventListener('blur',()=>{if(ghToken&&_ghDirty)_flushGhSave(true);});
+// Flush pending journal + gist writes when leaving/backgrounding the tab (best-effort on unload; blur covers the common case).
+window.addEventListener('beforeunload',()=>{_flushJournalSave();if(ghToken&&_ghDirty)_flushGhSave(true);});
+window.addEventListener('blur',()=>{_flushJournalSave();if(ghToken&&_ghDirty)_flushGhSave(true);});
 setTimeout(()=>{_initializing=false;},500);
 </script>
 </body>
