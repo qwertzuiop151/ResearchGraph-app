@@ -376,8 +376,6 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-col-hdr .badge{font-size:11px;font-weight:600;background:#e2e8f0;color:#64748b;padding:2px 8px;border-radius:10px}
 .lab-col-body{flex:1;overflow-y:auto;padding:12px 16px}
 .lab-cat-hdr{font-size:15px;font-weight:800;text-transform:uppercase;color:#475569;letter-spacing:.5px;margin:14px 0 8px;padding-bottom:6px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:8px}
-.lab-sort-btn{border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;font-size:13px;padding:3px 10px;border-radius:6px;transition:all .15s;margin-left:auto;font-weight:600}
-.lab-sort-btn:hover{color:#7c3aed;background:#ede9fe;border-color:#c4b5fd}
 .lab-cat-hdr:first-child{margin-top:0}
 .lab-todo{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-radius:6px;transition:background .1s;cursor:pointer}
 .lab-todo:hover{background:#f8fafc}
@@ -399,6 +397,14 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-todo.prio-high .lab-todo-text{font-weight:700}
 .lab-todo.prio-medium{background:#fffbeb}
 .lab-todo.prio-medium .lab-todo-text{font-weight:600}
+/* Focus — the single most important task. Colorblind-safe: star shape + gold accent bar + glow + label, not color alone */
+.lab-todo-focus{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:0 2px;opacity:0;transition:opacity .15s,transform .15s,color .15s;flex-shrink:0;line-height:1}
+.lab-todo:hover .lab-todo-focus{opacity:1}
+.lab-todo-focus:hover{color:#eab308;transform:scale(1.25)}
+.lab-todo-focus.is-focus{color:#eab308;opacity:1;text-shadow:0 0 6px rgba(234,179,8,.55)}
+.lab-todo.focus-task{background:#fef9c3;box-shadow:inset 3px 0 0 #eab308,0 0 0 1px #fde68a,0 2px 8px rgba(234,179,8,.28)}
+.lab-todo.focus-task .lab-todo-text{font-weight:800;color:#713f12}
+.lab-todo-focuslabel{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.5px;color:#a16207;background:#fde68a;border-radius:4px;padding:1px 5px;margin-right:6px;vertical-align:middle}
 .lab-todo.status-blocked{background:#f1f5f9;opacity:.75}
 .lab-todo.status-blocked .lab-todo-text{color:#64748b;font-style:italic}
 .lab-todo-arrow{color:#cbd5e1;font-size:20px;flex-shrink:0;line-height:1;margin-top:0;width:18px;text-align:center;user-select:none;transition:transform .15s,color .15s}
@@ -1072,7 +1078,13 @@ function getItem(type,id){
 }
 const _TODO_CYCLE={open:'in_progress',in_progress:'done',done:'open',blocked:'open'};
 function _normalizeTodos(raw){
-  return (raw||[]).map((t,i)=>({id:t.id,text:t.text,notes:t.notes||'',status:t.status||(t.done?'done':'open'),category:t.category||'general',order:t.order??i,subtasks:t.subtasks||[],priority:typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low'),dueDate:t.dueDate||null,elementId:t.elementId||null,blockedBy:t.blockedBy||null,completedAt:t.completedAt||(t.status==='done'?t.modifiedAt:null),createdAt:t.createdAt||null,modifiedAt:t.modifiedAt||null}));
+  let _seenFocus=false;
+  return (raw||[]).map((t,i)=>{
+    // Focus: exclusive globally — keep only the first focused todo seen, drop any extras. Fallback to legacy northStar field.
+    let foc=!!(t.focus||t.northStar);
+    if(foc){ if(_seenFocus) foc=false; else _seenFocus=true; }
+    return {id:t.id,text:t.text,notes:t.notes||'',status:t.status||(t.done?'done':'open'),category:t.category||'general',order:t.order??i,subtasks:t.subtasks||[],priority:typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low'),focus:foc,dueDate:t.dueDate||null,elementId:t.elementId||null,blockedBy:t.blockedBy||null,completedAt:t.completedAt||(t.status==='done'?t.modifiedAt:null),createdAt:t.createdAt||null,modifiedAt:t.modifiedAt||null};
+  });
 }
 // Helper: get direct child nodes
 function getChildNodes(nodeId){return NODES.filter(n=>n.parentId===nodeId).sort((a,b)=>(a.order||0)-(b.order||0));}
@@ -2520,11 +2532,13 @@ function buildLabView(){
 
 function _renderTodoItem(t,isDone,cbIcon,prioClass,statusClass,blockedInfo){
   const hasNotes=!!(t.notes&&t.notes.trim());
-  return `<div class="lab-todo${isDone?' is-done':''}${prioClass}${statusClass}" data-todo-id="${escAttr(t.id)}" data-cat="${escAttr(t.category)}" onclick="toggleTodoNotes('${escAttr(t.id)}')">
+  const foc=!!t.focus;
+  return `<div class="lab-todo${isDone?' is-done':''}${prioClass}${statusClass}${foc?' focus-task':''}" data-todo-id="${escAttr(t.id)}" data-cat="${escAttr(t.category)}" onclick="toggleTodoNotes('${escAttr(t.id)}')">
     <span class="lab-todo-arrow${hasNotes?' has-notes':''}" id="todo-arrow-${escAttr(t.id)}">▶</span>
     <div class="lab-todo-cb st-${t.status}" onclick="event.stopPropagation();cycleTodoStatus('${escAttr(t.id)}')" title="${t.status}${blockedInfo}">${cbIcon}</div>
-    <div class="lab-todo-text" onclick="event.stopPropagation();editTodoText(this,'${escAttr(t.id)}')">${renderInlineLinks(escH(t.text))}${blockedInfo?'<span style=\"font-size:10px;color:#94a3b8\">'+blockedInfo+'</span>':''}</div>
-    <button class="lab-todo-prio${t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':''}" onclick="event.stopPropagation();toggleTodoPriority('${escAttr(t.id)}')" title="Priority: ${t.priority||'low'}">${t.priority==='high'?'▲▲':t.priority==='medium'?'▲':'△'}</button>
+    <div class="lab-todo-text" onclick="event.stopPropagation();editTodoText(this,'${escAttr(t.id)}')">${foc?'<span class="lab-todo-focuslabel">★ FOCUS</span>':''}${renderInlineLinks(escH(t.text))}${blockedInfo?'<span style=\"font-size:10px;color:#94a3b8\">'+blockedInfo+'</span>':''}</div>
+    <button class="lab-todo-focus${foc?' is-focus':''}" onclick="event.stopPropagation();toggleFocus('${escAttr(t.id)}')" title="${foc?'Focus — click to remove':'Set as Focus (the single most important task)'}">${foc?'★':'☆'}</button>
+    ${foc?'':`<button class="lab-todo-prio${t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':''}" onclick="event.stopPropagation();toggleTodoPriority('${escAttr(t.id)}')" title="Priority: ${t.priority||'low'}">${t.priority==='high'?'▲▲':t.priority==='medium'?'▲':'△'}</button>`}
     <button class="lab-add-sub" onclick="event.stopPropagation();addSubtask('${escAttr(t.id)}')" title="Add subtask">+sub</button>
     <button class="lab-todo-del" onclick="event.stopPropagation();deleteLabTodo('${escAttr(t.id)}')">×</button>
   </div>
@@ -2551,17 +2565,13 @@ function toggleDoneSection(id,toggleEl){
   toggleEl.classList.toggle('open',isOpen);
 }
 
-function sortTodosByPriority(catKey){
-  pushUndo();
-  const prioRank={high:0,medium:1,low:2,'':2};
-  const catItems=TODOS.filter(t=>t.category===catKey&&t.status!=='done');
-  catItems.sort((a,b)=>{
-    const pa=prioRank[a.priority||'']??2, pb=prioRank[b.priority||'']??2;
-    if(pa!==pb)return pa-pb;
-    return(a.text||'').localeCompare(b.text||'',undefined,{sensitivity:'base'});
-  });
-  catItems.forEach((t,i)=>t.order=i);
-  saveTodos();renderLabTodos();
+// Todos werden immer nach Prioritaet sortiert angezeigt: Focus zuerst, dann high > medium > low, innerhalb gleicher Stufe nach order
+const _PRIO_RANK={high:0,medium:1,low:2,'':2};
+function _byPriority(a,b){
+  if(!!a.focus!==!!b.focus) return a.focus?-1:1; // Focus immer ganz oben
+  const pa=_PRIO_RANK[a.priority||'']??2, pb=_PRIO_RANK[b.priority||'']??2;
+  if(pa!==pb)return pa-pb;
+  return (a.order||0)-(b.order||0);
 }
 
 // Search matchers for Lab/Ideas views (share the header search box)
@@ -2581,9 +2591,9 @@ function renderLabTodos(){
   let html='';
   cats.forEach(cat=>{
     const allItems=TODOS.filter(t=>t.category===cat.key&&_todoMatches(t)).sort((a,b)=>(a.order||0)-(b.order||0));
-    const active=allItems.filter(t=>t.status!=='done');
+    const active=allItems.filter(t=>t.status!=='done').sort(_byPriority);
     const done=allItems.filter(t=>t.status==='done');
-    html+=`<div class="lab-cat-hdr">${cat.label}<button class="lab-sort-btn" onclick="sortTodosByPriority('${cat.key}')" title="Sort by priority">↕ Sort</button></div>`;
+    html+=`<div class="lab-cat-hdr">${cat.label}</div>`;
     if(!active.length && !done.length){
       html+=`<div class="lab-add-row"><input class="lab-add-input" placeholder="New ${cat.label.toLowerCase()} task…" onkeydown="if(event.key==='Enter')addLabTodo('${cat.key}',this)" /><button class="lab-add-btn" onclick="addLabTodo('${cat.key}',this.previousElementSibling)">+</button></div>`;
       return;
@@ -2661,6 +2671,21 @@ function toggleTodoPriority(id){
   saveTodos();
   if(_viewMode==='lab') renderLabTodos();
 }
+// Focus: exclusive global marker — only one todo can hold it. Un-setting keeps the todo's underlying low/med/high priority.
+function toggleFocus(id){
+  const t=TODOS.find(x=>x.id===id);if(!t)return;
+  pushUndo();
+  const now=new Date().toISOString();
+  if(t.focus){
+    t.focus=false;
+  }else{
+    TODOS.forEach(x=>{ if(x.focus){ x.focus=false; x.modifiedAt=now; } }); // release previous focus
+    t.focus=true;
+  }
+  t.modifiedAt=now;
+  saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+}
 function editTodoText(el,id){
   if(el.isContentEditable)return;
   el.contentEditable='true';el.focus();_selectAll(el);
@@ -2698,7 +2723,7 @@ function addLabTodo(category,inputEl){
   const text=(inputEl?.value||'').trim();if(!text)return;
   pushUndo();
   const now=new Date().toISOString();
-  TODOS.push({id:_uid('t'),text,notes:'',status:'open',category,order:TODOS.length,subtasks:[],priority:'low',dueDate:null,elementId:null,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
+  TODOS.push({id:_uid('t'),text,notes:'',status:'open',category,order:TODOS.length,subtasks:[],priority:'low',focus:false,dueDate:null,elementId:null,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
   inputEl.value='';
   saveTodos();
   if(_viewMode==='lab') buildLabView();
@@ -2876,7 +2901,7 @@ function promoteIdea(id){
   const idea=IDEAS.find(x=>x.id===id);if(!idea)return;
   pushUndo();
   const now=new Date().toISOString();
-  TODOS.push({id:_uid('t'),text:idea.title,notes:idea.desc||'',status:'open',category:'general',priority:'low',order:TODOS.length,subtasks:[],dueDate:null,elementId:idea.elementId,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
+  TODOS.push({id:_uid('t'),text:idea.title,notes:idea.desc||'',status:'open',category:'general',priority:'low',focus:false,order:TODOS.length,subtasks:[],dueDate:null,elementId:idea.elementId,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
   IDEAS.splice(IDEAS.indexOf(idea),1);
   saveIdeas();saveTodos();buildIdeasView();
 }
