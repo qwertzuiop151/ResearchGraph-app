@@ -431,7 +431,10 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .dtodo-prio{display:flex;gap:5px;flex-wrap:wrap}
 .dtodo-prio .st-btn.active{background:#ede9fe;border-color:#8b5cf6;color:#5b21b6}
 .lab-subtasks{margin-left:28px}
-.lab-subtask{display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:12px;color:#64748b}
+.lab-subtask{display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:12px;color:#64748b;border-radius:5px;cursor:pointer}
+.lab-subtask:hover{background:#f8fafc}
+.lab-subtask.selected{background:#eef2ff;box-shadow:inset 3px 0 0 #6366f1}
+.lab-subtask-notemark{color:#8b5cf6;font-size:11px;width:11px;text-align:center;flex-shrink:0;user-select:none}
 .lab-subtask-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid #cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:all .15s}
 .lab-subtask-cb.st-done{border-color:#64748b;background:#64748b;color:#fff}
 .lab-subtask-cb.st-in_progress{border-color:#0891b2;background:#0891b2;color:#fff}
@@ -535,6 +538,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
         <li>Add <b>link sections</b> to cross-reference related elements</li>
         <li><b>Activity log</b> tracks changes automatically; add manual notes too</li>
         <li><b>Tasks</b> open here too: notes, status, priority and Focus live in the panel, so the task list stays short. A <b>≡</b> marks tasks that carry notes; the <b>✎</b> button on a row renames it in place (the title is editable in the panel as well)</li>
+        <li><b>Subtasks</b> work the same way — click one to open it in the panel, where it can carry its own notes</li>
         <li>The <b>◀ handle</b> on the divider collapses the panel</li>
       </ul>
       <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Tags & Statuses</h3>
@@ -1864,7 +1868,7 @@ function select(type,id,opts){
   },50);
 }
 function updateSelectionHighlight(){
-  document.querySelectorAll('.goal-header,.rg-group-hdr,.el-card,.lab-todo').forEach(el=>el.classList.remove('selected'));
+  document.querySelectorAll('.goal-header,.rg-group-hdr,.el-card,.lab-todo,.lab-subtask').forEach(el=>el.classList.remove('selected'));
   if(selId) document.querySelectorAll(`[data-type="${selType}"][data-id="${selId}"]`).forEach(el=>el.classList.add('selected'));
 }
 
@@ -2228,6 +2232,40 @@ function renderDetail(){
       ${t.dueDate?`<div class="dsec"><div class="dsec-title">Due</div><div style="font-size:12px;color:#475569">${escH(t.dueDate)}</div></div>`:''}
       ${timestampsHTML(t)}
       <div style="margin-top:12px"><button class="add-sec-btn danger" onclick="deleteLabTodo('${tid}')">Delete task</button></div>`;
+  }
+
+  // ── SUBTASK ── Subtasks bleiben in der Liste, ihre Notes leben wie beim Todo hier im Panel.
+  else if(selType==='subtask'){
+    const f=_findSubtask(selId);
+    if(!f){body.innerHTML='<p class="hint">Subtask no longer exists.</p>';return;}
+    const {t,s}=f;
+    const key=_subKey(t.id,s.id);
+    const stDef=[['open','○','Open','#64748b'],['in_progress','⟳','In progress','#0891b2'],['done','✓','Done','#15803d']];
+    const st=s.status||'open';
+    const cur=stDef.find(x=>x[0]===st)||stDef[0];
+    body.innerHTML=`
+      <div class="dh" style="color:#0891b2">Subtask</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px">
+        <span style="cursor:pointer;text-decoration:underline;text-decoration-color:#cbd5e1"
+          onclick="select('todo','${escAttr(t.id)}')" title="Go to the parent task">↰ ${escH(t.text)}</span>
+      </div>
+      <div class="dtitle editable" contenteditable="true" data-sub-key="${key}"
+        onblur="saveSubtaskTitle(this)"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}">${escH(s.text)}</div>
+      <span class="dbadge" style="background:#f1f5f9;color:${cur[3]};border:2px solid ${cur[3]}">${cur[1]} ${cur[2]}</span>
+
+      <div class="dsec"><div class="dsec-title">Notes</div>
+        <div class="dtodo-notes" contenteditable="true" data-sub-key="${key}" data-ph="Add notes…"
+          onblur="saveSubtaskNotes(this)">${escH(s.notes||'')}</div>
+      </div>
+
+      <div class="dsec"><div class="dsec-title">Status</div>
+        <div class="status-edit">${stDef.map(x=>
+          `<button class="st-btn ${st===x[0]?'active':''}" onclick="setSubtaskStatus('${key}','${x[0]}')">${x[1]} ${x[2]}</button>`
+        ).join('')}</div>
+      </div>
+
+      <div style="margin-top:12px"><button class="add-sec-btn danger" onclick="deleteSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">Delete subtask</button></div>`;
   }
 }
 
@@ -2637,11 +2675,13 @@ function _renderSubtasks(t){
   t.subtasks.forEach(s=>{
     const sDone=s.status==='done';
     const sIcon=s.status==='done'?'✓':s.status==='in_progress'?'⟳':'';
-    h+=`<div class="lab-subtask${sDone?' is-done':''}">
-      <div class="lab-subtask-cb st-${s.status||'open'}" onclick="toggleSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">${sIcon}</div>
+    const sHasNotes=!!(s.notes&&s.notes.trim());
+    h+=`<div class="lab-subtask${sDone?' is-done':''}" data-type="subtask" data-id="${_subKey(t.id,s.id)}" onclick="select('subtask','${_subKey(t.id,s.id)}')">
+      <div class="lab-subtask-cb st-${s.status||'open'}" onclick="event.stopPropagation();toggleSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">${sIcon}</div>
+      <span class="lab-subtask-notemark" title="${sHasNotes?'Has notes — open the subtask to read them':''}">${sHasNotes?'≡':''}</span>
       <span class="lab-subtask-text">${renderInlineLinks(escH(s.text))}</span>
-      <button class="lab-subtask-edit" onclick="editSubtaskRow(this,'${escAttr(t.id)}','${escAttr(s.id)}')" title="Rename subtask">✎</button>
-      <button class="lab-subtask-del" onclick="deleteSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">×</button>
+      <button class="lab-subtask-edit" onclick="event.stopPropagation();editSubtaskRow(this,'${escAttr(t.id)}','${escAttr(s.id)}')" title="Rename subtask">✎</button>
+      <button class="lab-subtask-del" onclick="event.stopPropagation();deleteSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">×</button>
     </div>`;
   });
   h+='</div>';
@@ -2799,6 +2839,35 @@ function editTodoText(el,id){
 function _refreshTodo(id){
   if(_viewMode==='lab') renderLabTodos();
   if(selType==='todo'&&selId===id) renderDetail();
+  else if(selType==='subtask'&&typeof selId==='string'&&selId.startsWith(id+'.')) renderDetail();
+}
+// Subtasks werden im Panel ueber einen zusammengesetzten Schluessel adressiert. Der Punkt
+// ueberlebt escAttr(), die von _uid() erzeugten IDs enthalten selbst keinen.
+function _subKey(tid,sid){return escAttr(tid)+'.'+escAttr(sid);}
+function _findSubtask(key){
+  const [tid,sid]=String(key||'').split('.');
+  const t=TODOS.find(x=>x.id===tid);if(!t)return null;
+  const s=(t.subtasks||[]).find(x=>x.id===sid);if(!s)return null;
+  return {t,s};
+}
+function saveSubtaskTitle(el){
+  const f=_findSubtask(el.dataset.subKey);if(!f)return;
+  const v=el.innerText.trim();
+  if(!v||v===f.s.text){el.innerHTML=escH(f.s.text);return;}
+  pushUndo();f.s.text=v;f.t.modifiedAt=new Date().toISOString();saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+}
+function saveSubtaskNotes(el){
+  const f=_findSubtask(el.dataset.subKey);if(!f)return;
+  const v=el.innerText.replace(/ /g,' ').replace(/\n{3,}/g,'\n\n').trim();
+  if(v===(f.s.notes||''))return;
+  pushUndo();f.s.notes=v;f.t.modifiedAt=new Date().toISOString();saveTodos();
+  if(_viewMode==='lab') renderLabTodos(); // Notiz-Marker (≡) der Subtask-Zeile aktualisieren
+}
+function setSubtaskStatus(key,status){
+  const f=_findSubtask(key);if(!f||f.s.status===status)return;
+  pushUndo();f.s.status=status;f.t.modifiedAt=new Date().toISOString();saveTodos();
+  _refreshTodo(f.t.id);
 }
 function saveTodoTitle(el){
   const t=TODOS.find(x=>x.id===el.dataset.todoId);if(!t)return;
@@ -2852,7 +2921,10 @@ function deleteLabTodo(id){
   pushUndo();
   TODOS.splice(idx,1);
   saveTodos();
-  if(selType==='todo'&&selId===id){selType=null;selId=null;renderDetail();}
+  // auch eine ausgewaehlte Subtask des geloeschten Todos abwaehlen
+  if((selType==='todo'&&selId===id)||(selType==='subtask'&&typeof selId==='string'&&selId.startsWith(id+'.'))){
+    selType=null;selId=null;renderDetail();
+  }
   if(_viewMode==='lab') buildLabView();
 }
 function addSubtask(todoId){
@@ -2866,7 +2938,7 @@ function addSubtask(todoId){
     if(!text)return;
     const t=TODOS.find(x=>x.id===todoId);if(!t)return;
     pushUndo();
-    t.subtasks.push({id:_uid('st'),text,status:'open'});
+    t.subtasks.push({id:_uid('st'),text,notes:'',status:'open'});
     t.modifiedAt=new Date().toISOString();
     saveTodos();
     if(_viewMode==='lab') renderLabTodos();
@@ -2884,7 +2956,7 @@ function toggleSubtask(tid,sid){
   s.status=_TODO_CYCLE[s.status||'open']||'open';
   t.modifiedAt=new Date().toISOString();
   saveTodos();
-  if(_viewMode==='lab') renderLabTodos();
+  _refreshTodo(tid);
 }
 // Subtask umbenennen — gleiche Geste wie beim Todo: expliziter Stift, kein Doppelklick.
 function editSubtaskRow(btn,tid,sid){
@@ -2918,6 +2990,7 @@ function deleteSubtask(tid,sid){
   t.subtasks.splice(idx,1);
   t.modifiedAt=new Date().toISOString();
   saveTodos();
+  if(selType==='subtask'&&selId===_subKey(tid,sid)){selType=null;selId=null;renderDetail();}
   if(_viewMode==='lab') renderLabTodos();
 }
 
