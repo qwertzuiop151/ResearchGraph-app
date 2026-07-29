@@ -77,8 +77,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:1
 #roadmap{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 18px;display:flex;flex-direction:column;gap:0}
 
 /* ── DRAG DIVIDER ── */
-#drag-divider{width:5px;background:#e2e8f0;cursor:col-resize;flex-shrink:0;transition:background .15s;position:relative}
-#drag-divider:hover,#drag-divider.dragging{background:#94a3b8}
+#drag-divider{width:9px;background:#eef2f6;cursor:col-resize;flex-shrink:0;transition:background .15s;position:relative}
+#drag-divider:hover,#drag-divider.dragging{background:#dbe3ec}
+/* Bei eingeklapptem Panel bleibt die Kante sichtbar (traegt den Knopf), ist aber nicht ziehbar */
+#drag-divider.pinned{cursor:default}
+#drag-divider.pinned:hover{background:#eef2f6}
+#drag-divider.pinned::after{display:none}
 #drag-divider::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   width:1px;height:32px;background:#cbd5e1;border-radius:2px}
 
@@ -165,11 +169,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:1
 #panel{width:340px;min-width:240px;background:#fff;border-left:1px solid #e2e8f0;
   display:flex;flex-direction:column;overflow:hidden;box-shadow:-2px 0 8px rgba(0,0,0,.06);transition:width .2s,min-width .2s}
 #panel.collapsed{width:0!important;min-width:0!important;border:none;overflow:hidden}
+#drag-divider.dragging~#panel{transition:none} /* beim Ziehen soll die Breite direkt folgen */
 #panel.collapsed>*{display:none}
-#panel-toggle{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:100;background:#1e3a5f;color:#fff;border:none;
-  width:20px;height:48px;border-radius:6px 0 0 6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;
-  box-shadow:-2px 0 6px rgba(0,0,0,.1);transition:right .2s}
-#panel-toggle:hover{background:#2d4f7a}
+/* Der Knopf ist ein KIND des Dividers und sitzt damit immer auf der Trennkante — egal wie breit
+   das Panel gerade ist. (Vorher absolut positioniert und der Panel-Breite nachgerechnet: brach beim
+   Ausklappen, weil #panel seine Breite animiert und die Messung noch 0 ergab.) */
+/* Buendig IN der Leiste (gleiche Breite), damit es wie ein Griff der Kante wirkt und nicht wie
+   ein aufgeklebter Kasten. Waechst nur beim Hover leicht heraus. */
+#panel-toggle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100;
+  width:9px;height:46px;padding:0;background:#9aa8bb;color:#fff;border:none;border-radius:5px;
+  cursor:pointer;font-size:10px;line-height:1;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,width .12s,height .12s}
+#panel-toggle:hover{background:#1e3a5f;width:15px;height:54px}
+#drag-divider.dragging #panel-toggle{background:#1e3a5f}
+#drag-divider.pinned #panel-toggle{background:#64748b}
 #panel-top{padding:14px 16px;background:#1e3a5f;color:#fff;flex-shrink:0}
 #panel-top h3{font-size:11px;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .edit-gear{cursor:pointer;font-size:12px;opacity:.5;transition:opacity .15s,transform .2s}
@@ -379,7 +392,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-cat-hdr:first-child{margin-top:0}
 .lab-todo{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-radius:6px;transition:background .1s;cursor:pointer}
 .lab-todo:hover{background:#f8fafc}
-.lab-todo-text{cursor:text}
+.lab-todo-text{cursor:pointer}
 .lab-todo-cb{width:20px;height:20px;border-radius:5px;border:2px solid #cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:all .15s;margin-top:1px}
 .lab-todo-cb.st-open{border-color:#cbd5e1;background:#fff}
 .lab-todo-cb.st-in_progress{border-color:#0891b2;background:#0891b2;color:#fff}
@@ -407,13 +420,16 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-todo-focuslabel{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.5px;color:#a16207;background:#fde68a;border-radius:4px;padding:1px 5px;margin-right:6px;vertical-align:middle}
 .lab-todo.status-blocked{background:#f1f5f9;opacity:.75}
 .lab-todo.status-blocked .lab-todo-text{color:#64748b;font-style:italic}
-.lab-todo-arrow{color:#cbd5e1;font-size:20px;flex-shrink:0;line-height:1;margin-top:0;width:18px;text-align:center;user-select:none;transition:transform .15s,color .15s}
-.lab-todo:hover .lab-todo-arrow{color:#94a3b8}
-.lab-todo-arrow.has-notes{color:#8b5cf6}
-.lab-todo-notes{max-height:0;overflow:hidden;transition:max-height .2s ease-out;margin-left:28px}
-.lab-todo-notes-edit{font-size:12px;color:#475569;line-height:1.5;padding:6px 9px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;margin:2px 0 8px;outline:none;min-height:1.3em;white-space:pre-wrap}
-.lab-todo-notes-edit:focus{border-color:#8b5cf6;background:#fff;box-shadow:0 0 0 2px rgba(139,92,246,.12)}
-.lab-todo-notes-edit:empty:before{content:attr(data-ph);color:#cbd5e1}
+/* Notiz-Marker statt Aufklapp-Pfeil — Details leben im Detail-Panel rechts (29.07.) */
+.lab-todo-notemark{color:#8b5cf6;font-size:13px;flex-shrink:0;line-height:1.4;margin-top:1px;width:18px;text-align:center;user-select:none}
+.lab-todo.selected{background:#eef2ff;box-shadow:inset 3px 0 0 #6366f1}
+.lab-todo.selected:hover{background:#e0e7ff}
+/* Todo-Detail im Panel */
+.dtodo-notes{font-size:12.5px;color:#334155;line-height:1.6;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;outline:none;min-height:4.5em;white-space:pre-wrap;margin-top:2px}
+.dtodo-notes:focus{border-color:#8b5cf6;background:#fff;box-shadow:0 0 0 2px rgba(139,92,246,.12)}
+.dtodo-notes:empty:before{content:attr(data-ph);color:#cbd5e1}
+.dtodo-prio{display:flex;gap:5px;flex-wrap:wrap}
+.dtodo-prio .st-btn.active{background:#ede9fe;border-color:#8b5cf6;color:#5b21b6}
 .lab-subtasks{margin-left:28px}
 .lab-subtask{display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:12px;color:#64748b}
 .lab-subtask-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid #cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:all .15s}
@@ -430,6 +446,11 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-add-sub{border:none;background:none;color:#94a3b8;cursor:pointer;font-size:11px;padding:2px 4px;opacity:0;transition:opacity .15s}
 .lab-todo:hover .lab-add-sub{opacity:1}
 .lab-add-sub:hover{color:#3b82f6}
+/* Umbenennen nur ueber den Stift — ein Klick auf die Zeile oeffnet das Detail-Panel (29.07.) */
+.lab-todo-edit{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:12px;padding:0 2px;opacity:0;transition:opacity .15s,color .15s;flex-shrink:0;line-height:1}
+.lab-todo:hover .lab-todo-edit{opacity:1}
+.lab-todo-edit:hover{color:#3b82f6}
+.lab-todo-text.editing{background:#fff;box-shadow:0 0 0 2px rgba(59,130,246,.35);border-radius:4px;padding:1px 4px;margin:-1px -4px;cursor:text}
 .lab-done-toggle{display:flex;align-items:center;gap:6px;padding:6px 4px;margin-top:4px;cursor:pointer;font-size:12px;color:#94a3b8;border-radius:6px;user-select:none;transition:background .1s}
 .lab-done-toggle:hover{background:#f8fafc;color:#64748b}
 .lab-done-toggle .lab-done-arrow{font-size:10px;transition:transform .15s}
@@ -486,7 +507,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
       <ul style="padding-left:18px">
         <li><b>Nodes</b> organize your work into a tree hierarchy (phases, groups, sub-groups — unlimited depth)</li>
         <li><b>Elements</b> are the actual items (experiments, constructs, tasks) that live inside nodes</li>
-        <li>Click any node or element to see its details in the right panel</li>
+        <li>Click any node, element or task to see its details in the right panel</li>
       </ul>
       <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Drag & Drop</h3>
       <ul style="padding-left:18px">
@@ -506,6 +527,8 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
         <li>Add <b>custom sections</b> for notes, protocols, or troubleshooting</li>
         <li>Add <b>link sections</b> to cross-reference related elements</li>
         <li><b>Activity log</b> tracks changes automatically; add manual notes too</li>
+        <li><b>Tasks</b> open here too: notes, status, priority and Focus live in the panel, so the task list stays short. A <b>≡</b> marks tasks that carry notes; the <b>✎</b> button on a row renames it in place (the title is editable in the panel as well)</li>
+        <li>The <b>◀ handle</b> on the divider collapses the panel</li>
       </ul>
       <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Tags & Statuses</h3>
       <ul style="padding-left:18px">
@@ -578,8 +601,9 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
     </div>
     <div id="goal-list"></div>
   </div>
-  <div id="drag-divider"></div>
-  <button id="panel-toggle" onclick="togglePanel()" title="Toggle panel">◀</button>
+  <div id="drag-divider">
+    <button id="panel-toggle" onclick="event.stopPropagation();togglePanel()" onmousedown="event.stopPropagation()" title="Hide detail panel">‹</button>
+  </div>
   <div id="panel">
     <div id="panel-top">
       <h3>Tags <span class="edit-gear" id="tag-gear" onclick="toggleTagEditMode()" title="Edit tags">⚙ <span class="gear-arrow">▸</span></span></h3>
@@ -1815,7 +1839,7 @@ function toggleNode(nodeId){
 // ─── SELECTION ────────────────────────────────────────────────────────────────
 function select(type,id,opts){
   if(selType===type&&selId===id){selType=null;selId=null;}
-  else{selType=type;selId=id;}
+  else{selType=type;selId=id;_ensurePanelOpen();} // sonst waere ein Klick bei eingeklapptem Panel wirkungslos
   if(opts?.scroll){
     // Expand all ancestor nodes so target is visible
     let cur=type==='node'?NODES.find(n=>n.id===id):null;
@@ -1833,7 +1857,7 @@ function select(type,id,opts){
   },50);
 }
 function updateSelectionHighlight(){
-  document.querySelectorAll('.goal-header,.rg-group-hdr,.el-card').forEach(el=>el.classList.remove('selected'));
+  document.querySelectorAll('.goal-header,.rg-group-hdr,.el-card,.lab-todo').forEach(el=>el.classList.remove('selected'));
   if(selId) document.querySelectorAll(`[data-type="${selType}"][data-id="${selId}"]`).forEach(el=>el.classList.add('selected'));
 }
 
@@ -2141,6 +2165,62 @@ function renderDetail(){
           ?`<button class="add-sec-btn" style="background:#dbeafe;color:#1e40af" onclick="changeElStatus('${el.id}','planned')">Restore</button>`
           :`<button class="add-sec-btn danger" onclick="abandonElement('element','${el.id}')">Abandon</button>`}
       </div>`;
+  }
+
+  // ── TASK ── Notes/Details leben hier statt hinter einem Aufklapp-Pfeil in der Zeile (29.07.).
+  // Subtasks bleiben bewusst in der Liste (Entscheid Dominik) — hier nur ein Fortschritts-Hinweis.
+  else if(selType==='todo'){
+    const t=TODOS.find(x=>x.id===selId);
+    if(!t){body.innerHTML='<p class="hint">Task no longer exists.</p>';return;}
+    const tid=escAttr(t.id);
+    const cat=t.category==='labor'?'Lab':'General';
+    const prio=t.priority||'low';
+    const st=t.status||'open';
+    const subs=t.subtasks||[];
+    const subDone=subs.filter(s=>s.status==='done').length;
+    const linkedEl=t.elementId?ELEMENTS.find(e=>e.id===t.elementId):null;
+    const stDef=[['open','○','Open','#64748b'],['in_progress','⟳','In progress','#2563eb'],['blocked','⊘','Blocked','#b45309'],['done','✓','Done','#15803d']];
+    const cur=stDef.find(s=>s[0]===st)||stDef[0];
+    body.innerHTML=`
+      <div class="dh" style="color:#8b5cf6">Task · ${cat}</div>
+      <div class="dtitle editable" contenteditable="true" data-todo-id="${tid}"
+        onblur="saveTodoTitle(this)"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}">${escH(t.text)}</div>
+      <span class="dbadge" style="background:#f1f5f9;color:${cur[3]};border:2px solid ${cur[3]}">${cur[1]} ${cur[2]}</span>
+      ${t.focus?'<span class="dbadge" style="background:#fef3c7;color:#92400e;border:2px solid #f59e0b">★ FOCUS</span>':''}
+
+      <div class="dsec"><div class="dsec-title">Notes</div>
+        <div class="dtodo-notes" contenteditable="true" data-todo-id="${tid}" data-ph="Add notes…"
+          onblur="saveTodoNotes(this)">${escH(t.notes||'')}</div>
+      </div>
+
+      <div class="dsec"><div class="dsec-title">Status</div>
+        <div class="status-edit">${stDef.map(s=>
+          `<button class="st-btn ${st===s[0]?'active':''}" onclick="setTodoStatus('${tid}','${s[0]}')">${s[1]} ${s[2]}</button>`
+        ).join('')}</div>
+        ${st==='blocked'?`<div style="margin-top:6px"><div class="dtodo-notes" style="min-height:1.4em;font-size:12px"
+          contenteditable="true" data-todo-id="${tid}" data-ph="Blocked by…" onblur="saveTodoBlockedBy(this)">${escH(t.blockedBy||'')}</div></div>`:''}
+      </div>
+
+      <div class="dsec"><div class="dsec-title">Priority</div>
+        <div class="dtodo-prio">
+          ${[['low','△','Low'],['medium','▲','Medium'],['high','▲▲','High']].map(p=>
+            `<button class="st-btn ${!t.focus&&prio===p[0]?'active':''}" onclick="setTodoPriority('${tid}','${p[0]}')">${p[1]} ${p[2]}</button>`
+          ).join('')}
+          <button class="st-btn ${t.focus?'active':''}" onclick="toggleFocus('${tid}')"
+            title="Focus — the single most important task, at most one">${t.focus?'★':'☆'} Focus</button>
+        </div>
+      </div>
+
+      ${subs.length?`<div class="dsec"><div class="dsec-title">Subtasks (${subDone}/${subs.length} done)</div>
+        <p class="hint" style="margin:0;font-size:11px">Listed with the task — check them off there.</p></div>`:''}
+
+      ${linkedEl?`<div class="dsec"><div class="dsec-title">Linked element</div>
+        <span class="dep-tag" onclick="select('element','${escAttr(linkedEl.id)}')" style="border-left:3px solid ${getElementColor(linkedEl)}">${escH(statusIcon(linkedEl.status).icon)} ${escH(linkedEl.label)}</span></div>`:''}
+
+      ${t.dueDate?`<div class="dsec"><div class="dsec-title">Due</div><div style="font-size:12px;color:#475569">${escH(t.dueDate)}</div></div>`:''}
+      ${timestampsHTML(t)}
+      <div style="margin-top:12px"><button class="add-sec-btn danger" onclick="deleteLabTodo('${tid}')">Delete task</button></div>`;
   }
 }
 
@@ -2533,16 +2613,16 @@ function buildLabView(){
 function _renderTodoItem(t,isDone,cbIcon,prioClass,statusClass,blockedInfo){
   const hasNotes=!!(t.notes&&t.notes.trim());
   const foc=!!t.focus;
-  return `<div class="lab-todo${isDone?' is-done':''}${prioClass}${statusClass}${foc?' focus-task':''}" data-todo-id="${escAttr(t.id)}" data-cat="${escAttr(t.category)}" onclick="toggleTodoNotes('${escAttr(t.id)}')">
-    <span class="lab-todo-arrow${hasNotes?' has-notes':''}" id="todo-arrow-${escAttr(t.id)}">▶</span>
+  return `<div class="lab-todo${isDone?' is-done':''}${prioClass}${statusClass}${foc?' focus-task':''}" data-type="todo" data-id="${escAttr(t.id)}" data-todo-id="${escAttr(t.id)}" data-cat="${escAttr(t.category)}" onclick="select('todo','${escAttr(t.id)}')">
+    <span class="lab-todo-notemark" title="${hasNotes?'Has notes — open the task to read them':''}">${hasNotes?'≡':''}</span>
     <div class="lab-todo-cb st-${t.status}" onclick="event.stopPropagation();cycleTodoStatus('${escAttr(t.id)}')" title="${t.status}${blockedInfo}">${cbIcon}</div>
-    <div class="lab-todo-text" onclick="event.stopPropagation();editTodoText(this,'${escAttr(t.id)}')">${foc?'<span class="lab-todo-focuslabel">★ FOCUS</span>':''}${renderInlineLinks(escH(t.text))}${blockedInfo?'<span style=\"font-size:10px;color:#94a3b8\">'+blockedInfo+'</span>':''}</div>
+    <div class="lab-todo-text" onclick="if(this.isContentEditable)event.stopPropagation()">${foc?'<span class="lab-todo-focuslabel">★ FOCUS</span>':''}${renderInlineLinks(escH(t.text))}${blockedInfo?'<span style=\"font-size:10px;color:#94a3b8\">'+blockedInfo+'</span>':''}</div>
     <button class="lab-todo-focus${foc?' is-focus':''}" onclick="event.stopPropagation();toggleFocus('${escAttr(t.id)}')" title="${foc?'Focus — click to remove':'Set as Focus (the single most important task)'}">${foc?'★':'☆'}</button>
     ${foc?'':`<button class="lab-todo-prio${t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':''}" onclick="event.stopPropagation();toggleTodoPriority('${escAttr(t.id)}')" title="Priority: ${t.priority||'low'}">${t.priority==='high'?'▲▲':t.priority==='medium'?'▲':'△'}</button>`}
+    <button class="lab-todo-edit" onclick="event.stopPropagation();editTodoRow(this,'${escAttr(t.id)}')" title="Rename task">✎</button>
     <button class="lab-add-sub" onclick="event.stopPropagation();addSubtask('${escAttr(t.id)}')" title="Add subtask">+sub</button>
     <button class="lab-todo-del" onclick="event.stopPropagation();deleteLabTodo('${escAttr(t.id)}')">×</button>
-  </div>
-  <div class="lab-todo-notes" id="todo-notes-${escAttr(t.id)}"><div class="lab-todo-notes-edit" contenteditable="true" data-todo-id="${escAttr(t.id)}" data-ph="Add notes…" onclick="event.stopPropagation()" oninput="_growTodoNotes(this)" onblur="saveTodoNotes(this)">${escH(t.notes||'')}</div></div>`;
+  </div>`;
 }
 function _renderSubtasks(t){
   if(!t.subtasks||!t.subtasks.length)return '';
@@ -2621,6 +2701,7 @@ function renderLabTodos(){
   });
   if(!TODOS.length) html+=`<div class="lab-empty">No tasks yet. Add your first task above.</div>`;
   el.innerHTML=html;
+  updateSelectionHighlight(); // Todo-Zeilen sind selektierbar -> Markierung nach Rebuild wiederherstellen
 }
 
 let _jnlLimit=20; // render newest N entries; "Show older" raises it
@@ -2662,14 +2743,14 @@ function cycleTodoStatus(id){
   if(t.status!=='blocked') t.blockedBy=null;
   t.modifiedAt=now;
   saveTodos();
-  if(_viewMode==='lab') renderLabTodos();
+  _refreshTodo(id);
 }
 const _PRIO_CYCLE={low:'medium',medium:'high',high:'low'};
 function toggleTodoPriority(id){
   const t=TODOS.find(x=>x.id===id);if(!t)return;
   pushUndo();t.priority=_PRIO_CYCLE[t.priority||'low']||'low';t.modifiedAt=new Date().toISOString();
   saveTodos();
-  if(_viewMode==='lab') renderLabTodos();
+  _refreshTodo(id);
 }
 // Focus: exclusive global marker — only one todo can hold it. Un-setting keeps the todo's underlying low/med/high priority.
 function toggleFocus(id){
@@ -2684,40 +2765,70 @@ function toggleFocus(id){
   }
   t.modifiedAt=now;
   saveTodos();
-  if(_viewMode==='lab') renderLabTodos();
+  _refreshTodo(id);
+}
+// Umbenennen startet nur ueber den Stift-Knopf der Zeile (oder den Titel im Detail-Panel) —
+// ein einfacher Klick auf die Zeile ist fuers Oeffnen des Panels reserviert.
+function editTodoRow(btn,id){
+  const el=btn.closest('.lab-todo')?.querySelector('.lab-todo-text');
+  if(el) editTodoText(el,id);
 }
 function editTodoText(el,id){
   if(el.isContentEditable)return;
-  el.contentEditable='true';el.focus();_selectAll(el);
+  el.contentEditable='true';el.classList.add('editing');el.focus();_selectAll(el);
   const save=()=>{
-    el.contentEditable='false';
+    el.contentEditable='false';el.classList.remove('editing');
     const t=TODOS.find(x=>x.id===id);if(!t)return;
     const newText=el.textContent.trim();
-    if(newText&&newText!==t.text){pushUndo();t.text=newText;t.modifiedAt=new Date().toISOString();saveTodos();}
+    if(newText&&newText!==t.text){pushUndo();t.text=newText;t.modifiedAt=new Date().toISOString();saveTodos();_refreshTodo(id);}
     else{el.innerHTML=renderInlineLinks(escH(t.text));}
   };
   el.addEventListener('blur',save,{once:true});
   el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}if(e.key==='Escape'){el.textContent=TODOS.find(x=>x.id===id)?.text||'';el.blur();}},{once:true});
 }
-function toggleTodoNotes(id){
-  const det=document.getElementById('todo-notes-'+id);
-  const arrow=document.getElementById('todo-arrow-'+id);
-  if(!det)return;
-  const isOpen=det.style.maxHeight&&det.style.maxHeight!=='0px';
-  if(isOpen){det.style.maxHeight='0';if(arrow)arrow.style.transform='';}
-  else{det.style.maxHeight=det.scrollHeight+'px';if(arrow)arrow.style.transform='rotate(90deg)';const ed=det.querySelector('.lab-todo-notes-edit');if(ed)setTimeout(()=>ed.focus(),60);}
+// ─── TODO DETAIL PANEL ───────────────────────────────────────────────────────
+// Liste = kurze Header + Subtasks, alles Lange lebt im Panel rechts.
+function _refreshTodo(id){
+  if(_viewMode==='lab') renderLabTodos();
+  if(selType==='todo'&&selId===id) renderDetail();
 }
-function _growTodoNotes(el){
-  const det=el.closest('.lab-todo-notes');
-  if(det&&det.style.maxHeight&&det.style.maxHeight!=='0px')det.style.maxHeight=det.scrollHeight+'px';
+function saveTodoTitle(el){
+  const t=TODOS.find(x=>x.id===el.dataset.todoId);if(!t)return;
+  const v=el.innerText.trim();
+  if(!v||v===t.text){el.innerHTML=escH(t.text);return;}
+  pushUndo();t.text=v;t.modifiedAt=new Date().toISOString();saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+}
+function saveTodoBlockedBy(el){
+  const t=TODOS.find(x=>x.id===el.dataset.todoId);if(!t)return;
+  const v=el.innerText.trim();
+  if(v===(t.blockedBy||''))return;
+  pushUndo();t.blockedBy=v||null;t.modifiedAt=new Date().toISOString();saveTodos();
+  if(_viewMode==='lab') renderLabTodos();
+}
+function setTodoStatus(id,status){
+  const t=TODOS.find(x=>x.id===id);if(!t||t.status===status)return;
+  pushUndo();
+  const now=new Date().toISOString();
+  const was=t.status;
+  t.status=status;
+  if(status==='done'&&was!=='done') t.completedAt=now;
+  if(status!=='done') t.completedAt=null;
+  if(status!=='blocked') t.blockedBy=null;
+  t.modifiedAt=now;
+  saveTodos();_refreshTodo(id);
+}
+function setTodoPriority(id,p){
+  const t=TODOS.find(x=>x.id===id);if(!t)return;
+  pushUndo();t.priority=p;t.modifiedAt=new Date().toISOString();
+  saveTodos();_refreshTodo(id);
 }
 function saveTodoNotes(el){
   const id=el.dataset.todoId;const t=TODOS.find(x=>x.id===id);if(!t)return;
   const v=el.innerText.replace(/ /g,' ').replace(/\n{3,}/g,'\n\n').trim();
   if(v===(t.notes||''))return;
   pushUndo();t.notes=v;t.modifiedAt=new Date().toISOString();saveTodos();
-  const arrow=el.closest('.lab-todo-notes')?.previousElementSibling?.querySelector?.('.lab-todo-arrow');
-  if(arrow)arrow.classList.toggle('has-notes',!!v);
+  if(_viewMode==='lab') renderLabTodos(); // Notiz-Marker (≡) in der Zeile aktualisieren
 }
 function addLabTodo(category,inputEl){
   const text=(inputEl?.value||'').trim();if(!text)return;
@@ -2733,6 +2844,7 @@ function deleteLabTodo(id){
   pushUndo();
   TODOS.splice(idx,1);
   saveTodos();
+  if(selType==='todo'&&selId===id){selType=null;selId=null;renderDetail();}
   if(_viewMode==='lab') buildLabView();
 }
 function addSubtask(todoId){
@@ -3304,21 +3416,29 @@ function resetAll(){
 }
 
 // ─── PANEL TOGGLE ────────────────────────────────────────────────────────────
+// Der Knopf liegt im Divider selbst — er braucht daher keine Positionsrechnung und bleibt
+// auch bei eingeklapptem Panel erreichbar (Divider bleibt sichtbar, nur nicht mehr ziehbar).
 function togglePanel(){
   const panel=document.getElementById('panel');
   const divider=document.getElementById('drag-divider');
   const btn=document.getElementById('panel-toggle');
   const collapsed=panel.classList.toggle('collapsed');
-  divider.style.display=collapsed?'none':'';
-  btn.textContent=collapsed?'▶':'◀';
+  divider.classList.toggle('pinned',collapsed);
+  btn.textContent=collapsed?'›':'‹';
+  btn.title=collapsed?'Show detail panel':'Hide detail panel';
   localStorage.setItem('rg_panelCollapsed',collapsed?'1':'');
+}
+function _ensurePanelOpen(){
+  const panel=document.getElementById('panel');
+  if(panel&&panel.classList.contains('collapsed')) togglePanel();
 }
 function restorePanel(){
   if(localStorage.getItem('rg_panelCollapsed')==='1'){
     const panel=document.getElementById('panel');
     const divider=document.getElementById('drag-divider');
     const btn=document.getElementById('panel-toggle');
-    panel.classList.add('collapsed');divider.style.display='none';btn.textContent='▶';
+    panel.classList.add('collapsed');divider.classList.add('pinned');btn.textContent='›';
+    btn.title='Show detail panel';
   }
 }
 
@@ -3329,6 +3449,7 @@ function initResizable(){
   const saved=localStorage.getItem('rg_panelWidth');
   if(saved){panel.style.width=saved+'px';panel.style.minWidth=saved+'px';}
   divider.addEventListener('mousedown',e=>{
+    if(divider.classList.contains('pinned'))return; // eingeklappt: nichts zu ziehen
     e.preventDefault();
     divider.classList.add('dragging');
     const startX=e.clientX, startW=panel.offsetWidth;
