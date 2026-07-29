@@ -438,6 +438,13 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-subtask.is-done{text-decoration:line-through;color:#94a3b8}
 .lab-subtask-del{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:12px;padding:0;opacity:0;transition:opacity .15s}
 .lab-subtask:hover .lab-subtask-del{opacity:1}
+.lab-subtask-edit{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:11px;padding:0 2px;opacity:0;transition:opacity .15s,color .15s;flex-shrink:0;line-height:1}
+.lab-subtask:hover .lab-subtask-edit{opacity:1}
+.lab-subtask-edit:hover{color:#3b82f6}
+.lab-subtask-text{cursor:default}
+/* inline-block, damit der Durchstreich-Effekt erledigter Subtasks nicht ins Editierfeld laeuft
+   (text-decoration vererbt sich und laesst sich am Kind nicht abschalten, nur durch eigene Box) */
+.lab-subtask-text.editing{display:inline-block;background:#fff;color:#334155;text-decoration:none;box-shadow:0 0 0 2px rgba(59,130,246,.35);border-radius:4px;padding:1px 4px;margin:-1px -4px;cursor:text}
 .lab-add-row{display:flex;gap:6px;margin-top:8px}
 .lab-add-input{flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:12px;outline:none}
 .lab-add-input:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.12)}
@@ -2632,7 +2639,8 @@ function _renderSubtasks(t){
     const sIcon=s.status==='done'?'✓':s.status==='in_progress'?'⟳':'';
     h+=`<div class="lab-subtask${sDone?' is-done':''}">
       <div class="lab-subtask-cb st-${s.status||'open'}" onclick="toggleSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">${sIcon}</div>
-      <span>${renderInlineLinks(escH(s.text))}</span>
+      <span class="lab-subtask-text">${renderInlineLinks(escH(s.text))}</span>
+      <button class="lab-subtask-edit" onclick="editSubtaskRow(this,'${escAttr(t.id)}','${escAttr(s.id)}')" title="Rename subtask">✎</button>
       <button class="lab-subtask-del" onclick="deleteSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">×</button>
     </div>`;
   });
@@ -2877,6 +2885,31 @@ function toggleSubtask(tid,sid){
   t.modifiedAt=new Date().toISOString();
   saveTodos();
   if(_viewMode==='lab') renderLabTodos();
+}
+// Subtask umbenennen — gleiche Geste wie beim Todo: expliziter Stift, kein Doppelklick.
+function editSubtaskRow(btn,tid,sid){
+  const el=btn.closest('.lab-subtask')?.querySelector('.lab-subtask-text');
+  if(!el||el.isContentEditable)return;
+  el.contentEditable='true';el.classList.add('editing');el.focus();_selectAll(el);
+  const revert=()=>{
+    const s=TODOS.find(x=>x.id===tid)?.subtasks.find(x=>x.id===sid);
+    if(s) el.innerHTML=renderInlineLinks(escH(s.text));
+  };
+  const save=()=>{
+    el.contentEditable='false';el.classList.remove('editing');
+    const t=TODOS.find(x=>x.id===tid);if(!t)return;
+    const s=t.subtasks.find(x=>x.id===sid);if(!s)return;
+    const nv=el.textContent.trim();
+    if(nv&&nv!==s.text){
+      pushUndo();s.text=nv;t.modifiedAt=new Date().toISOString();saveTodos();
+      _refreshTodo(tid);
+    }else revert();
+  };
+  el.addEventListener('blur',save,{once:true});
+  el.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();el.blur();}
+    if(e.key==='Escape'){revert();el.blur();}
+  },{once:true});
 }
 function deleteSubtask(tid,sid){
   const t=TODOS.find(x=>x.id===tid);if(!t)return;
