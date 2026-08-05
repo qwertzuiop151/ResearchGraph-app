@@ -1023,25 +1023,6 @@ const NODES=(function(){
 })();
 
 // Auto-load demo data if completely empty (first visit)
-function _applyDemoData(d){
-  if(!d||!d.nodes) return;
-  NODES.length=0;ELEMENTS.length=0;
-  d.nodes.forEach(n=>NODES.push(n));
-  d.elements.forEach(e=>ELEMENTS.push(e));
-  if(d.tags) Object.assign(TAGS,d.tags);
-  if(d.statuses){_replaceObj(STATUSES,d.statuses);}
-  if(d.todos){TODOS.splice(0,Infinity,..._normalizeTodos(d.todos));saveTodos();}
-  if(d.journal){JOURNAL.splice(0,Infinity,...d.journal);saveJournal();}
-  if(d.collapsedNodes) d.collapsedNodes.forEach(id=>collapsedNodes.add(id));
-  localStorage.setItem(_pk('cNodes'),JSON.stringify([...collapsedNodes]));
-  saveState();saveStatuses();saveTags();
-  buildRoadmap();updateCounts();renderDetail();
-}
-if(!NODES.length&&!ELEMENTS.length){
-  fetch('demo_data.json').then(r=>r.ok?r.json():null).then(d=>_applyDemoData(d))
-    .catch(()=>{});
-}
-
 // Status migration: specific → generic statuses
 (function migrateStatus(){
   const map={verified:'done',in_cloning:'in_progress',seq_needed:'in_progress'};
