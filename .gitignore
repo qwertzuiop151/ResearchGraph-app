@@ -9,6 +9,9 @@ thesis_data.json
 *.gbk
 Kontext/
 ResearchGraph/
+# MCP-Server (31.07.2026 aus Projects/ hierher gezogen). NIE committen: index.js hat die
+# Gist-ID hartcodiert, und dieses Repo ist public — secret Gists sind mit der URL frei lesbar.
+ResearchGraphMCP/
 deploy/
 .claude/
 Untitled
