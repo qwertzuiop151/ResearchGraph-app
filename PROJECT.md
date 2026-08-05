@@ -57,4 +57,5 @@ jeden lesbar. Der registrierte Pfad steht in `~/.claude.json` unter `mcpServers.
 - `deploy/` — Deployment-Artefakte
 - `docs/ResearchGraph_Improvement-Backlog.md` — technischer Backlog
 - `user_state_backup.json`, `demo_data_v1_backup.json` — Backups
-  (`demo_data.json` ist auf der Platte geloescht, existiert nur noch in der Git-Historie)
+  (`demo_data.json` und der Loader dafuer sind am 05.08.2026 entfernt worden — die App hat keine
+  Demodaten mehr, ein leeres Projekt bleibt leer. Nur noch in der Git-Historie.)
