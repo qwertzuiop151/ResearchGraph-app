@@ -397,7 +397,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-todo-cb.st-open{border-color:#cbd5e1;background:#fff}
 .lab-todo-cb.st-in_progress{border-color:#0891b2;background:#0891b2;color:#fff}
 .lab-todo-cb.st-done{border-color:#64748b;background:#64748b;color:#fff}
-.lab-todo-text{flex:1;font-size:13px;line-height:1.4;color:#334155}
+.lab-todo-text{flex:1;font-size:13px;line-height:1.4;color:#334155;font-weight:600}
 .lab-todo.is-done .lab-todo-text{text-decoration:line-through;color:#94a3b8}
 .lab-todo-del{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:14px;padding:0 2px;opacity:0;transition:opacity .15s}
 .lab-todo:hover .lab-todo-del{opacity:1}
@@ -407,9 +407,9 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-todo-prio.prio-high{color:#ef4444;opacity:1}
 .lab-todo-prio.prio-medium{color:#f59e0b;opacity:1}
 .lab-todo.prio-high{background:#fef2f2}
-.lab-todo.prio-high .lab-todo-text{font-weight:700}
+.lab-todo.prio-high .lab-todo-text{font-weight:800}
 .lab-todo.prio-medium{background:#fffbeb}
-.lab-todo.prio-medium .lab-todo-text{font-weight:600}
+.lab-todo.prio-medium .lab-todo-text{font-weight:700}
 /* Focus — the single most important task. Colorblind-safe: star shape + gold accent bar + glow + label, not color alone */
 .lab-todo-focus{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:0 2px;opacity:0;transition:opacity .15s,transform .15s,color .15s;flex-shrink:0;line-height:1}
 .lab-todo:hover .lab-todo-focus{opacity:1}
@@ -430,12 +430,20 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .dtodo-notes:empty:before{content:attr(data-ph);color:#cbd5e1}
 .dtodo-prio{display:flex;gap:5px;flex-wrap:wrap}
 .dtodo-prio .st-btn.active{background:#ede9fe;border-color:#8b5cf6;color:#5b21b6}
-.lab-subtasks{margin-left:28px}
-.lab-subtask{display:flex;align-items:center;gap:6px;padding:3px 4px;font-size:12px;color:#64748b;border-radius:5px;cursor:pointer}
-.lab-subtask:hover{background:#f8fafc}
+/* Subtasks haengen als sichtbarer Ast unter ihrem Todo. Die Abgrenzung traegt die FORM
+   (Verbindungslinie + runde statt eckiger Checkbox + tiefere Einrueckung), nicht nur Groesse
+   und Farbe — beim schnellen Drueberschauen war der reine Groessenunterschied nicht lesbar. */
+.lab-todo-group{margin-bottom:3px}
+.lab-subtasks{margin:0 0 9px 34px;padding-left:17px}
+.lab-subtask{position:relative;display:flex;align-items:center;gap:6px;padding:2px 4px;font-size:11.5px;color:#64748b;border-radius:5px;cursor:pointer}
+/* senkrechte Leitlinie (endet mittig am letzten Kind) + waagerechter Abzweig pro Zeile */
+.lab-subtask::before{content:'';position:absolute;left:-11px;top:0;bottom:0;width:2px;background:#dbe3ec}
+.lab-subtask:last-child::before{bottom:auto;height:calc(50% + 1px)}
+.lab-subtask::after{content:'';position:absolute;left:-11px;top:calc(50% - 1px);width:13px;height:2px;background:#dbe3ec}
+.lab-subtask:hover{background:#f1f5f9}
 .lab-subtask.selected{background:#eef2ff;box-shadow:inset 3px 0 0 #6366f1}
 .lab-subtask-notemark{color:#8b5cf6;font-size:11px;width:11px;text-align:center;flex-shrink:0;user-select:none}
-.lab-subtask-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid #cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:all .15s}
+.lab-subtask-cb{width:15px;height:15px;border-radius:50%;border:1.5px solid #cbd5e1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:all .15s}
 .lab-subtask-cb.st-done{border-color:#64748b;background:#64748b;color:#fff}
 .lab-subtask-cb.st-in_progress{border-color:#0891b2;background:#0891b2;color:#fff}
 .lab-subtask.is-done{text-decoration:line-through;color:#94a3b8}
@@ -448,6 +456,16 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 /* inline-block, damit der Durchstreich-Effekt erledigter Subtasks nicht ins Editierfeld laeuft
    (text-decoration vererbt sich und laesst sich am Kind nicht abschalten, nur durch eigene Box) */
 .lab-subtask-text.editing{display:inline-block;background:#fff;color:#334155;text-decoration:none;box-shadow:0 0 0 2px rgba(59,130,246,.35);border-radius:4px;padding:1px 4px;margin:-1px -4px;cursor:text}
+/* Subtask-Focus — nur INNERHALB des Focus-Todos vergebbar, hoechstens einer. Gleiche
+   Bildsprache wie beim Todo (Sternform + Gold + Balken + Label), nur eine Stufe kleiner. */
+.lab-subtask-focus{border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:11px;padding:0 2px;opacity:0;transition:opacity .15s,transform .15s,color .15s;flex-shrink:0;line-height:1}
+.lab-subtask:hover .lab-subtask-focus{opacity:1}
+.lab-subtask-focus:hover{color:#eab308;transform:scale(1.25)}
+.lab-subtask-focus.is-focus{color:#eab308;opacity:1;text-shadow:0 0 5px rgba(234,179,8,.5)}
+.lab-subtask.focus-sub{background:#fefce8;box-shadow:inset 3px 0 0 #eab308,0 0 0 1px #fde68a}
+.lab-subtask.focus-sub .lab-subtask-text{font-weight:800;color:#713f12}
+.lab-subtask.focus-sub::before,.lab-subtask.focus-sub::after{background:#eab308}
+.lab-subtask-focuslabel{display:inline-block;font-size:8px;font-weight:800;letter-spacing:.4px;color:#a16207;background:#fde68a;border-radius:3px;padding:1px 4px;margin-right:5px;vertical-align:middle}
 .lab-add-row{display:flex;gap:6px;margin-top:8px}
 .lab-add-input{flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:12px;outline:none}
 .lab-add-input:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.12)}
@@ -467,7 +485,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-done-toggle.open .lab-done-arrow{transform:rotate(90deg)}
 .lab-done-items{overflow:hidden;max-height:0;transition:max-height .2s ease-out}
 .lab-done-items.open{max-height:9999px;transition:max-height .3s ease-in}
-.lab-subtask-add{display:flex;gap:4px;margin-left:28px;margin-top:2px}
+.lab-subtask-add{display:flex;gap:4px;margin-left:51px;margin-top:2px}
 .lab-subtask-add input{flex:1;font-size:11px;padding:3px 6px;border:1px solid #e2e8f0;border-radius:4px;outline:none}
 .lab-subtask-add input:focus{border-color:#3b82f6}
 .log-inline-edit{font-size:10px;color:#334155;outline:none;border:1px solid #93c5fd;border-radius:3px;padding:1px 4px;background:#f0f9ff;min-width:80px}
@@ -538,7 +556,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
         <li>Add <b>link sections</b> to cross-reference related elements</li>
         <li><b>Activity log</b> tracks changes automatically; add manual notes too</li>
         <li><b>Tasks</b> open here too: notes, status, priority and Focus live in the panel, so the task list stays short. A <b>≡</b> marks tasks that carry notes; the <b>✎</b> button on a row renames it in place (the title is editable in the panel as well)</li>
-        <li><b>Subtasks</b> work the same way — click one to open it in the panel, where it can carry its own notes</li>
+        <li><b>Subtasks</b> work the same way — click one to open it in the panel, where it can carry its own notes. Inside the Focus task, one subtask can be marked as the <b>Focus step</b> (★) you are on right now</li>
         <li>The <b>◀ handle</b> on the divider collapses the panel</li>
       </ul>
       <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Tags & Statuses</h3>
@@ -1099,7 +1117,15 @@ function _normalizeTodos(raw){
     // Focus: exclusive globally — keep only the first focused todo seen, drop any extras. Fallback to legacy northStar field.
     let foc=!!(t.focus||t.northStar);
     if(foc){ if(_seenFocus) foc=false; else _seenFocus=true; }
-    return {id:t.id,text:t.text,notes:t.notes||'',status:t.status||(t.done?'done':'open'),category:t.category||'general',order:t.order??i,subtasks:t.subtasks||[],priority:typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low'),focus:foc,dueDate:t.dueDate||null,elementId:t.elementId||null,blockedBy:t.blockedBy||null,completedAt:t.completedAt||(t.status==='done'?t.modifiedAt:null),createdAt:t.createdAt||null,modifiedAt:t.modifiedAt||null};
+    // Subtask-Focus ist an den Todo-Focus gekoppelt: nur im Focus-Todo erlaubt, dort hoechstens einer.
+    // Spread, damit unbekannte Subtask-Felder aus dem MCP erhalten bleiben.
+    let _seenSubFocus=false;
+    const subs=(t.subtasks||[]).map(s=>{
+      let sf=foc&&!!s.focus;
+      if(sf){ if(_seenSubFocus) sf=false; else _seenSubFocus=true; }
+      return {...s,focus:sf};
+    });
+    return {id:t.id,text:t.text,notes:t.notes||'',status:t.status||(t.done?'done':'open'),category:t.category||'general',order:t.order??i,subtasks:subs,priority:typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low'),focus:foc,dueDate:t.dueDate||null,elementId:t.elementId||null,blockedBy:t.blockedBy||null,completedAt:t.completedAt||(t.status==='done'?t.modifiedAt:null),createdAt:t.createdAt||null,modifiedAt:t.modifiedAt||null};
   });
 }
 // Helper: get direct child nodes
@@ -2238,6 +2264,7 @@ function renderDetail(){
         onblur="saveSubtaskTitle(this)"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}">${escH(s.text)}</div>
       <span class="dbadge" style="background:#f1f5f9;color:${cur[3]};border:2px solid ${cur[3]}">${cur[1]} ${cur[2]}</span>
+      ${s.focus&&t.focus?'<span class="dbadge" style="background:#fef3c7;color:#92400e;border:2px solid #f59e0b">★ FOCUS</span>':''}
 
       <div class="dsec"><div class="dsec-title">Notes</div>
         <div class="dtodo-notes" contenteditable="true" data-sub-key="${key}" data-ph="Add notes…"
@@ -2248,6 +2275,13 @@ function renderDetail(){
         <div class="status-edit">${stDef.map(x=>
           `<button class="st-btn ${st===x[0]?'active':''}" onclick="setSubtaskStatus('${key}','${x[0]}')">${x[1]} ${x[2]}</button>`
         ).join('')}</div>
+      </div>
+
+      <div class="dsec"><div class="dsec-title">Focus</div>
+        ${t.focus
+          ?`<div class="dtodo-prio"><button class="st-btn ${s.focus?'active':''}" onclick="toggleSubFocus('${escAttr(t.id)}','${escAttr(s.id)}')"
+              title="The one step you are on inside the Focus task">${s.focus?'★':'☆'} Focus step</button></div>`
+          :`<p class="hint" style="margin:0;font-size:11px">Only available inside the Focus task — set the parent task as Focus first.</p>`}
       </div>
 
       ${(()=>{const le=s.elementId?ELEMENTS.find(e=>e.id===s.elementId):null;
@@ -2661,14 +2695,18 @@ function _renderTodoItem(t,isDone,cbIcon,prioClass,statusClass,blockedInfo){
 function _renderSubtasks(t){
   if(!t.subtasks||!t.subtasks.length)return '';
   let h='<div class="lab-subtasks">';
-  t.subtasks.forEach(s=>{
+  // Der Focus-Subtask steht oben; sort ist stabil, die uebrige Reihenfolge bleibt.
+  const list=t.focus?[...t.subtasks].sort((a,b)=>(b.focus?1:0)-(a.focus?1:0)):t.subtasks;
+  list.forEach(s=>{
     const sDone=s.status==='done';
     const sIcon=s.status==='done'?'✓':s.status==='in_progress'?'⟳':'';
     const sHasNotes=!!(s.notes&&s.notes.trim());
-    h+=`<div class="lab-subtask${sDone?' is-done':''}" data-type="subtask" data-id="${_subKey(t.id,s.id)}" onclick="select('subtask','${_subKey(t.id,s.id)}')">
+    const sFoc=!!(t.focus&&s.focus);
+    h+=`<div class="lab-subtask${sDone?' is-done':''}${sFoc?' focus-sub':''}" data-type="subtask" data-id="${_subKey(t.id,s.id)}" onclick="select('subtask','${_subKey(t.id,s.id)}')">
       <div class="lab-subtask-cb st-${s.status||'open'}" onclick="event.stopPropagation();toggleSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">${sIcon}</div>
       <span class="lab-subtask-notemark" title="${sHasNotes?'Has notes — open the subtask to read them':''}">${sHasNotes?'≡':''}</span>
-      <span class="lab-subtask-text">${renderInlineLinks(escH(s.text))}</span>
+      <span class="lab-subtask-text">${sFoc?'<span class="lab-subtask-focuslabel">★ FOCUS</span>':''}${renderInlineLinks(escH(s.text))}</span>
+      ${t.focus?`<button class="lab-subtask-focus${sFoc?' is-focus':''}" onclick="event.stopPropagation();toggleSubFocus('${escAttr(t.id)}','${escAttr(s.id)}')" title="${sFoc?'Focus step — click to remove':'Make this the Focus step of the Focus task'}">${sFoc?'★':'☆'}</button>`:''}
       <button class="lab-subtask-edit" onclick="event.stopPropagation();editSubtaskRow(this,'${escAttr(t.id)}','${escAttr(s.id)}')" title="Rename subtask">✎</button>
       <button class="lab-subtask-del" onclick="event.stopPropagation();deleteSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">×</button>
     </div>`;
@@ -2721,8 +2759,8 @@ function renderLabTodos(){
       const prioClass=t.priority==='high'?' prio-high':t.priority==='medium'?' prio-medium':'';
       const statusClass=isBlocked?' status-blocked':'';
       const blockedInfo=isBlocked&&t.blockedBy?` — blocked: ${escH(t.blockedBy)}`:'';
-      html+=_renderTodoItem(t,false,cbIcon,prioClass,statusClass,blockedInfo);
-      html+=_renderSubtasks(t);
+      // Gruppen-Wrapper: haelt Todo und seine Subtasks optisch zusammen
+      html+=`<div class="lab-todo-group">${_renderTodoItem(t,false,cbIcon,prioClass,statusClass,blockedInfo)}${_renderSubtasks(t)}</div>`;
     });
     html+=`<div class="lab-add-row"><input class="lab-add-input" placeholder="New ${cat.label.toLowerCase()} task…" onkeydown="if(event.key==='Enter')addLabTodo('${cat.key}',this)" /><button class="lab-add-btn" onclick="addLabTodo('${cat.key}',this.previousElementSibling)">+</button></div>`;
     if(done.length){
@@ -2730,8 +2768,7 @@ function renderLabTodos(){
       html+=`<div class="lab-done-toggle" onclick="toggleDoneSection('${cid}',this)"><span class="lab-done-arrow">▶</span> Completed (${done.length})</div>`;
       html+=`<div class="lab-done-items" id="${cid}">`;
       done.forEach(t=>{
-        html+=_renderTodoItem(t,true,'✓','','','');
-        html+=_renderSubtasks(t);
+        html+=`<div class="lab-todo-group">${_renderTodoItem(t,true,'✓','','','')}${_renderSubtasks(t)}</div>`;
       });
       html+=`</div>`;
     }
@@ -2800,9 +2837,26 @@ function toggleFocus(id){
     TODOS.forEach(x=>{ if(x.focus){ x.focus=false; x.modifiedAt=now; } }); // release previous focus
     t.focus=true;
   }
+  _clearOrphanSubFocus(); // Subtask-Focus lebt nur im Focus-Todo
   t.modifiedAt=now;
   saveTodos();
   _refreshTodo(id);
+}
+// Subtask-Focus: genau ein Schritt innerhalb des Focus-Todos. Ausserhalb davon gar nicht vergebbar,
+// deshalb verschwindet er automatisch, sobald das Todo den Focus verliert.
+function _clearOrphanSubFocus(){
+  TODOS.forEach(x=>{ if(!x.focus) (x.subtasks||[]).forEach(s=>{ if(s.focus) s.focus=false; }); });
+}
+function toggleSubFocus(tid,sid){
+  const t=TODOS.find(x=>x.id===tid);if(!t||!t.focus)return; // nur im Focus-Todo
+  const s=(t.subtasks||[]).find(x=>x.id===sid);if(!s)return;
+  pushUndo();
+  const was=!!s.focus;
+  (t.subtasks||[]).forEach(x=>{ x.focus=false; }); // hoechstens einer
+  s.focus=!was;
+  t.modifiedAt=new Date().toISOString();
+  saveTodos();
+  _refreshTodo(tid);
 }
 // Umbenennen startet nur ueber den Stift-Knopf der Zeile (oder den Titel im Detail-Panel) —
 // ein einfacher Klick auf die Zeile ist fuers Oeffnen des Panels reserviert.
@@ -2927,7 +2981,7 @@ function addSubtask(todoId){
     if(!text)return;
     const t=TODOS.find(x=>x.id===todoId);if(!t)return;
     pushUndo();
-    t.subtasks.push({id:_uid('st'),text,notes:'',status:'open',dueDate:null,elementId:null});
+    t.subtasks.push({id:_uid('st'),text,notes:'',status:'open',focus:false,dueDate:null,elementId:null});
     t.modifiedAt=new Date().toISOString();
     saveTodos();
     if(_viewMode==='lab') renderLabTodos();
