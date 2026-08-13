@@ -523,6 +523,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
   <span id="status-pills" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></span>
   <span id="saved-indicator">✓ Saved</span>
   <button class="hdr-btn" id="gh-btn" style="background:rgba(255,255,255,.22)" onclick="ghAction()">⬡ GitHub</button>
+  <button class="hdr-btn" id="fb-btn" style="background:rgba(255,255,255,.22)" onclick="openFeedback()" title="Report a bug or send feedback">✉ Feedback</button>
   <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
 </div>
 
@@ -607,6 +608,31 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
     </div>
     <div id="gh-modal-status" style="display:none;font-size:13px;margin:12px 0"></div>
     <div style="margin-top:16px"><button class="hdr-btn" style="background:#e2e8f0;color:#1e293b" onclick="closeGhModal()">Close</button></div>
+  </div>
+</div>
+
+<!-- Feedback → GitHub issue. Token is pasted once by the user and lives in localStorage,
+     it is NEVER part of this file (which is served publicly via GitHub Pages). -->
+<div id="fb-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center" onclick="if(event.target===this)closeFeedback()">
+  <div style="background:#fff;border-radius:12px;padding:28px;max-width:520px;width:100%;margin:20px;color:#1e293b;position:relative">
+    <button onclick="closeFeedback()" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#94a3b8">×</button>
+    <h3 style="margin-bottom:4px">Send feedback</h3>
+    <p style="margin-bottom:16px;font-size:12px;color:#64748b">Files an issue in <b>ResearchGraph-app</b> directly from the app.</p>
+    <input id="fb-title" type="text" placeholder="In one line: what is wrong?" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;margin-bottom:8px;outline:none;box-sizing:border-box" />
+    <textarea id="fb-desc" rows="5" placeholder="What happened, and what did you expect? Steps to reproduce." style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box"></textarea>
+    <div id="fb-ctx" style="font-size:11px;color:#94a3b8;margin:8px 0"></div>
+    <button id="fb-tok-toggle" onclick="toggleFbToken()" style="border:none;background:none;padding:0;font-size:12px;color:#3b82f6;cursor:pointer">▸ GitHub token (one-time setup)</button>
+    <div id="fb-tok-wrap" style="display:none;margin-top:8px">
+      <input id="fb-token" type="password" placeholder="github_pat_…" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:monospace;margin-bottom:6px;outline:none;box-sizing:border-box" />
+      <p style="font-size:11px;color:#94a3b8;line-height:1.5">A <b>fine-grained</b> PAT with <b>Issues: write</b> on <b>qwertzuiop151/ResearchGraph-app</b> only — grant nothing more. It is stored in this browser's local storage in clear text and never inside this file, so a leaked token could at most open issues in that one repo. Revoke it on GitHub when no longer needed.</p>
+    </div>
+    <div id="fb-status" style="display:none;font-size:12px;margin-top:10px"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:16px">
+      <button class="hdr-btn" style="background:#e2e8f0;color:#1e293b" onclick="fbCopy()" title="No token or no network? Copy the report and paste it into GitHub yourself">⧉ Copy</button>
+      <div style="flex:1"></div>
+      <button class="hdr-btn" style="background:#e2e8f0;color:#1e293b" onclick="closeFeedback()">Cancel</button>
+      <button class="hdr-btn" id="fb-send" style="background:#1e3a5f;color:#fff" onclick="fbSend()">Send</button>
+    </div>
   </div>
 </div>
 
@@ -3553,6 +3579,95 @@ function ghLogout(){
 // hash-guarded remote flush via GistSync (_scheduleGhSave). _ghSaveTimer et al. declared up top.
 const _origSave=saveState;
 saveState=function(){_origSave();_scheduleGhSave();};
+
+// ─── FEEDBACK → GITHUB ISSUE ─────────────────────────────────────────────────
+// Files an issue via the GitHub REST API without leaving the app. The token is pasted ONCE
+// by the user and kept in localStorage — NEVER in this file, which is served publicly via
+// GitHub Pages. A fine-grained PAT with "Issues: write" on this one repo is enough, so even
+// a leaked token can do nothing but open issues here. The clipboard fallback makes sure a
+// report is never lost when there is no token, no network, or the POST fails.
+const FB_REPO='qwertzuiop151/ResearchGraph-app';
+const FB_TOKEN_KEY='rg_fb_token';
+// The app state attached to every report — shown in the dialog so nothing is captured invisibly.
+function _fbContext(){
+  const proj=_projects.find(p=>p.id===_activeProjectId);
+  const lines=['Project: '+(proj?proj.name:'—'),'View: '+_viewMode];
+  if(selType&&selId){
+    let label='';
+    if(selType==='element')label=(ELEMENTS.find(e=>e.id===selId)||{}).label||'';
+    else if(selType==='node')label=(NODES.find(n=>n.id===selId)||{}).label||'';
+    else if(selType==='todo')label=(TODOS.find(t=>t.id===selId)||{}).text||'';
+    lines.push('Selected: '+selType+(label?' "'+label+'"':''));
+  }
+  lines.push('Browser: '+navigator.userAgent);
+  return lines;
+}
+function _fbBody(){
+  const desc=(document.getElementById('fb-desc').value||'').trim();
+  return [desc,'','---',..._fbContext()].join('\n');
+}
+function _fbStatus(msg,color){
+  const s=document.getElementById('fb-status');
+  if(!msg){s.style.display='none';return;}
+  s.style.display='block';s.textContent=msg;s.style.color=color||'#64748b';
+}
+function openFeedback(){
+  document.getElementById('fb-title').value='';
+  document.getElementById('fb-desc').value='';
+  document.getElementById('fb-token').value=localStorage.getItem(FB_TOKEN_KEY)||'';
+  document.getElementById('fb-ctx').textContent='Attached automatically: '+_fbContext().join(' · ');
+  const hasTok=!!localStorage.getItem(FB_TOKEN_KEY);
+  document.getElementById('fb-tok-wrap').style.display=hasTok?'none':'block';
+  document.getElementById('fb-tok-toggle').textContent=(hasTok?'▸':'▾')+' GitHub token (one-time setup)';
+  _fbStatus('');
+  document.getElementById('fb-modal').style.display='flex';
+  document.getElementById('fb-title').focus();
+}
+function closeFeedback(){document.getElementById('fb-modal').style.display='none';}
+function toggleFbToken(){
+  const w=document.getElementById('fb-tok-wrap');
+  const open=w.style.display!=='none';
+  w.style.display=open?'none':'block';
+  document.getElementById('fb-tok-toggle').textContent=(open?'▸':'▾')+' GitHub token (one-time setup)';
+}
+async function fbCopy(){
+  const title=(document.getElementById('fb-title').value||'').trim()||'(no title)';
+  try{
+    await navigator.clipboard.writeText(title+'\n\n'+_fbBody());
+    _fbStatus('Copied — paste it into a new issue at github.com/'+FB_REPO+'/issues','#16a34a');
+  }catch(e){_fbStatus('Could not copy: '+e.message,'#ef4444');}
+}
+async function fbSend(){
+  const title=(document.getElementById('fb-title').value||'').trim();
+  if(!title){_fbStatus('Please enter a short title.','#ef4444');return;}
+  const token=(document.getElementById('fb-token').value||'').trim();
+  if(!token){
+    document.getElementById('fb-tok-wrap').style.display='block';
+    document.getElementById('fb-tok-toggle').textContent='▾ GitHub token (one-time setup)';
+    _fbStatus('No GitHub token set — paste one, or use ⧉ Copy.','#ef4444');return;
+  }
+  const btn=document.getElementById('fb-send');
+  btn.disabled=true;_fbStatus('Sending…');
+  try{
+    const r=await fetch('https://api.github.com/repos/'+FB_REPO+'/issues',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},
+      body:JSON.stringify({title,body:_fbBody(),labels:['feedback']})});
+    if(!r.ok){
+      let msg='GitHub '+r.status;
+      try{const j=await r.json();if(j&&j.message)msg+=': '+j.message;}catch(e){}
+      if(r.status===401||r.status===403)msg+=' — token invalid or missing "Issues: write"?';
+      throw new Error(msg);
+    }
+    const j=await r.json();
+    localStorage.setItem(FB_TOKEN_KEY,token); // only persist a token that actually worked
+    closeFeedback();
+    const si=document.getElementById('saved-indicator');
+    if(si){clearTimeout(_savedTimer);si.textContent='✓ Issue #'+j.number+' created';si.style.color='#4ade80';si.style.opacity='1';
+      _savedTimer=setTimeout(()=>{si.textContent='✓ Saved';si.style.opacity='0';},4000);}
+  }catch(e){_fbStatus('Sending failed: '+e.message+' — use ⧉ Copy so the report is not lost.','#ef4444');}
+  finally{btn.disabled=false;}
+}
 
 // ─── FULL RESET ──────────────────────────────────────────────────────────────
 function showHelp(){const o=document.getElementById('help-overlay');o.style.display='flex';}

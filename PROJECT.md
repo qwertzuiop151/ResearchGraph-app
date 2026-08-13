@@ -49,6 +49,15 @@ ueber die FORM getrennt, nicht ueber Groesse/Farbe: Subtasks haengen an einem ge
 Baum-Konnektor (senkrechte Leitlinie + Abzweig als `::before`/`::after`, ausgerichtet unter
 der Todo-Checkbox) und tragen eine RUNDE Checkbox, waehrend Todos eine eckige haben.
 
+Im Header sitzt neben dem GitHub-Knopf ein **Feedback**-Knopf (`openFeedback`), der per
+GitHub-REST-API direkt ein Issue in `qwertzuiop151/ResearchGraph-app` anlegt (Label `feedback`).
+Angehaengt werden automatisch Projekt, Ansicht, aktuelle Auswahl und User-Agent — im Dialog
+sichtbar, damit nichts unbemerkt mitgeschickt wird. Der Token steht **nie** in `overview.html`
+(die Datei ist public): Dominik fuegt einmalig einen fine-grained PAT mit `Issues: write` NUR
+auf diesem Repo ein, gespeichert unter `rg_fb_token` in localStorage und erst nach einem
+erfolgreichen POST persistiert. Faellt der Weg aus (kein Token, kein Netz, Fehler), kopiert
+`⧉ Copy` den fertigen Bericht in die Zwischenablage — ein Report geht nie verloren.
+
 ## Clients auf denselben Daten
 Das Gist ist die gemeinsame Wahrheit; App, `ResearchGraphMCP/` (Node.js, 43 Tools) und Agenten
 sind gleichberechtigte Clients. Schreibzugriffe sind read-modify-write auf **eine**
