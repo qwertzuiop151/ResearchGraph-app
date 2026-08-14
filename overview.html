@@ -1140,7 +1140,7 @@ const _TODO_CYCLE={open:'in_progress',in_progress:'done',done:'open',blocked:'op
 function _normalizeTodos(raw){
   let _seenFocus=false;
   return (raw||[]).map((t,i)=>{
-    // Focus: exclusive globally — keep only the first focused todo seen, drop any extras. Fallback to legacy northStar field.
+    // Focus: exclusive within this project (raw = one project's todos) — keep only the first focused todo seen, drop any extras. Fallback to legacy northStar field.
     let foc=!!(t.focus||t.northStar);
     if(foc){ if(_seenFocus) foc=false; else _seenFocus=true; }
     // Subtask-Focus ist an den Todo-Focus gekoppelt: nur im Focus-Todo erlaubt, dort hoechstens einer.
@@ -2852,7 +2852,8 @@ function toggleTodoPriority(id){
   saveTodos();
   _refreshTodo(id);
 }
-// Focus: exclusive global marker — only one todo can hold it. Un-setting keeps the todo's underlying low/med/high priority.
+// Focus: exclusive PER PROJECT — TODOS holds only the active project's todos, so at most one focused
+// todo per project; other projects keep their own. Un-setting keeps the todo's underlying low/med/high priority.
 function toggleFocus(id){
   const t=TODOS.find(x=>x.id===id);if(!t)return;
   pushUndo();

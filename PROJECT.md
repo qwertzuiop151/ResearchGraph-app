@@ -22,7 +22,7 @@ Leichtgewichtig statt feature-heavy — es wird subtraktiv entwickelt (siehe CLA
 - **TODOS** — `{id,text,notes,status,category,priority,focus,order,subtasks[],dueDate,
   elementId,blockedBy,completedAt,createdAt,modifiedAt}`. `text` = kurzer Header,
   `notes` = Langform. Subtask: `{id,text,notes,status,focus,dueDate,elementId}`.
-  `focus` ist global exklusiv (genau ein Todo) und orthogonal zur Prioritaet.
+  `focus` ist PRO PROJEKT exklusiv (hoechstens ein Todo je Projekt, nicht projektuebergreifend) und orthogonal zur Prioritaet.
   Ein Subtask kann seit 11.08.2026 ebenfalls `focus` tragen — aber nur INNERHALB des
   Focus-Todos und dort hoechstens einer. Die Kopplung erzwingen `_normalizeTodos` beim
   Laden und `_clearOrphanSubFocus()` beim Umsetzen des Todo-Focus; der Stern-Knopf
