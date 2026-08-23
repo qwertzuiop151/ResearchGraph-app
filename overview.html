@@ -3416,7 +3416,12 @@ function _ghBuildPayload(){
       journal:p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]'),
       ideas:p.id===_activeProjectId?IDEAS:JSON.parse(localStorage.getItem(prefix+'ideas')||'[]')};
   });
-  return {projects:allProjects,activeProject:_activeProjectId};
+  // NO view state here. Which project is on screen is this device's business and lives in
+  // localStorage ('rg_active_project'); putting it in the payload meant that merely switching
+  // tabs changed the hash, PATCHed the whole store and produced a Gist revision carrying no
+  // data change. A revision of the data file must mean the data changed. The stale field in
+  // existing stores needs no migration — the next save simply writes the payload without it.
+  return {projects:allProjects};
 }
 // Low-level remote writer. Returns {s:'ok'|'skip'|'rate'|'error', retryMs?}. `force` bypasses the hash guard.
 // `mode`: 'auto' (default; conflicts never prompt — skip + warn), 'manual' (user-initiated; conflicts
@@ -3578,7 +3583,12 @@ async function ghLoad(){
         localStorage.setItem(prefix+'ideas',JSON.stringify(proj.ideas||[]));
       });
       localStorage.setItem('rg_projects',JSON.stringify(_projects));
-      const target=parsed.activeProject||_projects[0]?.id;
+      // This device's own choice wins — a load must not yank the view to another project.
+      // `parsed.activeProject` is only read as a fallback for stores written before the field
+      // was dropped, and only when the local choice is missing or points at a deleted project.
+      const localPick=localStorage.getItem('rg_active_project');
+      const valid=id=>id&&_projects.some(p=>p.id===id);
+      const target=(valid(localPick)&&localPick)||(valid(parsed.activeProject)&&parsed.activeProject)||_projects[0]?.id;
       if(target){_activeProjectId=target;localStorage.setItem('rg_active_project',target);_loadProjectData();}
     }
     else{

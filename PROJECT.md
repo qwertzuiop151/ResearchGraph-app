@@ -100,6 +100,23 @@ den Gesamtbestand still durch die Kopie des jeweiligen Geraets ersetzt. Sie bric
 jetzt ab und meldet ihn sichtbar; die Daten liegen ohnehin lokal, der naechste Edit schiebt
 den Flush erneut an.
 
+### Ansicht ist keine Ablage (23.08.2026)
+Was gerade auf dem Bildschirm liegt, gehoert dem Geraet, nicht dem Datenbestand. `activeProject`
+stand frueher mit im Sync-Payload, deshalb aenderte schon ein **Projektwechsel** den Hash, PATCHte
+den ganzen Store und erzeugte eine Gist-Revision ohne jede Datenaenderung — bei einer Box, die
+Revisionen als "der Laborbestand hat sich geaendert" liest, ist das ein falsches Signal. Die
+Regel dahinter: **eine Revision der Datendatei muss bedeuten, dass sich Daten geaendert haben.**
+
+Ansichtszustand lebt daher in `localStorage` (`rg_active_project`) — Dominik nutzt die App auf
+genau einem Geraet und will ausdruecklich keine Geraete-Synchronitaet, also braucht es dafuer
+keine Server-Seite. `ghLoad` liest die lokale Wahl zuerst und greift auf ein `activeProject` im
+Store nur noch zurueck, wenn die lokale Wahl fehlt oder auf ein geloeschtes Projekt zeigt (Alt-
+bestand). Eine Migration entfaellt: der naechste echte Save schreibt das Feld einfach nicht mehr.
+
+**Folge fuer den MCP:** `activate` an `rg_update_project` ist entfallen. Es schrieb genau dieses
+Feld, und ein Agent kann den Browser-Speicher nicht setzen — die Faehigkeit ist damit nicht
+verlagert, sondern weg. Das ist beabsichtigt: welches Projekt Dominik ansieht, entscheidet er.
+
 ### Die tatsaechlichen Groessen-Decken (gemessen 23.08.2026, Wegwerf-Gist)
 Die 900-KiB-Marke ist **keine** Groessengrenze des Speichers, sondern nur die des API-Feldes
 `content` — sie kappt bei exakt 921.600 Bytes und bleibt dort konstant, egal wie gross die
