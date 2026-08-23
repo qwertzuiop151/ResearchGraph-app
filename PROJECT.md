@@ -100,6 +100,25 @@ den Gesamtbestand still durch die Kopie des jeweiligen Geraets ersetzt. Sie bric
 jetzt ab und meldet ihn sichtbar; die Daten liegen ohnehin lokal, der naechste Edit schiebt
 den Flush erneut an.
 
+### Die tatsaechlichen Groessen-Decken (gemessen 23.08.2026, Wegwerf-Gist)
+Die 900-KiB-Marke ist **keine** Groessengrenze des Speichers, sondern nur die des API-Feldes
+`content` — sie kappt bei exakt 921.600 Bytes und bleibt dort konstant, egal wie gross die
+Datei ist. Alles darueber ist unbeeintraechtigt:
+
+| geprueft | Ergebnis |
+|---|---|
+| PATCH 1 / 2 / 4 / 8 / 16 / 33,5 MB | **alle ok** (33,5 MB in 23 s) |
+| PATCH 67 MB | scheitert, HTTP 422 |
+| Lesen per `raw_url` bis 33,5 MB | HTTP 200, vollstaendig |
+| `JSON.stringify`+Hash bei 6,2 MB (6,5-fache Nutzlast) | 25 ms — irrelevant |
+
+Bei ~0,95 MB Nutzdaten steht damit rund das **35-fache** an Kopffreiheit zur Verfuegung.
+Groesse ist seit dem `raw_url`-Fix keine Begrenzung mehr und braucht keine eigene Loesung —
+weder Sharding noch ein eigener Server. Was mit der Groesse waechst, ist allein die
+**Uebertragungszeit pro Save**, weil jeder Save das ganze Dokument PATCHt (~3 s bei 1 MB).
+Erst wenn das spuerbar stoert, lohnt eine Aufteilung in eine Gist-Datei pro Projekt (ein
+PATCH ersetzt nur die benannten Dateien) — das ist eine Kostenfrage, keine Grenzfrage.
+
 ## Dateistruktur
 - `overview.html` — die Anwendung
 - `index.html` — Redirect fuer GitHub Pages
