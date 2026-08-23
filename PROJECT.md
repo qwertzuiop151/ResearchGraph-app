@@ -59,15 +59,46 @@ erfolgreichen POST persistiert. Faellt der Weg aus (kein Token, kein Netz, Fehle
 `⧉ Copy` den fertigen Bericht in die Zwischenablage — ein Report geht nie verloren.
 
 ## Clients auf denselben Daten
-Das Gist ist die gemeinsame Wahrheit; App, `ResearchGraphMCP/` (Node.js, 43 Tools) und Agenten
+Das Gist ist die gemeinsame Wahrheit; App, `ResearchGraphMCP/` (Node.js, 44 Tools) und Agenten
 sind gleichberechtigte Clients. Schreibzugriffe sind read-modify-write auf **eine**
 Gist-Datei — nie parallel schreiben. Aenderungen am MCP wirken erst nach `/mcp`-Reload, und der
 MCP existiert in zwei Kopien (lokal + Contabo-Box), die auseinanderdriften koennen.
+
+### Batch-Schreiben statt Schreibketten (v45, 20.08.2026)
+Weil jeder Write ein voller read-modify-write auf dieselbe Datei ist, war "sequenziell" bisher das
+einzig korrekte Muster — parallele Writes nehmen je einen eigenen Snapshot, der letzte gewinnt
+(Datenverlust gemessen 04.07. und 04.08.2026). `rg_batch` loest beides auf einmal: eine Liste
+heterogener Ops, ein Snapshot, ein Write. Die Ops sehen einander (ein `ref:"x"` auf einer
+erzeugenden Op macht das neue Objekt spaeter als `"$x"` adressierbar), `atomic:true` (Default)
+verwirft bei jedem Fehler alles, und jede Op bekommt eine eigene Zeile im Ergebnis.
+
+Damit Einzel- und Batch-Pfad nicht auseinanderdriften, liegt **jede** Mutation in einer reinen
+Funktion ueber dem Dokument (`applyElementOps`, `applyTodoOps`, `applySubtaskOps`, `createTodoOp`,
+`createSubtaskOp`, `createElementOp`, `createIdeaOp`, `applyIdeaOps`, `writeJournalOp`,
+`editJournalSectionOp`, `setTagOp`, `setStatusOp`) — das Einzel-Tool ist nur noch der
+Lade/Speicher-Mantel darum. Neue Mutationen gehoeren in diese Funktionen, nie in einen Handler.
+`rg_batch` kennt **keine Deletes**: Loeschungen sind aus der Gist-Historie praktisch nicht
+zurueckzuholen, und ein Batch macht das versehentliche Ausloesen billig.
 
 Der MCP-Ordner liegt seit 31.07.2026 **im** Projektordner (vorher `Projects/ResearchGraphMCP` —
 dort gehoeren nur Agenten hin). Er steht in `.gitignore` und darf dort nicht heraus: `index.js`
 hat die Gist-ID hartcodiert, dieses Repo ist public, und ein secret Gist ist mit der URL fuer
 jeden lesbar. Der registrierte Pfad steht in `~/.claude.json` unter `mcpServers.researchgraph`.
+
+### Lesen laeuft ueber `raw_url`, nicht ueber `.content` (23.08.2026)
+Die Gist-API schneidet `files[..].content` bei ~1 MB ab und setzt `truncated:true` — die
+RG-Nutzdaten haben diese Grenze im August 2026 ueberschritten (947 KB), womit jedes `JSON.parse`
+auf dem API-Feld mitten im String abbrach. Beide Clients holen den Inhalt deshalb ueber
+`files[..].raw_url` (revisionsfest, CORS `*`, fuer ein secret Gist ohne Token lesbar), sobald
+`truncated` gesetzt ist; die App tut das in `_ghGistContent()`. Ein unvollstaendiger Body wirft
+dort, statt als gueltiger Zustand durchzugehen.
+
+Die zweite Haelfte der Lehre ist wichtiger als die erste: **wo der Remote-Stand nicht gelesen
+werden kann, darf nicht geschrieben werden.** Die Konfliktpruefung in `ghSave` verschluckte
+ihre eigenen Fehler (`catch(e){}`) und fiel danach in den PATCH — ein unlesbares Gist haette
+den Gesamtbestand still durch die Kopie des jeweiligen Geraets ersetzt. Sie bricht den Save
+jetzt ab und meldet ihn sichtbar; die Daten liegen ohnehin lokal, der naechste Edit schiebt
+den Flush erneut an.
 
 ## Dateistruktur
 - `overview.html` — die Anwendung

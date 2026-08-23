@@ -3422,6 +3422,20 @@ function _ghBuildPayload(){
 // `mode`: 'auto' (default; conflicts never prompt — skip + warn), 'manual' (user-initiated; conflicts
 // show a choice modal), 'trusted' (user already resolved the conflict upstream; skip the check).
 // NOTE: uses _origSave() (not saveState) to persist in-memory state without re-triggering the debounce.
+// The gist API cuts .files[..].content at ~1 MB and flags .truncated — RG's payload passed
+// that line in Aug 2026, and JSON.parse then throws on a half-read file. raw_url serves the
+// complete, revision-pinned blob (CORS '*', no auth needed for a secret gist). Throws rather
+// than returning a partial body: a short read must never look like valid remote state.
+async function _ghGistContent(d){
+  const f=d.files?.['researchgraph_data.json'];
+  if(!f)return null;
+  if(!f.truncated)return f.content;
+  const rr=await fetch(f.raw_url);
+  if(!rr.ok)throw new Error('gist raw_url fetch failed (HTTP '+rr.status+')');
+  const t=await rr.text();
+  if(!t.trimEnd().endsWith('}'))throw new Error('gist raw body is incomplete');
+  return t;
+}
 async function ghSave(force,mode){
   if(!ghToken)return{s:'error'};
   _origSave();saveTags();saveStatuses();
@@ -3431,27 +3445,34 @@ async function ghSave(force,mode){
   if(!force&&h===localStorage.getItem('rg_gh_hash')){clearSyncError();return{s:'skip'};}
   // Pre-save conflict check: only runs on a real change (rare now), asks before clobbering newer remote.
   if(mode!=='trusted'&&ghGistId){
+    let remote=null,checkFailed=false;
     try{
       const rc=await fetch('https://api.github.com/gists/'+ghGistId,{headers:{Authorization:'Bearer '+ghToken}});
-      if(rc.ok){
+      if(!rc.ok)checkFailed=true;
+      else{
         const dc=await rc.json();
-        const content=dc.files?.['researchgraph_data.json']?.content;
-        if(content){
-          const remote=JSON.parse(content);
-          const lastSync=localStorage.getItem('rg_lastSync');
-          if(remote.saved&&lastSync&&remote.saved>lastSync){
-            // Background autosave/blur flush must never pop a blocking dialog — warn instead.
-            if(mode!=='manual'){showSyncError('Sync paused: GitHub has newer data — click ⬡ to resolve');return{s:'skip'};}
-            const choice=await showChoice('Sync conflict','GitHub has newer data (saved '+remote.saved.slice(0,16).replace('T',' ')+').',[
-              {label:'Load data FROM GitHub (replaces local)',value:'load'},
-              {label:'Overwrite GitHub with YOUR local data',value:'overwrite',danger:true},
-              {label:'Cancel',value:null}]);
-            if(!choice)return{s:'skip'};
-            if(choice==='load'){await ghLoad();return{s:'skip'};}
-          }
-        }
+        const content=await _ghGistContent(dc);
+        if(content)remote=JSON.parse(content);
       }
-    }catch(e){}
+    }catch(e){checkFailed=true;console.error('Gist conflict check failed:',e);}
+    // A remote we could not READ must never be PATCHed over: the check used to swallow its
+    // own errors and fall through to the write, so an unreadable gist (truncated content,
+    // 5xx, offline) silently replaced the whole record with this device's copy. Pausing is
+    // safe — localStorage already holds the data and the next edit reschedules the flush.
+    if(checkFailed){showSyncError('Sync paused: GitHub copy unreadable — click ⬡ to retry');return{s:'error'};}
+    if(remote){
+      const lastSync=localStorage.getItem('rg_lastSync');
+      if(remote.saved&&lastSync&&remote.saved>lastSync){
+        // Background autosave/blur flush must never pop a blocking dialog — warn instead.
+        if(mode!=='manual'){showSyncError('Sync paused: GitHub has newer data — click ⬡ to resolve');return{s:'skip'};}
+        const choice=await showChoice('Sync conflict','GitHub has newer data (saved '+remote.saved.slice(0,16).replace('T',' ')+').',[
+          {label:'Load data FROM GitHub (replaces local)',value:'load'},
+          {label:'Overwrite GitHub with YOUR local data',value:'overwrite',danger:true},
+          {label:'Cancel',value:null}]);
+        if(!choice)return{s:'skip'};
+        if(choice==='load'){await ghLoad();return{s:'skip'};}
+      }
+    }
   }
   const now=new Date().toISOString();
   const data=JSON.stringify({...payload,saved:now},null,2);
@@ -3507,7 +3528,9 @@ async function ghLoad(){
     const r=await fetch('https://api.github.com/gists/'+ghGistId,{headers:{Authorization:'Bearer '+ghToken}});
     if(!r.ok){showSyncError(r.status===401?'Sync failed: GitHub token expired — reconnect':'Sync failed (HTTP '+r.status+')');console.error('Gist load error:',r.status);return;}
     const d=await r.json();
-    const content=d.files?.['researchgraph_data.json']?.content;
+    // Throws on an oversized/incomplete gist — the catch below then only shows an error.
+    // It must NOT fall into the `!content` branch: that uploads this device's copy.
+    const content=await _ghGistContent(d);
     if(!content){ghSave(true,'trusted');return;}
     const parsed=JSON.parse(content);
     // Check for local data conflict
@@ -3569,7 +3592,7 @@ async function ghLoad(){
     // Seed the hash guard with what we just loaded, so an unchanged session won't re-upload.
     try{localStorage.setItem('rg_gh_hash',_cyrb53(JSON.stringify(_ghBuildPayload())));}catch(e){}
     clearSyncError();
-  }catch(e){showSyncError('Sync failed: no connection');console.error('Gist load error:',e);}
+  }catch(e){showSyncError('Sync failed: '+(e&&e.message?e.message:'no connection'));console.error('Gist load error:',e);}
 }
 function ghLogout(){
   ghToken=null;ghGistId=null;ghUser=null;
