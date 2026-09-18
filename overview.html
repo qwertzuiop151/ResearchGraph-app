@@ -466,6 +466,14 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .lab-subtask.focus-sub .lab-subtask-text{font-weight:800;color:#713f12}
 .lab-subtask.focus-sub::before,.lab-subtask.focus-sub::after{background:#eab308}
 .lab-subtask-focuslabel{display:inline-block;font-size:8px;font-weight:800;letter-spacing:.4px;color:#a16207;background:#fde68a;border-radius:3px;padding:1px 4px;margin-right:5px;vertical-align:middle}
+/* "N done steps hidden" — stummer Zaehler mit Baum-Konnektor (immer letztes Kind, deshalb nur die Abzweig-Form) */
+.lab-subtask-hidden{position:relative;padding:2px 4px;font-size:11px;font-style:italic;color:#94a3b8;user-select:none}
+.lab-subtask-hidden::before{content:'';position:absolute;left:-11px;top:0;height:calc(50% + 1px);width:2px;background:#dbe3ec}
+.lab-subtask-hidden::after{content:'';position:absolute;left:-11px;top:calc(50% - 1px);width:13px;height:2px;background:#dbe3ec}
+/* Header-Toggle (Tasks-Spalte): Zustand ueber Text + Symbol, nicht nur Farbe (Rot-Gruen-Schwaeche) */
+.lab-hdr-toggle{font-size:11px;font-weight:600;padding:4px 10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;cursor:pointer;transition:all .15s;white-space:nowrap}
+.lab-hdr-toggle:hover{border-color:#94a3b8;color:#334155}
+.lab-hdr-toggle.active{background:#1e293b;border-color:#1e293b;color:#fff}
 .lab-add-row{display:flex;gap:6px;margin-top:8px}
 .lab-add-input{flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:12px;outline:none}
 .lab-add-input:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.12)}
@@ -2689,7 +2697,10 @@ function buildLabView(){
   const jnlCount=JOURNAL.length;
   r.innerHTML=`<div class="lab-wrap">
     <div class="lab-col">
-      <div class="lab-col-hdr">📋 Tasks <span class="badge">${openCount} open</span></div>
+      <div class="lab-col-hdr">📋 Tasks <span class="badge">${openCount} open</span>
+        <div style="flex:1"></div>
+        <button class="lab-hdr-toggle${_hideDoneSubs?' active':''}" onclick="toggleHideDoneSubtasks()" aria-pressed="${_hideDoneSubs}" title="${_hideDoneSubs?'Done steps are hidden — click to show them again':'Hide steps that are already done (view filter only, nothing is deleted)'}">${_hideDoneSubs?'◐ Done steps hidden':'○ Done steps shown'}</button>
+      </div>
       <div class="lab-col-body" id="lab-todos"></div>
     </div>
     <div class="lab-col">
@@ -2718,12 +2729,23 @@ function _renderTodoItem(t,isDone,cbIcon,prioClass,statusClass,blockedInfo){
     <button class="lab-todo-del" onclick="event.stopPropagation();deleteLabTodo('${escAttr(t.id)}')">×</button>
   </div>`;
 }
+// View-Filter "Done steps hidden": reine Anzeige-Praeferenz, lebt NUR in localStorage (nie im Gist).
+// Erledigte Subtasks werden ausgeblendet, der Focus-Step bleibt immer sichtbar.
+let _hideDoneSubs=localStorage.getItem('rg_hideDoneSubtasks')==='1';
+function toggleHideDoneSubtasks(){
+  _hideDoneSubs=!_hideDoneSubs;
+  localStorage.setItem('rg_hideDoneSubtasks',_hideDoneSubs?'1':'');
+  buildLabView(); // Header-Button und Liste neu aufbauen
+}
+function _subHidden(t,s){return _hideDoneSubs&&s.status==='done'&&!(t.focus&&s.focus);}
 function _renderSubtasks(t){
   if(!t.subtasks||!t.subtasks.length)return '';
   let h='<div class="lab-subtasks">';
   // Der Focus-Subtask steht oben; sort ist stabil, die uebrige Reihenfolge bleibt.
   const list=t.focus?[...t.subtasks].sort((a,b)=>(b.focus?1:0)-(a.focus?1:0)):t.subtasks;
+  let hiddenN=0;
   list.forEach(s=>{
+    if(_subHidden(t,s)){hiddenN++;return;}
     const sDone=s.status==='done';
     const sIcon=s.status==='done'?'✓':s.status==='in_progress'?'⟳':'';
     const sHasNotes=!!(s.notes&&s.notes.trim());
@@ -2737,6 +2759,8 @@ function _renderSubtasks(t){
       <button class="lab-subtask-del" onclick="event.stopPropagation();deleteSubtask('${escAttr(t.id)}','${escAttr(s.id)}')">×</button>
     </div>`;
   });
+  // Ausgeblendete Schritte als stummer Zaehler, damit ein Todo mit 20 erledigten Schritten nicht wie eines ohne Schritte aussieht
+  if(hiddenN) h+=`<div class="lab-subtask-hidden" title="Hidden by the “Done steps” toggle in the Tasks header">${hiddenN} done step${hiddenN>1?'s':''} hidden</div>`;
   h+='</div>';
   return h;
 }

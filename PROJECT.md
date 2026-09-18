@@ -37,6 +37,12 @@ Zwei Spalten in `#main`: links der Ansichtsbereich (`#goal-list`), rechts das De
 Vier Ansichten (`setView`, persistiert in `rg_view`): **Tree** (Node-Hierarchie),
 **Board** (Elemente nach Status), **Lab** (Tasks + Journal), **Ideas**.
 
+Die Lab-Ansicht hat im Tasks-Header einen View-Filter **"Done steps hidden/shown"**
+(`toggleHideDoneSubtasks`, persistiert in `rg_hideDoneSubtasks`, nie im Gist): er blendet
+erledigte Subtasks aus und ersetzt sie pro Todo durch die stumme Zeile "N done steps hidden".
+Der Focus-Step bleibt immer sichtbar. Erledigte Todos sind davon nicht betroffen (die haben
+ihre eigene "Completed"-Klappe).
+
 Das Detail-Panel ist ansichts-uebergreifend und kennt vier Auswahltypen (`selType`/`selId`,
 gerendert von `renderDetail()`): `node`, `element`, `todo`, `subtask`. Auswahl per
 `select(type,id)`; Subtasks werden ueber den zusammengesetzten Schluessel `todoId.subId`
