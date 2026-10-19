@@ -35,14 +35,9 @@ Zwei Spalten in `#main`: links der Ansichtsbereich (`#goal-list`), rechts das De
 (`#panel`), dazwischen eine ziehbare Kante (`#drag-divider`), die den Einklapp-Knopf traegt.
 
 Vier Ansichten (`setView`, persistiert in `rg_view`): **Tree** (Node-Hierarchie),
-**Board** (Elemente nach Status), **Lab** (Tasks + Ideas), **Journal** (seit 19.10.2026 eigener
-Tab, vorher rechte Lab-Spalte; ein gespeichertes `rg_view='ideas'` wird auf `lab` umgebogen).
+**Board** (Elemente nach Status), **Lab** (Tasks + Ideas), **Journal** (seit 19.10.2026 eigener Tab, vorher rechte Lab-Spalte; ein gespeichertes `rg_view='ideas'` wird auf `lab` umgebogen).
 
-Ideen werden **nie geloescht, nur archiviert** (Dominik 19.10.2026): Archivieren und Promote setzen
-`archived:true`, `archivedAt` (Promote zusaetzlich `promotedTo:<todoId>`); die Lab-Spalte zeigt sie
-eingeklappt unter "Archived (N)" mit Restore. Der MCP spiegelt das ab v47 (`rg_lab_delete_idea`
-archiviert, `rg_lab_list_ideas` blendet Archiv aus ausser `include_archived`, `rg_lab_update_idea
-restore:true`).
+Ideen werden **nie geloescht, nur archiviert** (Dominik 19.10.2026): Archivieren und Promote setzen `archived:true`, `archivedAt` (Promote zusaetzlich `promotedTo:<todoId>`); die Lab-Spalte zeigt sie eingeklappt unter "Archived (N)" mit Restore. Der MCP spiegelt das ab v47 (`rg_lab_delete_idea` archiviert, `rg_lab_list_ideas` blendet Archiv aus ausser `include_archived`, `rg_lab_update_idea restore:true`).
 
 Die Lab-Ansicht hat im Tasks-Header einen View-Filter **"Done steps hidden/shown"**
 (`toggleHideDoneSubtasks`, persistiert in `rg_hideDoneSubtasks`, nie im Gist): er blendet
