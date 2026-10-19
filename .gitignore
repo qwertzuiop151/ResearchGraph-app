@@ -21,3 +21,8 @@ Screenshot*
 
 # UI-Prototypen (19.10.2026): enthalten eine eingebettete Kopie der Labordaten -> NIE committen (Repo ist public)
 prototypes/
+
+# Persoenliche Arbeitsdokumente (Dominik 19.10.2026: "die bleiben nur lokal") — Repo ist public
+docs/plans/
+docs/ResearchGraph_Anforderungen-Interview_*.md
+docs/ResearchGraph_Sync-Recherche_*.md
