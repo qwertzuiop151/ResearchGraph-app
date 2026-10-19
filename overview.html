@@ -61,6 +61,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:1
 .proj-status-bar{width:100%;height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden;display:flex}
 .proj-status-bar span{height:100%;transition:width .2s}
 .proj-dd-sep{border-top:1px solid #e2e8f0;margin:4px 0}
+.proj-arch-toggle{display:flex;align-items:center;gap:6px;padding:6px 14px;cursor:pointer;font-size:12px;color:#94a3b8;user-select:none}
+.proj-arch-toggle:hover{background:#f8fafc;color:#64748b}
+.proj-arch-toggle .lab-done-arrow{font-size:10px;transition:transform .15s}
+.proj-arch-toggle.open .lab-done-arrow{transform:rotate(90deg)}
+.proj-arch-item{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 28px;font-size:13px;color:#64748b}
+.proj-arch-item .proj-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj-arch-item .proj-dot{opacity:.5}
+.proj-arch-date{font-size:11px;color:#94a3b8;flex-shrink:0}
+.proj-arch-item .proj-act{border:none;background:none;cursor:pointer;font-size:12px;color:#94a3b8;padding:2px 4px;border-radius:4px}
+.proj-arch-item .proj-act:hover{background:#e2e8f0;color:#475569}
 .proj-dd-add{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;color:#3b82f6;font-weight:600;transition:background .1s}
 .proj-dd-add:hover{background:#f1f5f9}
 .proj-edit-row{display:flex;align-items:center;gap:8px;padding:8px 14px}
@@ -807,7 +817,12 @@ if(!localStorage.getItem('rg_projects')){
   });
 }
 let _projects=_loadRaw('rg_projects',[]);
-let _activeProjectId=localStorage.getItem('rg_active_project')||_projects[0]?.id||'proj_default';
+// Projekte werden NIE geloescht, nur archiviert (Dominik 19.10.2026): {archived:true, archivedAt}.
+// Archivierte bleiben samt Daten in localStorage und im Gist, erscheinen nur nicht in Tabs/Liste.
+function _liveProjects(){return _projects.filter(p=>!p.archived);}
+function _projArch(p){return p&&p.archived?{archived:true,archivedAt:p.archivedAt||null}:{};} // Feld nur wenn gesetzt -> Hash alter Daten bleibt gleich
+let _activeProjectId=(()=>{const id=localStorage.getItem('rg_active_project');const ok=_projects.find(p=>p.id===id&&!p.archived);return ok?id:(_liveProjects()[0]?.id||_projects[0]?.id||'proj_default');})();
+let _projArchiveOpen=false;
 function _pk(key){return 'rg_'+_activeProjectId+'_'+key;}
 function saveProjects(){localStorage.setItem('rg_projects',JSON.stringify(_projects));_scheduleGhSave();}
 const PROJ_COLORS=['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ec4899','#14b8a6','#f97316','#6366f1'];
@@ -842,7 +857,7 @@ function _renderStatusBar(projId){
 }
 function renderProjTabs(){
   const c=document.getElementById('proj-tabs');if(!c)return;
-  c.innerHTML=_projects.map(p=>{
+  c.innerHTML=_liveProjects().map(p=>{
     const col=_getProjColor(p);
     const act=p.id===_activeProjectId?' active':'';
     return `<button class="proj-tab${act}" style="--tab-color:${col}" onclick="switchProject('${escAttr(p.id)}')"><span class="proj-dot" style="background:${col}"></span>${escH(p.name)}</button>`;
@@ -866,7 +881,8 @@ function _closeProjDDOutside(e){
 }
 function renderProjDD(){
   const dd=document.getElementById('proj-dd');
-  const items=_projects.map(p=>{
+  const live=_liveProjects();
+  const items=live.map(p=>{
     const active=p.id===_activeProjectId?' active':'';
     const col=_getProjColor(p);
     const borderStyle=p.id===_activeProjectId?`border-left-color:${col}`:'';
@@ -878,12 +894,21 @@ function renderProjDD(){
       </span>
       <span class="proj-actions">
         <button class="proj-act" onclick="event.stopPropagation();renameProjInline('${escAttr(p.id)}')" title="Rename">✎</button>
-        ${_projects.length>1?`<button class="proj-act" onclick="event.stopPropagation();deleteProjectById('${escAttr(p.id)}')" title="Delete">×</button>`:''}
+        ${live.length>1?`<button class="proj-act" onclick="event.stopPropagation();deleteProjectById('${escAttr(p.id)}')" title="Archive project (nothing is deleted — restore it under “Archived projects”)">🗄</button>`:''}
       </span>
     </div>`;
   }).join('');
+  const arch=_projects.filter(p=>p.archived).sort((a,b)=>(b.archivedAt||'').localeCompare(a.archivedAt||''));
+  const archHtml=arch.length?`<div class="proj-dd-sep"></div>
+    <div class="proj-arch-toggle${_projArchiveOpen?' open':''}" onclick="event.stopPropagation();_projArchiveOpen=!_projArchiveOpen;renderProjDD()"><span class="lab-done-arrow">▶</span> Archived projects (${arch.length})</div>
+    ${_projArchiveOpen?arch.map(p=>`<div class="proj-arch-item" onclick="event.stopPropagation()">
+      <span class="proj-dot" style="background:${_getProjColor(p)}"></span>
+      <span class="proj-name">${escH(p.name)}</span>
+      <span class="proj-arch-date">${p.archivedAt?new Date(p.archivedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</span>
+      <button class="proj-act" onclick="event.stopPropagation();restoreProject('${escAttr(p.id)}')" title="Restore project">↩</button>
+    </div>`).join(''):''}`:'';
   const ghConnected=!!localStorage.getItem('rg_gh_token');
-  dd.innerHTML=`<div class="proj-dd-list">${items}</div><div class="proj-dd-sep"></div><div class="proj-dd-add" onclick="addProject()">+ New Project</div>
+  dd.innerHTML=`<div class="proj-dd-list">${items}</div>${archHtml}<div class="proj-dd-sep"></div><div class="proj-dd-add" onclick="addProject()">+ New Project</div>
     <div class="proj-dd-sep"></div>
     <div class="proj-dd-actions">
       <div class="proj-dd-action" onclick="closeProjDD();undo()"><span class="pda-icon">↩</span>Undo <span style="color:#94a3b8;font-size:10px;margin-left:auto">Ctrl+Z</span></div>
@@ -990,19 +1015,23 @@ function renameProjInline(id){
     }
   }
 }
+// "Loeschen" archiviert: Daten bleiben in localStorage und im Gist, Restore jederzeit.
 function deleteProjectById(id){
-  if(_projects.length<=1){alert('Cannot delete the only project.');return;}
-  const proj=_projects.find(p=>p.id===id);
-  if(!confirm(`Delete "${proj?proj.name:id}" and all its data?`))return;
-  ['elements','nodes','todos','journal','ideas','tags','statuses','cNodes'].forEach(k=>{
-    localStorage.removeItem('rg_'+id+'_'+k);
-  });
-  _projects=_projects.filter(p=>p.id!==id);
+  const proj=_projects.find(p=>p.id===id);if(!proj||proj.archived)return;
+  if(_liveProjects().length<=1){alert('Cannot archive the only project.');return;}
+  if(!confirm(`Archive "${proj.name}"?\n\nIt disappears from the project list. Nothing is deleted — restore it any time under “Archived projects”.`))return;
+  if(id===_activeProjectId){saveState();saveTags();saveStatuses();saveTodos();saveJournal();}
+  proj.archived=true;proj.archivedAt=new Date().toISOString();
   saveProjects();
   if(id===_activeProjectId){
-    _activeProjectId=_projects[0].id;localStorage.setItem('rg_active_project',_activeProjectId);
+    _activeProjectId=_liveProjects()[0].id;localStorage.setItem('rg_active_project',_activeProjectId);
     _loadProjectData();
   } else{renderProjTabs();renderProjDD();}
+}
+function restoreProject(id){
+  const proj=_projects.find(p=>p.id===id);if(!proj||!proj.archived)return;
+  delete proj.archived;delete proj.archivedAt;
+  saveProjects();renderProjTabs();renderProjDD();
 }
 
 // ─── LOAD / SAVE STATE ───────────────────────────────────────────────────────
@@ -3288,7 +3317,7 @@ function exportData(){
     const pTodos=p.id===_activeProjectId?TODOS:JSON.parse(localStorage.getItem(prefix+'todos')||'[]');
     const pJournal=p.id===_activeProjectId?JOURNAL:JSON.parse(localStorage.getItem(prefix+'journal')||'[]');
     const pIdeas=p.id===_activeProjectId?IDEAS:JSON.parse(localStorage.getItem(prefix+'ideas')||'[]');
-    return{id:p.id,name:p.name,color:p.color,nodes:pNodes,elements:pEls,tags:pTags,statuses:pStatuses,todos:pTodos,journal:pJournal,ideas:pIdeas};
+    return{id:p.id,name:p.name,color:p.color,..._projArch(p),nodes:pNodes,elements:pEls,tags:pTags,statuses:pStatuses,todos:pTodos,journal:pJournal,ideas:pIdeas};
   });
   const data={projects:allProjects,exported:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -3311,7 +3340,7 @@ function handleImport(e){
         let lastPid=null;
         d.projects.forEach(proj=>{
           const pid=_uid('proj');
-          _projects.push({id:pid,name:proj.name||'Imported',color:proj.color||PROJ_COLORS[_projects.length%PROJ_COLORS.length],created:new Date().toISOString()});
+          _projects.push({id:pid,name:proj.name||'Imported',color:proj.color||PROJ_COLORS[_projects.length%PROJ_COLORS.length],created:new Date().toISOString(),..._projArch(proj)});
           const prefix='rg_'+pid+'_';
           // Validate and sanitize
           const els=(proj.elements||[]).map(el=>({...el,id:el.id||_uid('el'),label:el.label||'(unnamed)',status:el.status||'planned',tags:el.tags||[],custom:el.custom||[],log:el.log||[]}));
@@ -3479,7 +3508,7 @@ async function ghConnectPAT(){
 function _ghBuildPayload(){
   const allProjects=_projects.map(p=>{
     const prefix='rg_'+p.id+'_';
-    return{id:p.id,name:p.name,color:p.color,
+    return{id:p.id,name:p.name,color:p.color,..._projArch(p),
       nodes:p.id===_activeProjectId?NODES:JSON.parse(localStorage.getItem(prefix+'nodes')||'[]'),
       elements:p.id===_activeProjectId?ELEMENTS:JSON.parse(localStorage.getItem(prefix+'elements')||'[]'),
       tags:p.id===_activeProjectId?TAGS:JSON.parse(localStorage.getItem(prefix+'tags')||'{}'),
@@ -3626,7 +3655,7 @@ async function ghLoad(){
         parsed.projects.forEach(proj=>{
           const exists=_projects.find(p=>p.name===proj.name);
           if(exists) return;
-          _projects.push({id:proj.id,name:proj.name,color:proj.color,created:proj.created||new Date().toISOString()});
+          _projects.push({id:proj.id,name:proj.name,color:proj.color,created:proj.created||new Date().toISOString(),..._projArch(proj)});
           const prefix='rg_'+proj.id+'_';
           localStorage.setItem(prefix+'nodes',JSON.stringify(proj.nodes||[]));
           localStorage.setItem(prefix+'elements',JSON.stringify(proj.elements||[]));
@@ -3644,7 +3673,7 @@ async function ghLoad(){
     if(parsed.projects&&Array.isArray(parsed.projects)){
       _projects.length=0;
       parsed.projects.forEach(proj=>{
-        _projects.push({id:proj.id,name:proj.name,color:proj.color,created:proj.created||new Date().toISOString()});
+        _projects.push({id:proj.id,name:proj.name,color:proj.color,created:proj.created||new Date().toISOString(),..._projArch(proj)});
         const prefix='rg_'+proj.id+'_';
         localStorage.setItem(prefix+'nodes',JSON.stringify(proj.nodes||[]));
         localStorage.setItem(prefix+'elements',JSON.stringify(proj.elements||[]));
@@ -3659,8 +3688,8 @@ async function ghLoad(){
       // `parsed.activeProject` is only read as a fallback for stores written before the field
       // was dropped, and only when the local choice is missing or points at a deleted project.
       const localPick=localStorage.getItem('rg_active_project');
-      const valid=id=>id&&_projects.some(p=>p.id===id);
-      const target=(valid(localPick)&&localPick)||(valid(parsed.activeProject)&&parsed.activeProject)||_projects[0]?.id;
+      const valid=id=>id&&_projects.some(p=>p.id===id&&!p.archived);
+      const target=(valid(localPick)&&localPick)||(valid(parsed.activeProject)&&parsed.activeProject)||_liveProjects()[0]?.id||_projects[0]?.id;
       if(target){_activeProjectId=target;localStorage.setItem('rg_active_project',target);_loadProjectData();}
     }
     else{

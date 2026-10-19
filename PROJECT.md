@@ -39,6 +39,8 @@ Vier Ansichten (`setView`, persistiert in `rg_view`): **Tree** (Node-Hierarchie)
 
 Ideen werden **nie geloescht, nur archiviert** (Dominik 19.10.2026): Archivieren und Promote setzen `archived:true`, `archivedAt` (Promote zusaetzlich `promotedTo:<todoId>`); die Lab-Spalte zeigt sie eingeklappt unter "Archived (N)" mit Restore. Der MCP spiegelt das ab v47 (`rg_lab_delete_idea` archiviert, `rg_lab_list_ideas` blendet Archiv aus ausser `include_archived`, `rg_lab_update_idea restore:true`).
 
+Projekte ebenso (19.10.2026): der Loesch-Knopf im Projekt-Dropdown archiviert (`archived`, `archivedAt` am Projekt-Eintrag in `rg_projects`), die Daten bleiben unter ihren `rg_{id}_*`-Keys und im Gist. Archivierte Projekte fehlen in Tabs und Liste, stehen unter "Archived projects (N)" mit Restore und werden nie aktives Projekt. Die Felder laufen ueber `_projArch()` durch Sync-Payload, `ghLoad`, Export und Import — nur wenn gesetzt, damit der Hash alter Daten gleich bleibt. MCP ab v48: `rg_delete_project` archiviert, `rg_list_projects include_archived`, `rg_update_project restore:true`; Suche und Briefing ueberspringen archivierte Projekte.
+
 Die Lab-Ansicht hat im Tasks-Header einen View-Filter **"Done steps hidden/shown"**
 (`toggleHideDoneSubtasks`, persistiert in `rg_hideDoneSubtasks`, nie im Gist): er blendet
 erledigte Subtasks aus und ersetzt sie pro Todo durch die stumme Zeile "N done steps hidden".
