@@ -8,12 +8,11 @@ Universelles Experiment-Organisations-Framework, customizable fuer alle Fachgebi
 Leichtgewichtig statt feature-heavy — es wird subtraktiv entwickelt (siehe CLAUDE.md Regel 4).
 
 ## Stack
-- Single-file `overview.html` (~3600 Zeilen), CSS + HTML + JS in einer Datei, keine Build-Kette
-- localStorage als Source of Truth im Browser, mit Multi-Projekt-Support (Keys `rg_{projectId}_*`)
-- GitHub-Gist-Sync ueber einen **Personal Access Token** (scope `gist`) im localStorage —
-  kein OAuth Device Flow. Modul `GistSync`: local-first, 5s-Debounce, Content-Hash-Guard
-  gegen Write-Storms, Backoff bei 403/429
-- Deployment: GitHub Pages aus dem Repo `qwertzuiop151/ResearchGraph-app`
+- Single-file `overview.html` (v3 seit 19.10.2026, ~1000 Zeilen), CSS + HTML + JS in einer Datei, keine Build-Kette, Vanilla-JS: ein `render()` baut HTML, `morph()` uebertraegt nur Unterschiede ins DOM
+- localStorage ist nur noch lokale Kopie (Keys `rg_projects`, `rg_{projectId}_*` wie bisher); Wahrheit ist der Gist
+- GitHub-Gist-Sync ueber einen **Personal Access Token** (scope `gist`) im localStorage
+- Deployment: GitHub Pages (legacy, Branch `master`, Root) aus `qwertzuiop151/ResearchGraph-app` — ein Push ist sofort live
+- Tests: `tests/rg-offline-tests.js <gist-snapshot.json>` (jsdom@24; simuliertes GitHub mit Revisionen/Historie/ETag und einem gleichzeitig schreibenden "Agenten"; Snapshot nie ins Repo)
 
 ## Datenmodell (Unified Node Architecture)
 - **NODES** — flacher Baum via `parentId`: `{id,label,parentId,order,icon,desc,custom[]}`.
@@ -30,45 +29,23 @@ Leichtgewichtig statt feature-heavy — es wird subtraktiv entwickelt (siehe CLA
 - **TAGS** / **STATUSES** — frei definierbar, Status mit Icon + Farbe (Icon ist der primaere
   Unterscheider, nicht die Farbe — der Nutzer hat eine Rot-Gruen-Schwaeche)
 
-## Aufbau der Oberflaeche
-Zwei Spalten in `#main`: links der Ansichtsbereich (`#goal-list`), rechts das Detail-Panel
-(`#panel`), dazwischen eine ziehbare Kante (`#drag-divider`), die den Einklapp-Knopf traegt.
+## Aufbau der Oberflaeche (v3, seit 19.10.2026)
+Entworfen nach dem Anforderungs-Interview (`docs/ResearchGraph_Anforderungen-Interview_2026-10.md`): der Box-Agent schreibt fast alles, Dominik liest vor allem und hakt ab — die Oberflaeche ist zuerst eine Uebersicht, nichts wird fuer Optik versteckt.
 
-Vier Ansichten (`setView`, persistiert in `rg_view`): **Tree** (Node-Hierarchie),
-**Board** (Elemente nach Status), **Lab** (Tasks + Ideas), **Journal** (seit 19.10.2026 eigener Tab, vorher rechte Lab-Spalte; ein gespeichertes `rg_view='ideas'` wird auf `lab` umgebogen).
+- **Kopfzeile:** Seiten Tasks / Board / Journal, Layout-Schalter "All projects | One project" (bei One: Projekt-Reiter), Suche, "Done steps hidden/shown" (`rg_hideDoneSubtasks`), "Show frozen", Zoom (`rg3_zoom`), Sync-Status, Menue (Neues Projekt, Archiv, Spaltenbreiten zuruecksetzen, GitHub, Hilfe).
+- **All projects:** jedes aktive Projekt eine Spalte; Breiten per Ziehen (`rg3_widths`), Spalten einklappbar zu Streifen (`rg3_collapsed`). **One project:** ein Projekt ueber die volle Breite, Lab | General | Ideas nebeneinander (`rg3_mode`, `rg3_one`).
+- **Pro Projekt:** Focus-Task oben (Stern + Rand in Projektfarbe), dann Abschnitte Lab, General (`category` `labor`/`general`), Ideas — Abschnittskoepfe als klebende Baender. Alle offenen Subtasks immer sichtbar, erledigte Tasks nie.
+- **Zeilen als festes Raster:** Status-Kaestchen | Titel (+ Statuszeile "in progress" / Blockiert-Grund) | rechts Element-Chip und Prioritaet (1–3 Balken). Status-Symbole sind gezeichnete SVGs (leer / Punkt / Strich / Haken), Klick zykelt open → in progress → done → open. Element an der Task: das eigene, sonst das haeufigste der Schritte ("via its steps"); an Schritten nur, wenn abweichend.
+- **Schublade rechts** (Klick auf einen Titel): Status, Prioritaet, Focus, Liste, Element, Faelligkeit, Notes (Markdown, Edit/Save), Schritte. Elemente und Journal sind dort **nur lesbar** — die pflegt der Agent.
+- **Projekte:** Farbe bleibt; neuer Zustand **eingefroren** (`frozen`, `frozenAt` am Projekt — ausgeblendet bis "Show frozen"); archiviert = fertig. Ideen und Projekte werden nie geloescht.
+- **Entfernt gegenueber v1** (Dominiks Entscheid 19.10.2026): Tree-Ansicht, Undo, Export/Import, Feedback-Knopf, Status-Filter, Tags-/Status-Verwaltung, Idee→Task, Notiz-Zeichen (≡).
+- **Farben:** Okabe-Ito-Statusfarben, Grundfarben fuer Projekte, alte Pastell-Defaults werden nur in der Anzeige ersetzt. Bedeutung traegt immer die Form.
 
-Ideen werden **nie geloescht, nur archiviert** (Dominik 19.10.2026): Archivieren und Promote setzen `archived:true`, `archivedAt` (Promote zusaetzlich `promotedTo:<todoId>`); die Lab-Spalte zeigt sie eingeklappt unter "Archived (N)" mit Restore. Der MCP spiegelt das ab v47 (`rg_lab_delete_idea` archiviert, `rg_lab_list_ideas` blendet Archiv aus ausser `include_archived`, `rg_lab_update_idea restore:true`).
-
-Projekte ebenso (19.10.2026): der Loesch-Knopf im Projekt-Dropdown archiviert (`archived`, `archivedAt` am Projekt-Eintrag in `rg_projects`), die Daten bleiben unter ihren `rg_{id}_*`-Keys und im Gist. Archivierte Projekte fehlen in Tabs und Liste, stehen unter "Archived projects (N)" mit Restore und werden nie aktives Projekt. Die Felder laufen ueber `_projArch()` durch Sync-Payload, `ghLoad`, Export und Import — nur wenn gesetzt, damit der Hash alter Daten gleich bleibt. MCP ab v48: `rg_delete_project` archiviert, `rg_list_projects include_archived`, `rg_update_project restore:true`; Suche und Briefing ueberspringen archivierte Projekte.
-
-Farben (19.10.2026): Statusfarben Okabe-Ito (planned `#9e9e9e`, in progress `#E69F00`, done `#0072B2`; alte Pastell-Defaults migriert `_migrateStatusColors` beim Laden), Projektfarben schlichte Grundfarben (`PROJ_COLOR_NAMES`: Rot, Gruen, Blau, Gelb, Grau, Schwarz). Beide unter simulierter Deuteranopie/Protanopie gemessen; der Nutzer ist rot-gruen-schwach.
-
-Die Lab-Ansicht hat im Tasks-Header einen View-Filter **"Done steps hidden/shown"**
-(`toggleHideDoneSubtasks`, persistiert in `rg_hideDoneSubtasks`, nie im Gist): er blendet
-erledigte Subtasks aus und ersetzt sie pro Todo durch die stumme Zeile "N done steps hidden".
-Der Focus-Step bleibt immer sichtbar. Erledigte Todos sind davon nicht betroffen (die haben
-ihre eigene "Completed"-Klappe).
-
-Das Detail-Panel ist ansichts-uebergreifend und kennt vier Auswahltypen (`selType`/`selId`,
-gerendert von `renderDetail()`): `node`, `element`, `todo`, `subtask`. Auswahl per
-`select(type,id)`; Subtasks werden ueber den zusammengesetzten Schluessel `todoId.subId`
-adressiert. Alles Langformige lebt im Panel — Listenzeilen bleiben kurze, scannbare Header
-und zeigen nur ein `≡`, wenn Notizen vorhanden sind. Umbenennen laeuft ausschliesslich ueber
-einen expliziten ✎-Knopf, weil der einfache Klick das Panel oeffnet.
-
-In der Lab-Liste bilden Todo + Subtasks eine Gruppe (`.lab-todo-group`). Die Ebenen sind
-ueber die FORM getrennt, nicht ueber Groesse/Farbe: Subtasks haengen an einem gezeichneten
-Baum-Konnektor (senkrechte Leitlinie + Abzweig als `::before`/`::after`, ausgerichtet unter
-der Todo-Checkbox) und tragen eine RUNDE Checkbox, waehrend Todos eine eckige haben.
-
-Im Header sitzt neben dem GitHub-Knopf ein **Feedback**-Knopf (`openFeedback`), der per
-GitHub-REST-API direkt ein Issue in `qwertzuiop151/ResearchGraph-app` anlegt (Label `feedback`).
-Angehaengt werden automatisch Projekt, Ansicht, aktuelle Auswahl und User-Agent — im Dialog
-sichtbar, damit nichts unbemerkt mitgeschickt wird. Der Token steht **nie** in `overview.html`
-(die Datei ist public): Dominik fuegt einmalig einen fine-grained PAT mit `Issues: write` NUR
-auf diesem Repo ein, gespeichert unter `rg_fb_token` in localStorage und erst nach einem
-erfolgreichen POST persistiert. Faellt der Weg aus (kein Token, kein Netz, Fehler), kopiert
-`⧉ Copy` den fertigen Bericht in die Zwischenablage — ein Report geht nie verloren.
+### Live-Sync (Variante A, `docs/ResearchGraph_Sync-Recherche_2026-10.md`)
+- Die App fragt alle 10 s (nur bei sichtbarem Tab, sofort beim Zurueckkehren) `gists/{id}/commits?per_page=1` mit ETag ab — 304 kostet kein Rate-Limit. Neue Revision → laden und anzeigen, ohne Dialog.
+- Eigene Aenderungen werden als Operationen gespeichert (`rg3_pending`, ueberlebt Reloads) und beim Hochladen auf den **frischen** Stand gespielt (Basis: zuletzt uebernommener Stand, wenn GitHub unveraendert ist, sonst neu geladen). Die App laedt nie ihre Gesamtkopie hoch.
+- Reparatur: nach dem PATCH wird die Revisionskette geprueft; ist zwischen Lesen und Schreiben eine fremde Revision gelandet, wird sie aus der Gist-Historie geholt und die eigenen Ops erneut darauf angewendet (die Gist-API kennt kein If-Match — gemessen).
+- Bremsen (Write-Storm 06.07.2026): hoechstens 60 Anfragen/min, 8 Schreibvorgaenge/min, 150/h; viele Aenderungen hintereinander werden gesammelt; 403/429 → Pause bis Retry-After.
 
 ## Clients auf denselben Daten
 Das Gist ist die gemeinsame Wahrheit; App, `ResearchGraphMCP/` (Node.js, 44 Tools) und Agenten
@@ -149,7 +126,8 @@ Erst wenn das spuerbar stoert, lohnt eine Aufteilung in eine Gist-Datei pro Proj
 PATCH ersetzt nur die benannten Dateien) — das ist eine Kostenfrage, keine Grenzfrage.
 
 ## Dateistruktur
-- `overview.html` — die Anwendung
+- `overview.html` — die Anwendung (v3 seit 19.10.2026; v1 nur noch in der Git-Historie, letzter Stand vor dem Tausch: Commit `d945caf` + Promote-Entfernung)
+- `tests/rg-offline-tests.js` — Offline-Tests (jsdom) gegen einen Gist-Snapshot, GitHub simuliert
 - `index.html` — Redirect fuer GitHub Pages
 - `deploy/` — Deployment-Artefakte
 - `docs/ResearchGraph_Improvement-Backlog.md` — technischer Backlog
