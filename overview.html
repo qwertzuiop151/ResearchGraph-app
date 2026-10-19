@@ -516,6 +516,20 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
 .jnl-add-sec:hover{color:#3b82f6;background:#f8fafc}
 .jnl-empty,.lab-empty{text-align:center;padding:40px 20px;color:#94a3b8;font-size:14px}
 @media(max-width:768px){.lab-wrap{grid-template-columns:1fr}}
+.jnl-wrap{max-width:900px;margin:0 auto;padding:16px;height:100%;display:flex;flex-direction:column}
+.jnl-wrap .lab-col{flex:1;min-height:0}
+.idea-card{background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid #f1f5f9;border-left:3px solid #8b5cf6}
+.idea-card.is-archived{border-left:3px dashed #cbd5e1}
+.idea-card.is-archived .idea-title{color:#64748b;font-weight:500}
+.idea-row{display:flex;align-items:center;gap:8px;padding:8px 12px}
+.idea-arrow{font-size:10px;color:#94a3b8;transition:transform .15s;flex-shrink:0}
+.idea-title{font-weight:600;font-size:13px;color:#1e293b;flex:1;min-width:0}
+.idea-date{font-size:11px;color:#94a3b8;flex-shrink:0}
+.idea-actions{display:flex;gap:2px;flex-shrink:0}
+.idea-btn{border:none;background:none;cursor:pointer;font-size:13px;padding:2px 4px;color:#94a3b8;opacity:.55;transition:opacity .15s}
+.idea-card:hover .idea-btn{opacity:1}
+.idea-detail{max-height:0;overflow:hidden;transition:max-height .2s ease-out}
+.idea-desc{font-size:13px;color:#475569;white-space:pre-wrap;border-top:1px solid #f1f5f9;padding-top:8px}
 </style>
 </head>
 <body>
@@ -578,7 +592,8 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
       <ul style="padding-left:18px">
         <li><b>Tree</b> — hierarchical view of all nodes and elements</li>
         <li><b>Board</b> — elements grouped by status (Kanban-style)</li>
-        <li><b>Lab</b> — to-do lists and a lab journal</li>
+        <li><b>Lab</b> — to-do lists and ideas (archived ideas are kept, never deleted)</li>
+        <li><b>Journal</b> — the dated lab journal</li>
       </ul>
       <h3 style="font-size:14px;color:#1e293b;margin:14px 0 6px">Projects</h3>
       <ul style="padding-left:18px">
@@ -659,7 +674,7 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
         <button class="view-tab active" data-view="tree" onclick="setView('tree')">🌳 Tree</button>
         <button class="view-tab" data-view="board" onclick="setView('board')">☰ Board</button>
         <button class="view-tab" data-view="lab" onclick="setView('lab')">🧪 Lab</button>
-        <button class="view-tab" data-view="ideas" onclick="setView('ideas')">💡 Ideas</button>
+        <button class="view-tab" data-view="journal" onclick="setView('journal')">📓 Journal</button>
       </div>
     </div>
     <div id="goal-list"></div>
@@ -1574,7 +1589,7 @@ function buildRoadmap(){
   const _curProj=_projects.find(p=>p.id===_activeProjectId);
   document.documentElement.style.setProperty('--proj-color',_getProjColor(_curProj||{}));
   if(_viewMode==='lab') return buildLabView();
-  if(_viewMode==='ideas') return buildIdeasView();
+  if(_viewMode==='journal') return buildJournalView();
   if(_viewMode==='board') return buildBoard();
   const r=document.getElementById('goal-list');r.innerHTML='';
   // Zero-state
@@ -2586,13 +2601,14 @@ function toggleStatusFilter(status){
   buildRoadmap();updateResetBtn();
 }
 function setView(mode){
+  if(mode==='ideas') mode='lab'; // alter gespeicherter View: Ideas wohnen seit 19.10.2026 im Lab-Tab
   _viewMode=mode;
   localStorage.setItem('rg_view',mode);
   document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===mode));
   const addBtn=document.getElementById('btn-add-goal');
   const title=document.getElementById('roadmap-title');
-  if(addBtn)addBtn.style.display=(mode==='lab'||mode==='ideas')?'none':'';
-  title.textContent=mode==='board'?'Status Board':mode==='lab'?'Lab Dashboard':mode==='ideas'?'Ideas':'Nodes';
+  if(addBtn)addBtn.style.display=(mode==='lab'||mode==='journal')?'none':'';
+  title.textContent=mode==='board'?'Status Board':mode==='lab'?'Lab Dashboard':mode==='journal'?'Journal':'Nodes';
   buildRoadmap();
 }
 function buildBoard(){
@@ -2694,7 +2710,7 @@ function confirmAdd(){
 function buildLabView(){
   const r=document.getElementById('goal-list');
   const openCount=TODOS.filter(t=>t.status!=='done').length;
-  const jnlCount=JOURNAL.length;
+  const ideaCount=IDEAS.filter(i=>!i.archived).length;
   r.innerHTML=`<div class="lab-wrap">
     <div class="lab-col">
       <div class="lab-col-hdr">📋 Tasks <span class="badge">${openCount} open</span>
@@ -2704,14 +2720,25 @@ function buildLabView(){
       <div class="lab-col-body" id="lab-todos"></div>
     </div>
     <div class="lab-col">
-      <div class="lab-col-hdr">📓 Journal <span class="badge">${jnlCount}</span>
+      <div class="lab-col-hdr">💡 Ideas <span class="badge">${ideaCount}</span></div>
+      <div class="lab-col-body" id="lab-ideas"></div>
+    </div>
+  </div>`;
+  renderLabTodos();
+  renderLabIdeas();
+}
+// Journal hat seit 19.10.2026 einen eigenen Tab (vorher rechte Lab-Spalte)
+function buildJournalView(){
+  const r=document.getElementById('goal-list');
+  r.innerHTML=`<div class="jnl-wrap">
+    <div class="lab-col">
+      <div class="lab-col-hdr">📓 Journal <span class="badge">${JOURNAL.length}</span>
         <div style="flex:1"></div>
         <button class="lab-add-btn" onclick="addJournalEntry()" style="font-size:11px;padding:4px 10px">+ Today</button>
       </div>
       <div class="lab-col-body" id="lab-journal"></div>
     </div>
   </div>`;
-  renderLabTodos();
   renderLabJournal();
 }
 
@@ -3094,14 +3121,14 @@ function addJournalEntry(){
   const existing=JOURNAL.find(e=>e.date===today);
   if(existing){
     // scroll to it
-    if(_viewMode==='lab') renderLabJournal();
+    if(_viewMode==='journal') renderLabJournal();
     return;
   }
   pushUndo();
   const now=new Date().toISOString();
   JOURNAL.push({id:_uid('jnl'),date:today,sections:[{id:_uid('js'),title:'Notes',content:''}],createdAt:now,modifiedAt:now});
   saveJournal();
-  if(_viewMode==='lab') buildLabView();
+  if(_viewMode==='journal') buildJournalView();
 }
 function addJournalSection(entryId){
   const entry=JOURNAL.find(e=>e.id===entryId);if(!entry)return;
@@ -3109,7 +3136,7 @@ function addJournalSection(entryId){
   entry.sections.push({id:_uid('js'),title:'Notes',content:''});
   entry.modifiedAt=new Date().toISOString();
   saveJournal();
-  if(_viewMode==='lab') renderLabJournal();
+  if(_viewMode==='journal') renderLabJournal();
 }
 let _jnlSaveTimer;
 function saveJournalContent(el){
@@ -3138,7 +3165,7 @@ function deleteJournalEntry(id){
   const idx=JOURNAL.findIndex(e=>e.id===id);if(idx<0)return;
   JOURNAL.splice(idx,1);
   saveJournal();
-  if(_viewMode==='lab') buildLabView();
+  if(_viewMode==='journal') buildJournalView();
 }
 function deleteJournalSection(eid,sid){
   const entry=JOURNAL.find(e=>e.id===eid);if(!entry)return;
@@ -3147,7 +3174,7 @@ function deleteJournalSection(eid,sid){
   entry.sections.splice(idx,1);
   entry.modifiedAt=new Date().toISOString();
   saveJournal();
-  if(_viewMode==='lab') renderLabJournal();
+  if(_viewMode==='journal') renderLabJournal();
 }
 
 // ─── TODO ─────────────────────────────────────────────────────────────────────
@@ -3156,66 +3183,87 @@ function saveTodos(){
   _scheduleGhSave();
 }
 
-// ─── IDEAS VIEW ──────────────────────────────────────────────────────────────
-function buildIdeasView(){
-  const r=document.getElementById('goal-list');
-  let html='<div style="max-width:700px;margin:0 auto;padding:12px 0">';
-  html+=`<div style="display:flex;gap:8px;margin-bottom:16px">
-    <input type="text" id="idea-title-input" placeholder="New idea..." style="flex:1;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px" onkeydown="if(event.key==='Enter')addIdea()">
-    <button onclick="addIdea()" style="padding:8px 16px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">+ Add</button>
-  </div>`;
-  const ideasFiltered=IDEAS.filter(i=>!_searchQuery||(i.title||'').toLowerCase().includes(_searchQuery)||(i.desc||'').toLowerCase().includes(_searchQuery));
-  if(!IDEAS.length){
-    html+='<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px">No ideas yet. Capture spontaneous thoughts here!</div>';
-  } else if(!ideasFiltered.length){
-    html+='<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px">No matching ideas.</div>';
-  } else {
-    ideasFiltered.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).forEach(idea=>{
-      const date=idea.createdAt?new Date(idea.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
-      const linked=idea.elementId?ELEMENTS.find(e=>e.id===idea.elementId):null;
-      const hasDetail=!!(idea.desc||linked);
-      html+=`<div class="idea-card" style="background:#fff;border-radius:10px;margin-bottom:8px;border-left:3px solid #8b5cf6;box-shadow:0 1px 3px rgba(0,0,0,.06)">
-        <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:${hasDetail?'pointer':'default'}" ${hasDetail?`onclick="toggleIdeaDetail('${escAttr(idea.id)}')"`:''}>
-          ${hasDetail?`<span class="idea-arrow" id="idea-arrow-${escAttr(idea.id)}" style="font-size:10px;color:#94a3b8;transition:transform .15s;flex-shrink:0">▶</span>`:''}
-          <div style="font-weight:600;font-size:14px;color:#1e293b;flex:1">${escH(idea.title)}</div>
-          <span style="font-size:11px;color:#94a3b8;flex-shrink:0">${date}</span>
-          <div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
-            <button onclick="promoteIdea('${escAttr(idea.id)}')" title="Promote to TODO" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 4px">📋</button>
-            <button onclick="deleteIdea('${escAttr(idea.id)}')" title="Delete" style="border:none;background:none;cursor:pointer;font-size:14px;padding:2px 4px;color:#cbd5e1">×</button>
-          </div>
-        </div>
-        ${hasDetail?`<div id="idea-detail-${escAttr(idea.id)}" style="max-height:0;overflow:hidden;transition:max-height .2s ease-out">
-          <div style="padding:0 14px 12px${hasDetail&&!idea.desc?'':';padding-top:0'}">
-            ${idea.desc?`<div style="font-size:13px;color:#475569;white-space:pre-wrap;border-top:1px solid #f1f5f9;padding-top:8px">${renderInlineLinks(escH(idea.desc))}</div>`:''}
-            ${linked?`<div style="font-size:11px;color:#94a3b8;margin-top:6px">linked to ${escH(linked.label)}</div>`:''}
-          </div>
-        </div>`:''}
-      </div>`;
-    });
-  }
-  html+='</div>';
-  r.innerHTML=html;
+// ─── IDEAS (rechte Lab-Spalte seit 19.10.2026) ─────────────────────────────
+// Ideen werden NIE geloescht (Dominik 19.10.2026): "Loeschen" und "Promote" archivieren sie
+// ({archived:true, archivedAt, promotedTo?}). Archiv steht eingeklappt unter der Liste, mit Restore.
+let _ideaArchiveOpen=false;
+function _ideaMatches(i){
+  return !_searchQuery||(i.title||'').toLowerCase().includes(_searchQuery)||(i.desc||'').toLowerCase().includes(_searchQuery);
 }
+function _renderIdeaCard(idea){
+  const arch=!!idea.archived;
+  const date=idea.createdAt?new Date(idea.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
+  const linked=idea.elementId?ELEMENTS.find(e=>e.id===idea.elementId):null;
+  const hasDetail=!!(idea.desc||linked);
+  const archNote=arch?(idea.promotedTo?'promoted to task':'archived')+(idea.archivedAt?' '+new Date(idea.archivedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''):'';
+  const actions=arch
+    ?`<button class="idea-btn" onclick="restoreIdea('${escAttr(idea.id)}')" title="Restore to the idea list">↩</button>`
+    :`<button class="idea-btn" onclick="promoteIdea('${escAttr(idea.id)}')" title="Promote to task (the idea is archived, not lost)">📋</button>
+      <button class="idea-btn" onclick="archiveIdea('${escAttr(idea.id)}')" title="Archive (ideas are never deleted — restore from the archive below)">🗄</button>`;
+  return `<div class="idea-card${arch?' is-archived':''}">
+    <div class="idea-row" style="cursor:${hasDetail?'pointer':'default'}" ${hasDetail?`onclick="toggleIdeaDetail('${escAttr(idea.id)}')"`:''}>
+      ${hasDetail?`<span class="idea-arrow" id="idea-arrow-${escAttr(idea.id)}">▶</span>`:''}
+      <div class="idea-title">${escH(idea.title)}</div>
+      <span class="idea-date">${arch?escH(archNote):date}</span>
+      <div class="idea-actions" onclick="event.stopPropagation()">${actions}</div>
+    </div>
+    ${hasDetail?`<div class="idea-detail" id="idea-detail-${escAttr(idea.id)}">
+      <div style="padding:0 12px 10px">
+        ${idea.desc?`<div class="idea-desc">${renderInlineLinks(escH(idea.desc))}</div>`:''}
+        ${linked?`<div style="font-size:11px;color:#94a3b8;margin-top:6px">linked to ${escH(linked.label)}</div>`:''}
+      </div>
+    </div>`:''}
+  </div>`;
+}
+function renderLabIdeas(){
+  const el=document.getElementById('lab-ideas');
+  if(!el)return;
+  let html=`<div class="lab-add-row"><input class="lab-add-input" id="idea-title-input" placeholder="New idea…" onkeydown="if(event.key==='Enter')addIdea()" /><button class="lab-add-btn" onclick="addIdea()">+</button></div>`;
+  const byNewest=(a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'');
+  const active=IDEAS.filter(i=>!i.archived);
+  const shown=active.filter(_ideaMatches).sort(byNewest);
+  const archived=IDEAS.filter(i=>i.archived&&_ideaMatches(i)).sort((a,b)=>(b.archivedAt||'').localeCompare(a.archivedAt||''));
+  if(!active.length) html+='<div class="lab-empty">No ideas yet. Capture spontaneous thoughts here!</div>';
+  else if(!shown.length) html+='<div class="lab-empty">No matching ideas.</div>';
+  else shown.forEach(i=>{html+=_renderIdeaCard(i);});
+  if(archived.length){
+    html+=`<div class="lab-done-toggle${_ideaArchiveOpen?' open':''}" onclick="_ideaArchiveOpen=!_ideaArchiveOpen;toggleDoneSection('idea-archive',this)"><span class="lab-done-arrow">▶</span> Archived (${archived.length})</div>`;
+    html+=`<div class="lab-done-items${_ideaArchiveOpen?' open':''}" id="idea-archive">`;
+    archived.forEach(i=>{html+=_renderIdeaCard(i);});
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+function _rerenderIdeas(){if(_viewMode==='lab') buildLabView();} // Badge im Spaltenkopf zaehlt mit
 function addIdea(){
   const input=document.getElementById('idea-title-input');
   const title=(input?.value||'').trim();if(!title)return;
   pushUndo();
   IDEAS.push({id:_uid('idea'),title,desc:'',elementId:null,createdAt:new Date().toISOString()});
   input.value='';
-  saveIdeas();buildIdeasView();
+  saveIdeas();_rerenderIdeas();
+  document.getElementById('idea-title-input')?.focus();
 }
-function deleteIdea(id){
-  const idx=IDEAS.findIndex(x=>x.id===id);if(idx<0)return;
-  pushUndo();IDEAS.splice(idx,1);
-  saveIdeas();buildIdeasView();
+function archiveIdea(id){
+  const idea=IDEAS.find(x=>x.id===id);if(!idea||idea.archived)return;
+  pushUndo();
+  idea.archived=true;idea.archivedAt=new Date().toISOString();
+  saveIdeas();_rerenderIdeas();
+}
+function restoreIdea(id){
+  const idea=IDEAS.find(x=>x.id===id);if(!idea||!idea.archived)return;
+  pushUndo();
+  delete idea.archived;delete idea.archivedAt;delete idea.promotedTo;
+  saveIdeas();_rerenderIdeas();
 }
 function promoteIdea(id){
-  const idea=IDEAS.find(x=>x.id===id);if(!idea)return;
+  const idea=IDEAS.find(x=>x.id===id);if(!idea||idea.archived)return;
   pushUndo();
   const now=new Date().toISOString();
-  TODOS.push({id:_uid('t'),text:idea.title,notes:idea.desc||'',status:'open',category:'general',priority:'low',focus:false,order:TODOS.length,subtasks:[],dueDate:null,elementId:idea.elementId,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
-  IDEAS.splice(IDEAS.indexOf(idea),1);
-  saveIdeas();saveTodos();buildIdeasView();
+  const tid=_uid('t');
+  TODOS.push({id:tid,text:idea.title,notes:idea.desc||'',status:'open',category:'general',priority:'low',focus:false,order:TODOS.length,subtasks:[],dueDate:null,elementId:idea.elementId,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});
+  idea.archived=true;idea.archivedAt=now;idea.promotedTo=tid; // Idee bleibt im Archiv erhalten
+  saveIdeas();saveTodos();_rerenderIdeas();
 }
 function toggleIdeaDetail(id){
   const det=document.getElementById('idea-detail-'+id);
