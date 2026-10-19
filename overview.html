@@ -78,7 +78,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:1
 .proj-edit-input.invalid{border-color:#ef4444}
 .proj-color-palette{display:flex;gap:4px;flex-shrink:0}
 .proj-color-sw{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .1s}
-.proj-color-sw:hover,.proj-color-sw.sel{border-color:#334155}
+.proj-color-sw:hover{border-color:#334155}
+.proj-color-sw.sel{box-shadow:0 0 0 2px #fff,0 0 0 4px #1e293b} /* Ring statt Rand: auf Schwarz/Grau sichtbar */
 
 /* ── MAIN ── */
 #main{flex:1;display:flex;overflow:hidden;min-height:0;position:relative}
@@ -822,7 +823,10 @@ let _activeProjectId=(()=>{const id=localStorage.getItem('rg_active_project');co
 let _projArchiveOpen=false;
 function _pk(key){return 'rg_'+_activeProjectId+'_'+key;}
 function saveProjects(){localStorage.setItem('rg_projects',JSON.stringify(_projects));_scheduleGhSave();}
-const PROJ_COLORS=['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ec4899','#14b8a6','#f97316','#6366f1'];
+// Einfache Grundfarben statt Designer-Palette (Dominik 19.10.2026). Gemessen unter simulierter Deuteranopie/
+// Protanopie: Rot/Gruen dE 24 (Gruen deutlich heller), schlechtestes Paar inkl. Statusfarben dE 19.
+const PROJ_COLOR_NAMES={'#d00000':'Red','#00b050':'Green','#0050ff':'Blue','#ffd800':'Yellow','#505050':'Grey','#000000':'Black'};
+const PROJ_COLORS=Object.keys(PROJ_COLOR_NAMES);
 let _projEditing=false;
 function _getProjColor(p){return p.color||PROJ_COLORS[0];}
 function _opaqueBlend(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgb(${Math.round(a*r+(1-a)*241)},${Math.round(a*g+(1-a)*245)},${Math.round(a*b+(1-a)*249)})`}
@@ -943,7 +947,7 @@ function switchProject(id){
   _loadProjectData();
 }
 function _projColorPalette(selColor){
-  return `<span class="proj-color-palette">${PROJ_COLORS.map(c=>`<span class="proj-color-sw${c===selColor?' sel':''}" data-color="${c}" style="background:${c}" onclick="event.stopPropagation();_pickProjColor(this)"></span>`).join('')}</span>`;
+  return `<span class="proj-color-palette">${PROJ_COLORS.map(c=>`<span class="proj-color-sw${c===selColor?' sel':''}" data-color="${c}" title="${PROJ_COLOR_NAMES[c]}" style="background:${c}" onclick="event.stopPropagation();_pickProjColor(this)"></span>`).join('')}</span>`;
 }
 function _pickProjColor(sw){
   sw.closest('.proj-color-palette').querySelectorAll('.proj-color-sw').forEach(s=>s.classList.remove('sel'));
@@ -954,7 +958,8 @@ function _finishProjEdit(input,id,isNew){
   if(!name){input.classList.add('invalid');input.focus();return;}
   const palette=input.closest('.proj-edit-row').querySelector('.proj-color-palette');
   const selSw=palette.querySelector('.proj-color-sw.sel');
-  const color=selSw?selSw.dataset.color:PROJ_COLORS[0];
+  // Farbe ausserhalb der Palette (alte Projekte) beim Umbenennen behalten statt still auf Rot zu setzen
+  const color=selSw?selSw.dataset.color:(!isNew&&_projects.find(p=>p.id===id)?.color)||PROJ_COLORS[0];
   _projEditing=false;
   if(isNew){
     const pid=_uid('proj');
