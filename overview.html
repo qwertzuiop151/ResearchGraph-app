@@ -923,6 +923,7 @@ function _loadProjectData(){
   IDEAS.splice(0,Infinity,..._load('ideas',[]));
   _replaceObj(TAGS,_load('tags',{}));
   _replaceObj(STATUSES,_load('statuses',null)||JSON.parse(JSON.stringify(_DEFAULT_STATUSES)));
+  _migrateStatusColors();
   collapsedNodes.clear();_load('cNodes',[]).forEach(i=>collapsedNodes.add(i));
   selType=null;selId=null;_undoStack.length=0;_jnlLimit=20;
   _searchQuery='';document.getElementById('search-input').value='';
@@ -1059,9 +1060,11 @@ function saveIdeas(){
 }
 let TAGS = _load('tags', {});
 const _DEFAULT_STATUSES={
-  planned:{label:'planned',icon:'○',color:'#e9d5ff;#4c1d95'},
-  in_progress:{label:'in progress',icon:'⟳',color:'#fed7aa;#7c2d12'},
-  done:{label:'done',icon:'✓',color:'#bfdbfe;#1e3a8a'},
+  // Okabe-Ito, kraeftig statt Pastell (19.10.2026): grau / orange / dunkelblau. Unter simulierter
+  // Deuteranopie/Protanopie bleibt jedes Paar >= dE 41 auseinander; das alte Lila/Blau lag bei dE 0,2-4,7.
+  planned:{label:'planned',icon:'○',color:'#9e9e9e;#000'},
+  in_progress:{label:'in progress',icon:'⟳',color:'#E69F00;#000'},
+  done:{label:'done',icon:'✓',color:'#0072B2;#fff'},
   abandoned:{label:'abandoned',icon:'✕',color:'#e2e8f0;#334155'}
 };
 let STATUSES=_load('statuses',null)||JSON.parse(JSON.stringify(_DEFAULT_STATUSES));
@@ -1446,14 +1449,21 @@ function elementTagsHTML(type,id,tags){
 let _statusEditMode=false;
 function toggleStatusEditMode(){_statusEditMode=!_statusEditMode;_smOpenPalette=null;_smOpenIconPicker=null;document.getElementById('status-gear')?.classList.toggle('active',_statusEditMode);buildStatusManager();}
 let _smOpenPalette=null;
+// Okabe-Ito (farbfehlsichtigkeits-sicher) + Neutrale, keine Pastelltoene
 const STATUS_PALETTE=[
-  '#0044cc;#fff','#2563eb;#fff','#93c5fd;#1e3a8a',
-  '#ccaa00;#000','#eab308;#000','#fde68a;#713f12',
-  '#cc0000;#fff','#dc2626;#fff','#fca5a5;#7f1d1d',
-  '#7c3aed;#fff','#e9d5ff;#4c1d95',
-  '#0891b2;#fff','#cffafe;#0e7490',
-  '#ea580c;#fff','#ffedd5;#9a3412',
-  '#e2e8f0;#1e293b','#1e293b;#fff','#fff;#000'];
+  '#0072B2;#fff','#56B4E9;#000','#E69F00;#000','#D55E00;#fff',
+  '#F0E442;#000','#009E73;#fff','#CC79A7;#000',
+  '#9e9e9e;#000','#525252;#fff','#1e293b;#fff','#fff;#000'];
+// Alte Pastell-Defaults auf die neuen umstellen — nur wenn der Nutzer die Farbe nie geaendert hat.
+// Schreibt nur localStorage; in den Gist kommt es mit dem naechsten regulaeren Save.
+const _OLD_STATUS_DEFAULTS={planned:'#e9d5ff;#4c1d95',in_progress:'#fed7aa;#7c2d12',done:'#bfdbfe;#1e3a8a'};
+function _migrateStatusColors(){
+  let changed=false;
+  Object.entries(_OLD_STATUS_DEFAULTS).forEach(([k,old])=>{
+    if(STATUSES[k]&&STATUSES[k].color===old){STATUSES[k].color=_DEFAULT_STATUSES[k].color;changed=true;}
+  });
+  if(changed) localStorage.setItem(_pk('statuses'),JSON.stringify(STATUSES));
+}
 function buildStatusManager(){
   const c=document.getElementById('status-manager');if(!c)return;c.innerHTML='';
   const wrap=document.createElement('div');wrap.className='tm-pills';
@@ -3859,6 +3869,7 @@ function initResizable(){
 renderProjTabs();
 buildTagManager();
 buildStatusManager();
+_migrateStatusColors();
 setView(localStorage.getItem('rg_view')||'tree'); // restore last used view
 initResizable();
 restorePanel();
