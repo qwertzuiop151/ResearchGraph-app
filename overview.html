@@ -623,9 +623,6 @@ body.sec-dnd-active .dsec-wrap input{pointer-events:none}
         <li><b>Ctrl+Z</b> — undo last action</li>
         <li><b>Ctrl+Click</b> — multi-select elements for bulk status change or delete</li>
       </ul>
-      <h3 style="font-size:14px;color:#dc2626;margin:18px 0 6px">Danger Zone</h3>
-      <p style="margin-bottom:8px"><button onclick="resetAll()" style="font-size:11px;padding:5px 12px;border:1px solid #fca5a5;border-radius:6px;background:#fef2f2;color:#dc2626;cursor:pointer;font-weight:600">⟳ Reset current project</button>
-      <span style="color:#94a3b8;font-size:11px;margin-left:8px">Deletes all data in this project and reloads.</span></p>
     </div>
   </div>
 </div>
@@ -915,7 +912,6 @@ function renderProjDD(){
       <div class="proj-dd-action" onclick="closeProjDD();exportData()"><span class="pda-icon">⬆</span>Export JSON</div>
       <div class="proj-dd-action" onclick="closeProjDD();importData()"><span class="pda-icon">⬇</span>Import JSON</div>
       <div class="proj-dd-action" onclick="closeProjDD();showHelp()"><span class="pda-icon">?</span>Help</div>
-      <div class="proj-dd-action" style="color:#ef4444" onclick="closeProjDD();resetAll()"><span class="pda-icon">⟲</span>Reset Project</div>
       ${!ghConnected?'<div class="proj-dd-action" onclick="closeProjDD();ghAction()"><span class="pda-icon">⬡</span>Connect GitHub</div>':''}
     </div>`;
 }
@@ -3806,14 +3802,6 @@ async function fbSend(){
 
 // ─── FULL RESET ──────────────────────────────────────────────────────────────
 function showHelp(){const o=document.getElementById('help-overlay');o.style.display='flex';}
-function resetAll(){
-  if(!confirm('Reset current project data? This will delete all saved changes and load defaults.'))return;
-  ['elements','nodes','todos','journal','ideas','tags','statuses','cNodes'].forEach(k=>{
-    localStorage.removeItem(_pk(k));
-  });
-  location.reload();
-}
-
 // ─── PANEL TOGGLE ────────────────────────────────────────────────────────────
 // Der Knopf liegt im Divider selbst — er braucht daher keine Positionsrechnung und bleibt
 // auch bei eingeklapptem Panel erreichbar (Divider bleibt sichtbar, nur nicht mehr ziehbar).
