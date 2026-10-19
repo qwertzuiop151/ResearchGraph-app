@@ -41,6 +41,8 @@ Ideen werden **nie geloescht, nur archiviert** (Dominik 19.10.2026): Archivieren
 
 Projekte ebenso (19.10.2026): der Loesch-Knopf im Projekt-Dropdown archiviert (`archived`, `archivedAt` am Projekt-Eintrag in `rg_projects`), die Daten bleiben unter ihren `rg_{id}_*`-Keys und im Gist. Archivierte Projekte fehlen in Tabs und Liste, stehen unter "Archived projects (N)" mit Restore und werden nie aktives Projekt. Die Felder laufen ueber `_projArch()` durch Sync-Payload, `ghLoad`, Export und Import — nur wenn gesetzt, damit der Hash alter Daten gleich bleibt. MCP ab v48: `rg_delete_project` archiviert, `rg_list_projects include_archived`, `rg_update_project restore:true`; Suche und Briefing ueberspringen archivierte Projekte.
 
+Farben (19.10.2026): Statusfarben Okabe-Ito (planned `#9e9e9e`, in progress `#E69F00`, done `#0072B2`; alte Pastell-Defaults migriert `_migrateStatusColors` beim Laden), Projektfarben schlichte Grundfarben (`PROJ_COLOR_NAMES`: Rot, Gruen, Blau, Gelb, Grau, Schwarz). Beide unter simulierter Deuteranopie/Protanopie gemessen; der Nutzer ist rot-gruen-schwach.
+
 Die Lab-Ansicht hat im Tasks-Header einen View-Filter **"Done steps hidden/shown"**
 (`toggleHideDoneSubtasks`, persistiert in `rg_hideDoneSubtasks`, nie im Gist): er blendet
 erledigte Subtasks aus und ersetzt sie pro Todo durch die stumme Zeile "N done steps hidden".
