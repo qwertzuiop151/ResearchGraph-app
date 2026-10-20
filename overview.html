@@ -341,6 +341,17 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .fld textarea{display:block;width:100%;padding:6px 9px;border:1px solid var(--rule-2);border-radius:6px;resize:vertical}
 .fld textarea:focus{outline:none;border-color:var(--ink)}
 .fld .ok{color:var(--done);font-size:12px;margin-top:4px}
+/* Archiv (20.10.2026): nichts wird geloescht, Archiviertes bleibt mit Datum + Grund abrufbar */
+.archb{margin:8px 0 4px;padding:6px 10px;border-left:3px solid var(--ink-3);background:#F2F4F7;border-radius:4px;font-size:12.5px;color:var(--ink-2)}
+.archb b{color:var(--ink)}
+.alist{max-height:40vh;overflow-y:auto;border:1px solid var(--rule);border-radius:8px}
+.arow{display:flex;gap:8px;align-items:baseline;width:100%;padding:5px 8px;border-top:1px solid var(--rule)}
+.arow .x{display:block;text-align:left;padding:0;color:var(--ink)}
+.arow:first-child{border-top:0}
+.arow:hover{background:var(--hover)}
+.arow .x{flex:1;min-width:0;overflow-wrap:anywhere}
+.arow small{display:block;color:var(--ink-3);font-size:11.5px}
+.agrp{font-size:12px;font-weight:700;color:var(--ink-2);margin:12px 0 4px}
 </style>
 </head>
 <body>
@@ -487,6 +498,9 @@ function applyOp(doc,op){
     case 'sub.set':{const tt=p.todos.find(x=>x.id===op.tid);const s=tt&&(tt.subtasks||[]).find(x=>x.id===op.sid);if(s)Object.entries(op.f).forEach(([k,v])=>{if(v==='\u0000del')delete s[k];else s[k]=v;});break;}
     case 'idea.add':if(!p.ideas.some(x=>x.id===op.obj.id))p.ideas.push(clone(op.obj));break;
     case 'idea.set':{const i=p.ideas.find(x=>x.id===op.id);if(i)Object.entries(op.f).forEach(([k,v])=>{if(v==='\u0000del')delete i[k];else i[k]=v;});break;}
+    // Journal: Abschnitt an einen Tag haengen (Tag ueber das Datum, nicht die id — der Agent kann den Tag inzwischen selbst angelegt haben)
+    case 'jsec.add':{if(!Array.isArray(p.journal))p.journal=[];let e=p.journal.find(x=>x.date===op.date);if(!e){e={id:op.eid,date:op.date,sections:[],createdAt:op.at,modifiedAt:op.at};p.journal.push(e);}if(!Array.isArray(e.sections))e.sections=[];if(!e.sections.some(s=>s.id===op.obj.id)){e.sections.push(clone(op.obj));e.modifiedAt=op.at;}break;}
+    case 'jsec.del':{const e=(p.journal||[]).find(x=>x.date===op.date);if(e){e.sections=(e.sections||[]).filter(s=>s.id!==op.sid);if(!e.sections.length)p.journal=p.journal.filter(x=>x!==e);}break;} // nur als Rueckgaengig eines eigenen Abschnitts
   }
 }
 const _J=v=>JSON.stringify(v);
@@ -507,6 +521,12 @@ function diffProject(pid,before,after){
   for(const id of bT.keys())if(!aT.has(id))ops.push({t:'todo.del',pid,id});
   const bI=new Map((before.ideas||[]).map(i=>[i.id,i]));
   (after.ideas||[]).forEach(a=>{const b=bI.get(a.id);if(!b){ops.push({t:'idea.add',pid,obj:a});return;}const f={};new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{if(_J(a[k])!==_J(b[k]))f[k]=(k in a)?a[k]:'\u0000del';});if(Object.keys(f).length)ops.push({t:'idea.set',pid,id:a.id,f});});
+  // Journal: nur hinzugekommene/weggefallene Abschnitte (die App bearbeitet keine bestehenden)
+  const bJ=new Map((before.journal||[]).map(e=>[e.date,e])),aJ=new Map((after.journal||[]).map(e=>[e.date,e]));
+  for(const [date,a] of aJ){const b=bJ.get(date);const bs=new Set(((b&&b.sections)||[]).map(s=>s.id)),as=new Set((a.sections||[]).map(s=>s.id));
+    (a.sections||[]).forEach(s=>{if(!bs.has(s.id))ops.push({t:'jsec.add',pid,date,eid:a.id,at:a.modifiedAt||nowIso(),obj:s});});
+    ((b&&b.sections)||[]).forEach(s=>{if(!as.has(s.id))ops.push({t:'jsec.del',pid,date,sid:s.id});});}
+  for(const [date,b] of bJ)if(!aJ.has(date))(b.sections||[]).forEach(s=>ops.push({t:'jsec.del',pid,date,sid:s.id}));
   return ops;
 }
 // Rueckgaengig (Strg+Z) / Wiederholen (Strg+Y, Strg+Umschalt+Z), nur diese Sitzung.
@@ -521,7 +541,8 @@ function _record(e){
 // Jede Aenderung der Nutzerin/des Nutzers laeuft hier durch: lokal anwenden, als Ops merken, Upload planen
 function change(pid,fn){
   const d=S.data[pid];if(!d)return 0;
-  const before={todos:clone(d.todos),ideas:clone(d.ideas)};
+  // Journal nur flach kopieren (Abschnittslisten): die App haengt nur an, aendert keinen bestehenden Abschnitt
+  const before={todos:clone(d.todos),ideas:clone(d.ideas),journal:(d.journal||[]).map(e=>({...e,sections:(e.sections||[]).slice()}))};
   fn(d);
   const ops=diffProject(pid,before,d);
   if(!ops.length){render();return 0;}
@@ -531,6 +552,7 @@ function change(pid,fn){
   _record({pid,ops:inv});
   PENDING.push(...ops);savePending();
   lsSet('rg_'+pid+'_todos',d.todos);lsSet('rg_'+pid+'_ideas',d.ideas);
+  if(ops.some(o=>o.t.startsWith('jsec')))lsSet('rg_'+pid+'_journal',d.journal);
   render();schedulePush();
   return ops.length;
 }
@@ -561,7 +583,7 @@ function undoRedo(mode){
   _undoMode=mode;let n=1;
   try{
     if(e.proj)changeProject(e.pid,e.proj);
-    else n=change(e.pid,d=>{const doc={projects:[{id:e.pid,todos:d.todos,ideas:d.ideas}]};e.ops.forEach(o=>applyOp(doc,clone(o)));d.todos=doc.projects[0].todos;d.ideas=doc.projects[0].ideas;});
+    else n=change(e.pid,d=>{const doc={projects:[{id:e.pid,todos:d.todos,ideas:d.ideas,journal:d.journal}]};e.ops.forEach(o=>applyOp(doc,clone(o)));d.todos=doc.projects[0].todos;d.ideas=doc.projects[0].ideas;d.journal=doc.projects[0].journal;});
   }finally{_undoMode=null;}
   validateSel();render();
   toast(n?(mode==='undo'?'Undone':'Redone')+(label?': “'+label+'”':'')+(mode==='undo'?' · Ctrl+Y redoes':''):'Nothing changed — it was already changed elsewhere.');
@@ -752,10 +774,15 @@ function disconnect(){
 // 7. LESEN MIT DEFAULTS
 // ════════════════════════════════════════════════════════════════════════════
 function tSt(t){return t.status||(t.done?'done':'open');}
+function isArch(x){return !!(x&&x.archived);}
+// Archivieren statt Loeschen (Dominik 20.10.2026): Status und Schritte bleiben unveraendert, dazu Datum + Grund
+function setArchived(x,on,reason){if(on){x.archived=true;x.archivedAt=nowIso();x.archivedReason=String(reason||'').trim()||null;}else{delete x.archived;delete x.archivedAt;delete x.archivedReason;delete x.promotedTo;}}
+function archNote(x){return isArch(x)?`<div class="archb"><b>Archived</b>${x.archivedAt?' '+esc(fmtDT(x.archivedAt)):''}${x.archivedReason?' — '+esc(x.archivedReason):''}</div>`:'';}
+function archCount(d){let n=d.todos.filter(isArch).length+d.ideas.filter(isArch).length+d.elements.filter(isArch).length;d.todos.forEach(t=>{if(!isArch(t))n+=(t.subtasks||[]).filter(isArch).length;});return n;}
 function tPr(t){return typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low');}
 function tCat(t){return t.category||'general';}
 function sSt(s){return s.status||'open';}
-function focusOf(d){return d.todos.find(t=>t.focus||t.northStar)||null;}
+function focusOf(d){return d.todos.find(t=>(t.focus||t.northStar)&&!isArch(t))||null;}
 function focusStepOf(d,t){const f=focusOf(d);return f&&f.id===t.id?(t.subtasks||[]).find(s=>s.focus)||null:null;}
 function findT(pid,id){const d=S.data[pid];return d&&d.todos.find(t=>t.id===id)||null;}
 function findS(pid,tid,sid){const t=findT(pid,tid);return t&&(t.subtasks||[]).find(s=>s.id===sid)||null;}
@@ -872,18 +899,18 @@ function renderMain(){
   });
   return `<main class="board" data-k="main-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${html}</div></main>`;
 }
-function countLabel(p,d){return ui.page==='board'?plural(d.elements.filter(e=>e.status!=='abandoned').length,'element'):ui.page==='journal'?plural(d.journal.length,'day'):d.todos.filter(t=>tSt(t)!=='done').length+' open';}
+function countLabel(p,d){return ui.page==='board'?plural(d.elements.filter(e=>e.status!=='abandoned'&&!isArch(e)).length,'element'):ui.page==='journal'?plural(d.journal.length,'day'):d.todos.filter(t=>tSt(t)!=='done'&&!isArch(t)).length+' open';}
 function renderStrip(p){const d=S.data[p.id];return `<button class="strip" data-k="strip-${esc(p.id)}" data-act="expand" data-pid="${esc(p.id)}" style="--c:${esc(p.color||'#505050')}" title="Expand ${esc(p.name)}"><span class="dot"></span><b>${p.frozen?'❄ ':''}${esc(p.name)}</b><small>${esc(countLabel(p,d))}</small></button>`;}
 function colHead(p,count,inOne){
   return `<div class="col-h" style="--c:${esc(p.color||'#505050')}"><span class="dot"></span><h2 title="${esc(p.name)}">${p.frozen?'❄ ':''}${esc(p.name)}</h2><span class="n">${esc(count)}</span>
     ${inOne?'':`<button class="icon" data-act="collapse" data-pid="${esc(p.id)}" title="Collapse this column" aria-label="Collapse ${esc(p.name)}">${IC_COLLAPSE}</button><button class="icon" data-act="solo" data-pid="${esc(p.id)}" title="Show only this project" aria-label="Show only ${esc(p.name)}">${IC_SOLO}</button>`}
     <span class="menu-wrap"><button class="icon" data-act="menu" data-v="p:${esc(p.id)}" aria-label="Project menu">${IC_MORE}</button>
-    ${ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive (finished)</button></div>`:''}</span></div>`;
+    ${ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}">Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive project (finished)</button></div>`:''}</span></div>`;
 }
 // Bausteine der Task-Seite: Focus, je Kategorie ein Abschnitt, dazu der Ideen-Abschnitt
 function taskParts(p){
   const d=S.data[p.id],pid=p.id,f=focusOf(d);
-  const open=d.todos.filter(t=>tSt(t)!=='done');
+  const open=d.todos.filter(t=>tSt(t)!=='done'&&!isArch(t));
   const cats=['labor','general'];open.forEach(t=>{if(!cats.includes(tCat(t)))cats.push(tCat(t));});
   const parts={focus:(f&&tSt(f)!=='done'&&todoHit(f))?renderTodo(p,f,true):'',cats:{}};
   cats.forEach(c=>{
@@ -928,7 +955,7 @@ function elChip(pid,elId){
 }
 function notesBtn(type,pid,id,sid,label){return `<button class="notes" data-act="open" data-type="${type}" data-pid="${esc(pid)}" data-id="${esc(id)}"${sid?` data-sid="${esc(sid)}"`:''} title="${label||'Show notes'}" aria-label="${label||'Show notes'}">${IC_NOTES}</button>`;}
 // Element, das die Zeile zeigt: das eigene, sonst das gemeinsame aller verknuepften Schritte (nur Anzeige, keine Datenaenderung)
-function rowElement(t){if(t.elementId)return t.elementId;const c={};(t.subtasks||[]).forEach(s=>{if(s.elementId)c[s.elementId]=(c[s.elementId]||0)+1;});let best=null,n=0;Object.entries(c).forEach(([k,v])=>{if(v>n){best=k;n=v;}});return best;} // haeufigstes Element der Schritte
+function rowElement(t){if(t.elementId)return t.elementId;const c={};(t.subtasks||[]).forEach(s=>{if(s.elementId&&!isArch(s))c[s.elementId]=(c[s.elementId]||0)+1;});let best=null,n=0;Object.entries(c).forEach(([k,v])=>{if(v>n){best=k;n=v;}});return best;} // haeufigstes Element der Schritte
 function renderTodo(p,t,isF){
   const pid=p.id,st=tSt(t),pr=tPr(t);
   const cls=['t',isF?'focus':'',st==='blocked'?'blocked':'',isOpen('todo',pid,t.id)?'sel':''].filter(Boolean).join(' ');
@@ -940,7 +967,7 @@ function renderTodo(p,t,isF){
   </div>${renderSubs(p,t)}`;
 }
 function renderSubs(p,t){
-  const subs=t.subtasks||[],pid=p.id;
+  const subs=(t.subtasks||[]).filter(s=>!isArch(s)),pid=p.id;
   const inp=ui.adding===pid+'|step|'+t.id?`<input class="add-in sub-in" data-k="ai-st-${esc(t.id)}" data-add="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" placeholder="New step — Enter adds, Esc stops">`:'';
   if(!subs.length)return inp;
   const d=S.data[pid],fs=focusStepOf(d,t);
@@ -959,11 +986,11 @@ function renderSubs(p,t){
 }
 function boardGroups(p,d){
   const pid=p.id;
-  const keys=Object.keys(d.statuses).filter(k=>k!=='abandoned');d.elements.forEach(e=>{if(e.status!=='abandoned'&&!keys.includes(e.status))keys.push(e.status);});
+  const keys=Object.keys(d.statuses).filter(k=>k!=='abandoned');d.elements.forEach(e=>{if(e.status!=='abandoned'&&!isArch(e)&&!keys.includes(e.status))keys.push(e.status);});
   const order=['in_progress','planned','done'];keys.sort((a,b)=>(order.indexOf(a)<0?9:order.indexOf(a))-(order.indexOf(b)<0?9:order.indexOf(b)));
   const nodeName=id=>{const n=d.nodes.find(x=>x.id===id);return n?n.label:'';};
   return keys.map(k=>{
-    const els=d.elements.filter(e=>e.status===k&&hit(e.label,e.desc,...(e.tags||[]).map(t=>d.tags[t]?.label))).sort((a,b)=>(a.label||'').localeCompare(b.label||''));
+    const els=d.elements.filter(e=>e.status===k&&!isArch(e)&&hit(e.label,e.desc,...(e.tags||[]).map(t=>d.tags[t]?.label))).sort((a,b)=>(a.label||'').localeCompare(b.label||''));
     if(!els.length)return '';
     const s=stInfo(pid,k);
     return `<div data-k="bg-${esc(k)}"><div class="grp-h"><span class="pill" style="background:${esc(s.bg)};color:${esc(s.fg)}">${esc(s.icon)} ${esc(s.label)}</span><span class="c">${els.length}</span></div>${els.map(e=>`<button class="el" data-k="e-${esc(e.id)}" data-act="open" data-type="element" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><i style="--c:${esc(elColor(pid,e))}"></i><div><b>${esc(e.label)}</b><small>${esc([(e.tags||[]).map(t=>d.tags[t]?.label).filter(Boolean).join(', '),nodeName(e.nodeId)].filter(Boolean).join(' — '))}</small></div></button>`).join('')}</div>`;
@@ -973,7 +1000,7 @@ function boardBody(p,d){return boardGroups(p,d).join('')||'<div class="empty">No
 function journalBody(p,d){
   const pid=p.id;
   const list=[...d.journal].filter(e=>hit(e.date,...(e.sections||[]).map(s=>(s.title||'')+' '+(s.content||'')))).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
-  return list.map(e=>`<button class="jd" data-k="j-${esc(e.id)}" data-act="open" data-type="entry" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><span class="d">${esc(fmtDate(e.date,{day:'numeric',month:'short'}))}</span><span class="x">${(e.sections||[]).slice(0,3).map(s=>`<div>${esc(snip(s.title,90))}</div>`).join('')}</span></button>`).join('')||'<div class="empty">No entries.</div>';
+  return `<button class="md-empty" style="margin:6px 0 4px" data-k="jw" data-act="jwrite" data-pid="${esc(pid)}">＋ Write a journal entry</button>`+list.map(e=>`<button class="jd" data-k="j-${esc(e.id)}" data-act="open" data-type="entry" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><span class="d">${esc(fmtDate(e.date,{day:'numeric',month:'short'}))}</span><span class="x">${(e.sections||[]).slice(0,3).map(s=>`<div>${esc(snip(s.title,90))}</div>`).join('')}</span></button>`).join('')||'<div class="empty">No entries.</div>';
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1025,9 +1052,9 @@ function renderDrawer(){
     const t=findT(dr.pid,dr.id);if(!t)return '';
     const st=tSt(t),pr=tPr(t),isF=focusOf(d)?.id===t.id,k=dr.pid+'|'+t.id,ia=pa+` data-id="${esc(t.id)}"`;
     const cats=[['labor','','Lab'],['general','','General']];if(!['labor','general'].includes(tCat(t)))cats.push([tCat(t),'',tCat(t)]);
-    const subs=t.subtasks||[];
-    head=`<div style="flex:1;min-width:0"><div class="k">Task · ${esc(p.name)}${isF?' · ★ Focus':''}</div>${titleIn('todo.text|'+k,t.text,'Task')}</div>`;
-    body=`<div class="kv">
+    const subs=(t.subtasks||[]).filter(s=>!isArch(s)),asubs=(t.subtasks||[]).filter(isArch);
+    head=`<div style="flex:1;min-width:0"><div class="k">Task · ${esc(p.name)}${isF?' · ★ Focus':''}${isArch(t)?' · archived':''}</div>${titleIn('todo.text|'+k,t.text,'Task')}</div>`;
+    body=`${archNote(t)}<div class="kv">
       <span>Status</span><div>${seg(TODO_ST,st,'setStatus',ia)}</div>
       ${st==='blocked'?`<span>Waiting for</span><div style="display:block">${titleIn('todo.blockedBy|'+k,t.blockedBy||'','e.g. primers, sequencing')}</div>`:''}
       <span>Priority</span><div>${seg(PRIOS.map(([v,l])=>[v,'',l]),pr,'setPrio',ia)}</div>
@@ -1041,27 +1068,28 @@ function renderDrawer(){
       ${(()=>{let hid=0;const rows=subs.map(s=>{const ss=sSt(s);if(ui.hideDone&&ss==='done'&&!(s.focus&&isF)){hid++;return '';}return `<div class="s${ss==='done'?' done':''}" style="margin-left:12px" data-k="ds-${esc(s.id)}"><button class="cb r s-${ss}" data-act="cycleStep"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}" aria-label="Step status ${esc(ss)}">${CB_ICON[ss]||''}</button><div class="tm"><button class="tt" data-act="open" data-type="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s.focus&&isF?IC_STAR:''}${esc(s.text)}</button></div></div>`;}).join('');return rows+(hid?`<div class="s hidden-n" style="margin-left:12px">${plural(hid,'done step')} hidden</div>`:'');})()}
       <input class="inl" style="margin-top:6px" data-add="step"${ia} placeholder="Add a step — Enter adds">
     </div>
+    ${asubs.length?`<div class="dsec"><h3>Archived steps <span class="ro">${asubs.length}</span></h3>${asubs.map(s=>`<div class="arow" data-k="das-${esc(s.id)}"><button class="x lbtn" data-act="open" data-type="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${sSt(s)==='done'?'✓':'○'} ${esc(s.text)}<small>${esc(fmtDT(s.archivedAt))}${s.archivedReason?' — '+esc(s.archivedReason):''}</small></button><button class="lbtn" data-act="restore" data-kind="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">Restore</button></div>`).join('')}</div>`:''}
     <div class="stamp">${[t.createdAt&&'Created '+fmtDT(t.createdAt),t.modifiedAt&&'Changed '+fmtDT(t.modifiedAt)].filter(Boolean).join(' · ')}</div>
-    <div class="dz"><button class="btn danger" data-act="delTodo"${ia}>Delete task</button></div>`;
+    <div class="dz">${isArch(t)?`<button class="btn" data-act="restore" data-kind="todo"${ia}>Restore task</button>`:`<button class="btn" data-act="archiveAsk" data-kind="todo"${ia}>Archive task…</button>`}</div>`;
   }else if(dr.type==='step'){
     const t=findT(dr.pid,dr.id),s=findS(dr.pid,dr.id,dr.sid);if(!t||!s)return '';
     const st=sSt(s),isF=focusOf(d)?.id===t.id,k=dr.pid+'|'+t.id+'|'+s.id,sa=pa+` data-id="${esc(t.id)}" data-sid="${esc(s.id)}"`;
     head=`<div style="flex:1;min-width:0"><div class="k"><button class="lbtn" style="margin-left:-6px" data-act="open" data-type="todo"${pa} data-id="${esc(t.id)}">↰ ${esc(snip(t.text,70))}</button></div>${titleIn('step.text|'+k,s.text,'Step')}</div>`;
-    body=`<div class="kv">
+    body=`${archNote(s)}<div class="kv">
       <span>Status</span><div>${seg(STEP_ST,st,'setStepStatus',sa)}</div>
       <span>Focus step</span><div>${isF?`<button class="btn${s.focus?' primary':''}" data-act="toggleStepFocus"${sa}>${s.focus?'★ Focus step':'☆ Make focus step'}</button>`:'<span class="ro">Only the focus task has a focus step.</span>'}</div>
       <span>Element</span><div>${s.elementId?elChip(dr.pid,s.elementId)+`<button class="lbtn" data-act="unlinkStep"${sa}>Remove</button>`:''}<button class="lbtn" data-act="pickElStep"${sa}>${s.elementId?'Change':'＋ Link element'}</button></div>
       <span>Due</span><div><input type="date" class="inl" style="width:auto" data-in="dueStep"${sa} value="${esc(s.dueDate||'')}">${s.dueDate?`<button class="lbtn" data-act="clearDueStep"${sa}>Clear</button>`:''}</div>
     </div>
     <div class="dsec"><h3>Notes ${editLink('step.notes|'+k,s.notes)}</h3>${mdBox('step.notes|'+k,s.notes,'Add notes')}</div>
-    <div class="dz"><button class="btn danger" data-act="delStep"${sa}>Delete step</button></div>`;
+    <div class="dz">${isArch(s)?`<button class="btn" data-act="restore" data-kind="step"${sa}>Restore step</button>`:`<button class="btn" data-act="archiveAsk" data-kind="step"${sa}>Archive step…</button>`}</div>`;
   }else if(dr.type==='idea'){
     const i=d.ideas.find(x=>x.id===dr.id);if(!i)return '';
     const k=dr.pid+'|'+i.id,ia=pa+` data-id="${esc(i.id)}"`;
     head=`<div style="flex:1;min-width:0"><div class="k">Idea · ${esc(p.name)}${i.archived?' · archived':''}</div>${titleIn('idea.title|'+k,i.title,'Idea')}</div>`;
-    body=`<div class="dsec"><h3>Description ${editLink('idea.desc|'+k,i.desc)}</h3>${mdBox('idea.desc|'+k,i.desc,'Describe the idea')}</div>
+    body=`${archNote(i)}<div class="dsec"><h3>Description ${editLink('idea.desc|'+k,i.desc)}</h3>${mdBox('idea.desc|'+k,i.desc,'Describe the idea')}</div>
     <div class="stamp">${i.createdAt?'Created '+esc(fmtDT(i.createdAt)):''}</div>
-    <div class="dz">${i.archived?`<button class="btn" data-act="restoreIdea"${ia}>Restore</button>`:`<button class="btn" data-act="archiveIdea"${ia}>Archive idea</button>`}</div>`;
+    <div class="dz">${i.archived?`<button class="btn" data-act="restore" data-kind="idea"${ia}>Restore idea</button>`:`<button class="btn" data-act="archiveAsk" data-kind="idea"${ia}>Archive idea…</button>`}</div>`;
   }else if(dr.type==='element'){
     const e=findEl(dr.pid,dr.id);if(!e)return '';
     const s=stInfo(dr.pid,e.status);
@@ -1070,7 +1098,7 @@ function renderDrawer(){
     const log=(e.log||[]).slice().reverse();const shown=dr.all?log:log.slice(0,10);
     head=`<div style="flex:1;min-width:0"><div class="k">Element · ${esc(p.name)}${path.length?' · '+esc(path.join(' › ')):''}</div><div class="ttl" style="border:0">${esc(e.label)}</div></div>`;
     body=`<div class="kv"><span>Status</span><div><span class="pill" style="background:${esc(s.bg)};color:${esc(s.fg)}">${esc(s.icon)} ${esc(s.label)}</span></div><span>Tags</span><div>${esc((e.tags||[]).map(t=>d.tags[t]?.label).filter(Boolean).join(', ')||'—')}</div></div>
-    <div class="ro">Maintained by your agent — read-only here.</div>
+    ${archNote(e)}<div class="ro">Maintained by your agent — read-only here.</div>
     ${(e.desc||'').trim()?`<div class="dsec"><h3>Description</h3><div class="md">${md(e.desc)}</div></div>`:''}
     ${linked.length?`<div class="dsec"><h3>Linked tasks</h3>${linked.map(({t,s:x})=>`<div><button class="lbtn" data-act="open" data-type="${x?'step':'todo'}"${pa} data-id="${esc(t.id)}"${x?` data-sid="${esc(x.id)}"`:''}>${(x?sSt(x):tSt(t))==='done'?'✓':'○'} ${esc(snip(x?x.text:t.text,80))}</button></div>`).join('')}</div>`:''}
     ${(e.custom||[]).map(c=>c.type==='link'?`<div class="dsec"><h3>${esc(c.title)}</h3>${(c.links||[]).map(l=>l.type==='element'?elChip(dr.pid,l.id):esc(d.nodes.find(n=>n.id===l.id)?.label||'')).join(' ')}</div>`:`<div class="dsec"><h3>${esc(c.title)}</h3>${(c.content||'').trim()?`<div class="md">${md(c.content)}</div>`:'<div class="ro">—</div>'}</div>`).join('')}
@@ -1078,7 +1106,7 @@ function renderDrawer(){
   }else if(dr.type==='entry'){
     const e=d.journal.find(x=>x.id===dr.id);if(!e)return '';
     head=`<div style="flex:1;min-width:0"><div class="k">Journal · ${esc(p.name)}</div><div class="ttl" style="border:0">${esc(fmtDate(e.date,{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</div></div>`;
-    body=`<div class="ro">Written by your agent — read-only here.</div>`+(e.sections||[]).map(s=>`<div class="dsec"><h3>${esc(s.title)}</h3>${(s.content||'').trim()?`<div class="md">${md(s.content)}</div>`:'<div class="ro">—</div>'}</div>`).join('');
+    body=`<div class="ro">Mostly written by your agent. <button class="lbtn" data-act="jwrite" data-pid="${esc(dr.pid)}" data-date="${esc(e.date)}">＋ Add a section to this day</button></div>`+(e.sections||[]).map(s=>`<div class="dsec"><h3>${esc(s.title)}</h3>${(s.content||'').trim()?`<div class="md">${md(s.content)}</div>`:'<div class="ro">—</div>'}</div>`).join('');
   }
   return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" data-k="dr-${esc(dr.type+dr.pid+dr.id+(dr.sid||''))}" role="dialog" aria-label="Details"><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
 }
@@ -1134,7 +1162,7 @@ function renderDialog(){
     inner=`<h2>Archived projects</h2><p>Finished projects. Nothing is deleted; restore one to show it again.</p>${arch.map(p=>`<div class="fld" style="display:flex;gap:8px;align-items:center"><span style="flex:1">${esc(p.name)}</span><button class="btn" data-act="restoreProject" data-pid="${esc(p.id)}">Restore</button></div>`).join('')||'<p class="ro">None.</p>'}<div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
   }else if(d.type==='pick'){
     const q=(d.q||'').trim().toLowerCase();const dd=S.data[d.pid];
-    const els=dd.elements.filter(e=>e.status!=='abandoned'&&(!q||(e.label||'').toLowerCase().includes(q))).sort((a,b)=>(a.label||'').localeCompare(b.label||''));
+    const els=dd.elements.filter(e=>e.status!=='abandoned'&&!isArch(e)&&(!q||(e.label||'').toLowerCase().includes(q))).sort((a,b)=>(a.label||'').localeCompare(b.label||''));
     inner=`<h2>Link an element</h2><div class="fld"><input type="text" data-in="dlg" data-name="q" value="${esc(d.q||'')}" placeholder="Filter" autocomplete="off"></div><div class="pick">${els.map(e=>`<button data-act="pickItem" data-id="${esc(e.id)}"><span class="chip"><i style="--c:${esc(elColor(d.pid,e))}"></i><span>${esc(e.label)}</span></span><span class="ro">${esc(stInfo(d.pid,e.status).label)}</span></button>`).join('')||'<div class="empty">Nothing matches.</div>'}</div><div class="acts"><button class="btn" data-act="closeDialog">Cancel</button></div>`;
   }else if(d.type==='feedback'){
     inner=`<h2>Send feedback</h2><p>Opens a <b>public</b> issue in <b>${esc(FB_REPO)}</b> on GitHub.</p>
@@ -1146,6 +1174,33 @@ function renderDialog(){
         :`<div class="fld"><button class="lbtn" style="margin-left:-6px" data-act="fbTok">GitHub token for feedback…</button></div>`}
       ${d.msg?`<div class="fld"><div class="${d.ok?'ok':'err'}">${esc(d.msg)}</div></div>`:''}
       <div class="acts"><button class="btn l" data-act="fbCopy" title="No token or no network? Copy the report and paste it into GitHub yourself">Copy text</button><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="fbSend"${d.busy?' disabled':''}>${d.busy?'Sending…':'Send'}</button></div>`;
+  }else if(d.type==='jwrite'){
+    wide=true;
+    inner=`<h2>Journal entry · ${esc(projById(d.pid)?.name||'')}</h2><p>Goes into the day you pick, next to what your agent wrote there.</p>
+      <div class="fld" style="display:flex;gap:10px"><div style="flex:0 0 auto"><label for="jwd">Day</label><input id="jwd" type="date" data-in="dlg" data-name="date" value="${esc(d.date||'')}" style="width:auto"></div><div style="flex:1"><label for="jwt">Title</label><input id="jwt" type="text" data-in="dlg" data-name="title" value="${esc(d.title||'')}" placeholder="e.g. Colony PCR pDC135" autocomplete="off"></div></div>
+      <div class="fld"><label for="jwc">Text</label><textarea id="jwc" rows="9" data-in="dlg" data-name="content" style="font:13px/1.5 var(--mono)" placeholder="What happened, what you saw, what comes next">${esc(d.content||'')}</textarea><div class="help">Markdown works: **bold**, lists, tables. Ctrl+Enter saves.</div>${d.err?`<div class="err">${esc(d.err)}</div>`:''}</div>
+      <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="jsave">Save to journal</button></div>`;
+  }else if(d.type==='archive'){
+    const what={todo:'task',step:'step',idea:'idea'}[d.kind];
+    inner=`<h2>Archive this ${what}?</h2><p>“${esc(snip(d.label,90))}” leaves the lists but is kept exactly as it is${d.kind==='todo'?', with all its steps and which of them are done':''}. ⋯ → Archived items brings it back.</p>
+      <div class="fld"><label for="arr">Why? (optional)</label><input id="arr" type="text" data-in="dlg" data-name="reason" value="${esc(d.reason||'')}" placeholder="e.g. replaced by the Gibson route" autocomplete="off"></div>
+      <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="doArchive">Archive ${what}</button></div>`;
+  }else if(d.type==='parch'){
+    wide=true;const p=projById(d.pid),dd=S.data[d.pid];
+    const meta=x=>`<small>${esc(fmtDT(x.archivedAt))}${x.archivedReason?' — '+esc(x.archivedReason):''}</small>`;
+    const row=(open,label,x,restore)=>`<div class="arow"><button class="x lbtn" ${open}>${label}${meta(x)}</button>${restore?`<button class="lbtn" ${restore}>Restore</button>`:''}</div>`;
+    const pa=`data-pid="${esc(d.pid)}"`;
+    const T=dd.todos.filter(isArch).sort((a,b)=>String(b.archivedAt||'').localeCompare(String(a.archivedAt||'')));
+    const St=[];dd.todos.forEach(t=>{if(!isArch(t))(t.subtasks||[]).filter(isArch).forEach(s=>St.push({t,s}));});
+    const I=dd.ideas.filter(isArch),E=dd.elements.filter(isArch);
+    const grp=(title,rows)=>rows.length?`<div class="agrp">${title} (${rows.length})</div><div class="alist">${rows.join('')}</div>`:'';
+    inner=`<h2>Archived in ${esc(p?p.name:'')}</h2><p>Nothing is ever deleted. Click an entry to read it; Restore puts it back into the lists.</p>
+      ${grp('Tasks',T.map(t=>{const n=(t.subtasks||[]).length,dn=(t.subtasks||[]).filter(s=>sSt(s)==='done').length;return row(`data-act="open" data-type="todo" ${pa} data-id="${esc(t.id)}"`,esc(t.text||'Untitled task')+` <span class="ro">· ${esc(tSt(t).replace('_',' '))}${n?` · ${dn}/${n} steps done`:''}</span>`,t,`data-act="restore" data-kind="todo" ${pa} data-id="${esc(t.id)}"`);}))}
+      ${grp('Steps',St.map(({t,s})=>row(`data-act="open" data-type="step" ${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}"`,(sSt(s)==='done'?'✓ ':'○ ')+esc(s.text)+` <span class="ro">· in “${esc(snip(t.text,50))}”</span>`,s,`data-act="restore" data-kind="step" ${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}"`)))}
+      ${grp('Ideas',I.map(i=>row(`data-act="open" data-type="idea" ${pa} data-id="${esc(i.id)}"`,esc(i.title||'Untitled idea'),i,`data-act="restore" data-kind="idea" ${pa} data-id="${esc(i.id)}"`)))}
+      ${grp('Elements (archived by your agent)',E.map(e=>row(`data-act="open" data-type="element" ${pa} data-id="${esc(e.id)}"`,esc(e.label),e,'')))}
+      ${T.length+St.length+I.length+E.length?'':'<p class="ro" style="margin-top:10px">Nothing archived yet.</p>'}
+      <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
   }else if(d.type==='help'){
     wide=true;
     inner=`<h2>How ResearchGraph works</h2><ul class="hl">
@@ -1156,7 +1211,8 @@ function renderDialog(){
       <li>Click a title to open details on the right: status, priority, focus, steps, notes. The chip after a title is the linked element.</li>
       <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
-      <li>Board and Journal show what your agent keeps — read-only here.</li>
+      <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
+      <li>Board shows what your agent keeps — read-only here. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to your agent’s.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with your agent’s, so nothing is overwritten.</li></ul>
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
   }
@@ -1200,7 +1256,7 @@ const ACT={
   // Tasks
   cycle:el=>{const t=findT(A(el).pid,A(el).id);if(!t)return;const nx=CYCLE[tSt(t)]||'open';change(A(el).pid,()=>setTodoStatus(t,nx));},
   cycleStep:el=>{const s=findS(A(el).pid,A(el).id,A(el).sid);if(!s)return;const nx={open:'in_progress',in_progress:'done',done:'open'}[sSt(s)]||'open';change(A(el).pid,d=>{s.status=nx;const t=d.todos.find(x=>x.id===A(el).id);t.modifiedAt=nowIso();});},
-  open:el=>{const a=A(el);openDrawer({type:a.type,pid:a.pid,id:a.id,sid:a.sid});},
+  open:el=>{const a=A(el);if(ui.dialog&&ui.dialog.type==='parch'){ui.dialog=null;ui.stack=[];}openDrawer({type:a.type,pid:a.pid,id:a.id,sid:a.sid});},
   closeDrawer:()=>{commitDraft();ui.drawer=null;render();},
   setStatus:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tSt(t)===A(el).v)return;change(A(el).pid,()=>setTodoStatus(t,A(el).v));if(A(el).v==='blocked')ui.focusSel='textarea[data-key^="todo.blockedBy"]';},
   setPrio:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tPr(t)===A(el).v)return;change(A(el).pid,()=>{t.priority=A(el).v;t.modifiedAt=nowIso();});},
@@ -1215,16 +1271,15 @@ const ACT={
   unlink:el=>{const t=findT(A(el).pid,A(el).id);if(t)change(A(el).pid,()=>{t.elementId=null;t.modifiedAt=nowIso();});},
   unlinkStep:el=>{const a=A(el),s=findS(a.pid,a.id,a.sid);if(s)change(a.pid,d=>{s.elementId=null;d.todos.find(x=>x.id===a.id).modifiedAt=nowIso();});},
   pickItem:el=>{const d=ui.dialog;ui.dialog=null;const tg=d.target;if(tg.sid){const s=findS(d.pid,tg.id,tg.sid);if(s)change(d.pid,dd=>{s.elementId=A(el).id;dd.todos.find(x=>x.id===tg.id).modifiedAt=nowIso();});}else{const t=findT(d.pid,tg.id);if(t)change(d.pid,()=>{t.elementId=A(el).id;t.modifiedAt=nowIso();});}},
-  delTodo:async el=>{const a=A(el),t=findT(a.pid,a.id);if(!t)return;if(!await confirmAsk('Delete this task?','“'+snip(t.text,80)+'”'+((t.subtasks||[]).length?' and its '+plural(t.subtasks.length,'step'):'')+' will be removed. Ctrl+Z brings it back.','Delete task'))return;ui.drawer=null;ui.edit=null;change(a.pid,d=>{d.todos=d.todos.filter(x=>x.id!==a.id);});},
-  delStep:async el=>{const a=A(el),s=findS(a.pid,a.id,a.sid);if(!s)return;if(!await confirmAsk('Delete this step?','“'+snip(s.text,80)+'” will be removed. Ctrl+Z brings it back.','Delete step'))return;ui.edit=null;ui.drawer={type:'todo',pid:a.pid,id:a.id};change(a.pid,d=>{const t=d.todos.find(x=>x.id===a.id);t.subtasks=t.subtasks.filter(x=>x.id!==a.sid);t.modifiedAt=nowIso();});},
+  // Archivieren statt Loeschen: Task (mit allen Schritten, wie sie sind), Schritt, Idee
+  archiveAsk:el=>{const a=A(el);const x=a.kind==='todo'?findT(a.pid,a.id):a.kind==='step'?findS(a.pid,a.id,a.sid):S.data[a.pid]?.ideas.find(i=>i.id===a.id);if(!x)return;openDialog({type:'archive',kind:a.kind,pid:a.pid,id:a.id,sid:a.sid,label:a.kind==='idea'?x.title:x.text,reason:''});ui.focusSel='#arr';},
+  doArchive:()=>{const g=ui.dialog;if(!g||g.type!=='archive')return;ui.dialog=null;ui.edit=null;archiveItem(g.kind,g.pid,g.id,g.sid,true,g.reason);},
+  restore:el=>{const a=A(el);archiveItem(a.kind,a.pid,a.id,a.sid,false);},
   startAdd:el=>{ui.adding=ui.adding===A(el).v?null:A(el).v;ui.focusSel='.add-in';render();},
   // Markdown-Entwuerfe
   edit:el=>startEdit(A(el).key),
   saveEdit:()=>commitDraft(),
   cancelEdit:()=>{ui.edit=null;render();},
-  // Ideen (nie loeschen, nur archivieren)
-  archiveIdea:el=>{const a=A(el);const i=S.data[a.pid]?.ideas.find(x=>x.id===a.id);if(i)change(a.pid,()=>{i.archived=true;i.archivedAt=nowIso();});ui.drawer=null;render();toast('Idea archived.');},
-  restoreIdea:el=>{const a=A(el);const i=S.data[a.pid]?.ideas.find(x=>x.id===a.id);if(i)change(a.pid,()=>{delete i.archived;delete i.archivedAt;});},
   // Element-Log
   logAll:()=>{if(ui.drawer){ui.drawer.all=true;render();}},
   // Projekte
@@ -1242,6 +1297,7 @@ const ACT={
   archiveProject:async el=>{const p=projById(A(el).pid);if(!p)return;ui.menu=null;if(!await confirmAsk('Archive “'+p.name+'”?','Use this when the project is finished. Nothing is deleted; you can restore it from ⋯ → Archived projects. For a pause, use Freeze instead.','Archive project'))return;changeProject(p.id,{archived:true,archivedAt:nowIso()});},
   restoreProject:el=>{changeProject(A(el).pid,{archived:null,archivedAt:null});},
   archived:()=>openDialog({type:'archived'}),
+  projArchive:el=>{ui.menu=null;openDialog({type:'parch',pid:A(el).pid});},
   help:()=>openDialog({type:'help'}),
   // Sync
   openSync:()=>{openDialog({type:'sync',token:''});if(!ghToken)ui.focusSel='#tok';},
@@ -1268,9 +1324,28 @@ const ACT={
   },
   // Dialog-Grundlagen
   closeDialog:()=>closeDialog(),
-  dscrim:(el,ev)=>{if(ev.target!==el)return;const d=ui.dialog;if(d&&d.type==='feedback'&&String((d.title||'')+(d.desc||'')).trim())return;closeDialog();}, // angefangenes Feedback nicht per Fehlklick verlieren
+  // Journal selbst schreiben (Rueckfall, falls der Agent ausfaellt) — haengt einen Abschnitt an den Tag
+  jwrite:el=>{const a=A(el);openDialog({type:'jwrite',pid:a.pid,date:a.date||new Date().toLocaleDateString('en-CA'),title:'',content:''});ui.focusSel=a.date?'#jwt':'#jwt';},
+  jsave:()=>{
+    const g=ui.dialog;if(!g||g.type!=='jwrite')return;
+    const date=String(g.date||'').trim(),title=String(g.title||'').trim(),content=String(g.content||'').replace(/\s+$/,'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){g.err='Pick a day.';render();return;}
+    if(!title&&!content.trim()){g.err='Write something first.';ui.focusSel='#jwc';render();return;}
+    ui.dialog=null;const now=nowIso();let eid=null;
+    change(g.pid,d=>{let e=d.journal.find(x=>x.date===date);if(!e){e={id:_uid('jnl'),date,sections:[],createdAt:now,modifiedAt:now};d.journal.push(e);}e.sections.push({id:_uid('js'),title:title||'Note',content});e.modifiedAt=now;eid=e.id;});
+    if(eid)openDrawer({type:'entry',pid:g.pid,id:eid});
+    toast('Saved to the journal. Ctrl+Z undoes.');
+  },
+  dscrim:(el,ev)=>{if(ev.target!==el)return;const d=ui.dialog;if(d&&d.type==='feedback'&&String((d.title||'')+(d.desc||'')).trim())return;if(d&&d.type==='jwrite'&&String((d.title||'')+(d.content||'')).trim())return;closeDialog();}, // angefangenes Feedback nicht per Fehlklick verlieren
   choose:el=>{const d=ui.dialog;if(d&&d.type==='choice')resolveChoice(d.options[+A(el).i]?.value??null);}
 };
+function archiveItem(kind,pid,id,sid,on,reason){
+  const now=nowIso();
+  if(kind==='todo'){const t=findT(pid,id);if(!t||isArch(t)===on)return;change(pid,d=>{setArchived(t,on,reason);if(on&&(t.focus||t.northStar))setFocus(d,t,false);t.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.id===id)ui.drawer=null;}
+  else if(kind==='step'){const t=findT(pid,id),s=findS(pid,id,sid);if(!t||!s||isArch(s)===on)return;change(pid,()=>{setArchived(s,on,reason);if(on)s.focus=false;t.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.sid===sid)ui.drawer={type:'todo',pid,id};}
+  else if(kind==='idea'){const i=S.data[pid]?.ideas.find(x=>x.id===id);if(!i||isArch(i)===on)return;change(pid,()=>{setArchived(i,on,reason);i.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.id===id)ui.drawer=null;}
+  render();toast(on?'Archived — ⋯ → Archived items keeps it. Ctrl+Z undoes.':'Restored. Ctrl+Z undoes.');
+}
 function handleAdd(inp){
   const text=inp.value.trim();if(!text)return;
   const a=inp.dataset,now=nowIso();inp.value='';
@@ -1312,7 +1387,9 @@ document.addEventListener('keydown',ev=>{
   if(t.dataset&&t.dataset.add){if(ev.key==='Enter'){ev.preventDefault();handleAdd(t);}else if(ev.key==='Escape'){ui.adding=null;t.blur();render();}return;}
   if(ui.dialog){
     if(ev.key==='Escape'){ev.preventDefault();closeDialog();return;}
-    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
+    if(mod&&ev.key==='Enter'&&ui.dialog.type==='jwrite'){ev.preventDefault();ACT.jsave();return;}
+    if(ev.key==='Enter'&&ui.dialog.type==='jwrite'&&t.tagName==='INPUT'){ev.preventDefault();return;} // Enter im Titel speichert nicht halbfertig
+    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='archive')ACT.doArchive();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
     return;
   }
   // Strg+Z / Strg+Y (Strg+Umschalt+Z) ueberall — nur in Textfeldern bleibt es das Rueckgaengig des Browsers fuer den Text

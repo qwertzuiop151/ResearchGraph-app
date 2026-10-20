@@ -154,12 +154,14 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   // zurueck zum alten Focus
   const oldF=snap.projects[0].todos.find(t=>t.focus);
   if(oldF){env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P0)},id:${JSON.stringify(oldF.id)}})`);await tick();click(env,'.drawer [data-act="toggleFocus"]');ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===oldF.id).focus===true&&!gh.doc().projects[0].todos.find(t=>t.id===mine.id).focus),'focus moved back');}
-  // Loeschen mit Rueckfrage
+  // Archivieren statt Loeschen (Dominik 20.10.2026): mit Grund, alles bleibt erhalten
+  ok(!env.doc.querySelector('[data-act="delTodo"],[data-act="delStep"]'),'no delete button anywhere');
   env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P0)},id:${JSON.stringify(mine.id)}})`);await tick();
-  click(env,'.drawer [data-act="delTodo"]');await tick();
-  ok(env.doc.querySelector('.dlg .choice'),'delete asks first');
-  click(env,'.dlg .choice',0);
-  ok(await until(()=>!gh.doc().projects[0].todos.some(t=>t.id===mine.id)),'task deleted on GitHub');
+  click(env,'.drawer [data-act="archiveAsk"][data-kind="todo"]');await tick();
+  ok(env.doc.querySelector('.dlg #arr'),'archive asks for a reason');
+  typeIn(env,env.doc.querySelector('#arr'),'strategy switched');key(env,env.doc.querySelector('#arr'),'Enter');
+  ok(await until(()=>{const t=gh.doc().projects[0].todos.find(t=>t.id===mine.id);return t&&t.archived===true&&t.archivedReason==='strategy switched'&&t.status==='blocked'&&t.subtasks.some(s=>s.text==='my new step');}),'task archived on GitHub, status and steps kept');
+  ok(!env.doc.querySelector(`.col .t[data-k="t-${mine.id}"]`),'archived task left the list');
 
   // ── 7. Projekt einfrieren / auftauen ──
   let revsBefore7b;
@@ -298,13 +300,44 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   ok(await until(()=>gh.doc().projects[1].todos.find(t=>t.id===tz.id).status==='done'),'task ticked done by two clicks');
   z();await tick();z();await tick();
   ok(await until(()=>{const t=gh.doc().projects[1].todos.find(t=>t.id===tz.id);return (t.status||'open')===(tz.status||'open')&&(t.completedAt??null)===(tz.completedAt??null);}),'Ctrl+Z twice restores status and completedAt');
-  // Geloeschte Aufgabe kommt mit allen Schritten zurueck
-  const td=snap.projects[0].todos.find(t=>t.status!=='done'&&(t.subtasks||[]).length>1&&t.id!==tq.id);
+  // Archivierte Aufgabe: Archiv-Liste zeigt sie mit Schritt-Stand, Restore und Strg+Z bringen sie byte-gleich zurueck
+  const td=snap.projects[0].todos.find(t=>t.status!=='done'&&(t.subtasks||[]).length>1&&t.id!==tq.id&&!t.focus);
   env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P0)},id:${JSON.stringify(td.id)}})`);await tick();
-  click(env,'.drawer [data-act="delTodo"]');await tick();click(env,'.dlg .choice',0);
-  ok(await until(()=>!gh.doc().projects[0].todos.some(t=>t.id===td.id)),'task deleted');
-  z();await tick();
-  ok(await until(()=>JSON.stringify(gh.doc().projects[0].todos.find(t=>t.id===td.id))===JSON.stringify(td)),'Ctrl+Z restores the deleted task byte-identical');
+  click(env,'.drawer [data-act="archiveAsk"][data-kind="todo"]');await tick();click(env,'[data-act="doArchive"]');
+  ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===td.id).archived===true),'task archived');
+  env.w.eval(`ui.menu='p:${P0}';render()`);await tick();click(env,`[data-act="projArchive"][data-pid="${P0}"]`);await tick();
+  const dn=td.subtasks.filter(s=>s.status==='done').length;
+  ok(env.doc.querySelector('.dlg').textContent.includes(`${dn}/${td.subtasks.length} steps done`),'archive list shows how many steps were done');
+  click(env,`.dlg [data-act="restore"][data-kind="todo"][data-id="${td.id}"]`);
+  ok(await until(()=>!gh.doc().projects[0].todos.find(t=>t.id===td.id).archived),'restore from the archive list');
+  z();await tick();z();await tick();
+  ok(await until(()=>{const t=gh.doc().projects[0].todos.find(t=>t.id===td.id);const {modifiedAt:a,...x}=t,{modifiedAt:b,...y}=td;return JSON.stringify(x)===JSON.stringify(y);}),'Ctrl+Z twice: back to the original task, nothing lost');
+  // Schritt archivieren: bleibt unter der Task in der Schublade
+  const sx=td.subtasks[0];
+  env.w.eval(`ui.dialog=null;openDrawer({type:'step',pid:${JSON.stringify(P0)},id:${JSON.stringify(td.id)},sid:${JSON.stringify(sx.id)}})`);await tick();
+  click(env,'.drawer [data-act="archiveAsk"][data-kind="step"]');await tick();click(env,'[data-act="doArchive"]');
+  ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===td.id).subtasks.find(s=>s.id===sx.id).archived===true),'step archived, still stored');
+  ok(!env.doc.querySelector(`.col [data-act="cycleStep"][data-sid="${sx.id}"]`),'archived step left the row list');
+  ok(env.doc.querySelector(`.drawer [data-act="restore"][data-sid="${sx.id}"]`),'drawer lists it under archived steps with Restore');
+  // Journal selbst schreiben
+  click(env,'[data-act="page"][data-v="journal"]');await tick();
+  click(env,`[data-act="jwrite"][data-pid="${P1}"]`);await tick();
+  const today=new Date().toLocaleDateString('en-CA');
+  ok(env.doc.querySelector('#jwd').value===today,'journal dialog defaults to today');
+  typeIn(env,env.doc.querySelector('#jwt'),'MY OWN JOURNAL');key(env,env.doc.querySelector('#jwt'),'Enter');await tick();
+  ok(env.doc.querySelector('.dlg #jwt'),'Enter in the title does not save half a note');
+  typeIn(env,env.doc.querySelector('#jwc'),'**gel** looked fine');key(env,env.doc.querySelector('#jwc'),'Enter',{ctrlKey:true});
+  ok(await until(()=>{const e=gh.doc().projects[1].journal.find(e=>e.date===today);return e&&e.sections.some(s=>s.title==='MY OWN JOURNAL'&&s.content==='**gel** looked fine');}),'own journal section uploaded');
+  ok(env.doc.querySelector('.drawer .md strong'),'entry opens, markdown rendered');
+  const jBefore=JSON.stringify(snap.projects[1].journal.filter(e=>e.date!==today));
+  ok(JSON.stringify(gh.doc().projects[1].journal.filter(e=>e.date!==today))===jBefore,'other journal days untouched');
+  // Agent schreibt denselben Tag parallel -> beide Abschnitte bleiben
+  gh.agentWrite(doc=>{let e=doc.projects[1].journal.find(e=>e.date===today);e.sections.push({id:'js_agent',title:'AGENT SECTION',content:'x'});});
+  ok(await until(()=>env.w.eval(`S.data[${JSON.stringify(P1)}].journal.find(e=>e.date===${JSON.stringify(today)}).sections.length`)>=2),'agent section arrives');
+  click(env,`.drawer [data-act="jwrite"][data-date="${today}"]`);await tick();
+  typeIn(env,env.doc.querySelector('#jwc'),'second own line');click(env,'[data-act="jsave"]');
+  ok(await until(()=>{const e=gh.doc().projects[1].journal.find(e=>e.date===today);return e.sections.slice(-3).map(s=>s.title).join('|')==='MY OWN JOURNAL|AGENT SECTION|Note';}),'own + agent + own sections, in order, same day');
+  ok(gh.doc().projects[1].journal.filter(e=>e.date===today).length===1,'still one entry for the day');  click(env,'[data-act="page"][data-v="tasks"]');await tick();env.doc.activeElement&&env.doc.activeElement.blur&&env.doc.activeElement.blur();
   // Neue Idee: Strg+Z archiviert, loescht nie
   env.w.eval(`ui.adding=${JSON.stringify(P0+'|idea')};render()`);await tick();
   inp=env.doc.querySelector('.add-in[data-add="idea"]');typeIn(env,inp,'UNDO IDEA');key(env,inp,'Enter');key(env,inp,'Escape');await tick();
