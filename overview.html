@@ -325,6 +325,22 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .sec-h+.t,.sec-h+.add-in+.t,.col-b>.t:first-child,.one-b>div>.t:first-child,.dr-b .t{margin-top:1px}
 .sec-h+.t::before,.sec-h+.add-in+.t::before,.col-b>.t:first-child::before,.one-b>div>.t:first-child::before{display:none}
 @media (max-width:1300px){.top .search input{width:140px}}
+/* Direkt in der Zeile (20.10.2026): Prioritaet per Klick auf einen Balken, Schritt per ＋ — ohne Schublade */
+.prio.pe{width:auto;height:18px;gap:0;align-items:stretch;border-radius:4px}
+.prio.pe button{width:7px;padding:0 2px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px}
+.prio.pe b{width:3px;background:var(--rule-2);border-radius:1px}
+.prio.pe button:nth-child(1) b{height:5px}.prio.pe button:nth-child(2) b{height:8.5px}.prio.pe button:nth-child(3) b{height:12px}
+.prio.pe button.on b{background:var(--ink)}
+.prio.pe:hover{background:var(--rule)}
+.prio.pe:hover button b{background:var(--rule-2)}
+.prio.pe:hover button:hover b,.prio.pe:hover button:has(~ button:hover) b{background:var(--ink-2)}
+.addst{width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--ink-3);font-size:14px;line-height:1;padding:0;visibility:hidden}
+.t:hover .addst,.addst:focus-visible,.addst.on{visibility:visible}
+.addst:hover{background:var(--rule);color:var(--ink)}
+.sub-in{display:block;margin:2px 0 6px 24px;width:calc(100% - 24px);height:24px;font-size:12.5px}
+.fld textarea{display:block;width:100%;padding:6px 9px;border:1px solid var(--rule-2);border-radius:6px;resize:vertical}
+.fld textarea:focus{outline:none;border-color:var(--ink)}
+.fld .ok{color:var(--done);font-size:12px;margin-top:4px}
 </style>
 </head>
 <body>
@@ -493,25 +509,62 @@ function diffProject(pid,before,after){
   (after.ideas||[]).forEach(a=>{const b=bI.get(a.id);if(!b){ops.push({t:'idea.add',pid,obj:a});return;}const f={};new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{if(_J(a[k])!==_J(b[k]))f[k]=(k in a)?a[k]:'\u0000del';});if(Object.keys(f).length)ops.push({t:'idea.set',pid,id:a.id,f});});
   return ops;
 }
+// Rueckgaengig (Strg+Z) / Wiederholen (Strg+Y, Strg+Umschalt+Z), nur diese Sitzung.
+// Ein Eintrag haelt die UMKEHR-Ops der Aenderung, nicht einen alten Gesamtstand: angewendet werden sie wie jede
+// andere Aenderung auf den aktuellen Stand, also bleibt alles erhalten, was der Agent inzwischen geschrieben hat.
+const UNDO=[],REDO=[];let _undoMode=null;
+function _record(e){
+  if(_undoMode==='undo'){REDO.push(e);return;}
+  UNDO.push(e);if(UNDO.length>100)UNDO.shift();
+  if(!_undoMode)REDO.length=0;
+}
 // Jede Aenderung der Nutzerin/des Nutzers laeuft hier durch: lokal anwenden, als Ops merken, Upload planen
 function change(pid,fn){
-  const d=S.data[pid];if(!d)return;
+  const d=S.data[pid];if(!d)return 0;
   const before={todos:clone(d.todos),ideas:clone(d.ideas)};
   fn(d);
   const ops=diffProject(pid,before,d);
-  if(!ops.length){render();return;}
+  if(!ops.length){render();return 0;}
+  const inv=clone(diffProject(pid,d,before));
+  // Ideen werden nie geloescht: eine neu angelegte Idee nimmt Strg+Z per Archivieren zurueck
+  ops.forEach(o=>{if(o.t==='idea.add')inv.push({t:'idea.set',pid,id:o.obj.id,f:{archived:true,archivedAt:nowIso()}});});
+  _record({pid,ops:inv});
   PENDING.push(...ops);savePending();
   lsSet('rg_'+pid+'_todos',d.todos);lsSet('rg_'+pid+'_ideas',d.ideas);
   render();schedulePush();
+  return ops.length;
 }
 function changeProject(pid,f){
   const p=projById(pid);if(!p)return;
+  const old={};Object.keys(f).forEach(k=>{old[k]=k in p?clone(p[k]):null;});
+  _record({pid,proj:old});
   Object.entries(f).forEach(([k,v])=>{if(v===null)delete p[k];else p[k]=v;});
   PENDING.push({t:'proj.set',pid,f});savePending();lsSet('rg_projects',S.projects);render();schedulePush();
 }
 function addProject(meta){
   S.projects.push(meta);S.data[meta.id]={nodes:[],elements:[],tags:{},statuses:clone(DEF_ST),todos:[],journal:[],ideas:[]};
+  _record({pid:meta.id,proj:{archived:true,archivedAt:nowIso()}}); // Projekte werden nie geloescht, nur archiviert
   PENDING.push({t:'proj.add',meta});savePending();lsSet('rg_projects',S.projects);render();schedulePush();
+}
+function _undoLabel(e){
+  if(e.proj)return projById(e.pid)?.name||'';
+  const o=e.ops.find(x=>x.t.startsWith('sub'))||e.ops[0];if(!o)return '';
+  if(o.t.startsWith('sub'))return (o.obj||findS(e.pid,o.tid,o.sid)||{}).text||'';
+  if(o.t.startsWith('todo'))return (o.obj||findT(e.pid,o.id)||{}).text||'';
+  return (o.obj||S.data[e.pid]?.ideas.find(x=>x.id===o.id)||{}).title||'';
+}
+function undoRedo(mode){
+  const e=(mode==='undo'?UNDO:REDO).pop();
+  if(!e){toast(mode==='undo'?'Nothing to undo.':'Nothing to redo.');return;}
+  if(!projById(e.pid)){toast('Could not '+mode+' — the project is gone.');return;}
+  const label=snip(_undoLabel(e),60);
+  _undoMode=mode;let n=1;
+  try{
+    if(e.proj)changeProject(e.pid,e.proj);
+    else n=change(e.pid,d=>{const doc={projects:[{id:e.pid,todos:d.todos,ideas:d.ideas}]};e.ops.forEach(o=>applyOp(doc,clone(o)));d.todos=doc.projects[0].todos;d.ideas=doc.projects[0].ideas;});
+  }finally{_undoMode=null;}
+  validateSel();render();
+  toast(n?(mode==='undo'?'Undone':'Redone')+(label?': “'+label+'”':'')+(mode==='undo'?' · Ctrl+Y redoes':''):'Nothing changed — it was already changed elsewhere.');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -798,6 +851,7 @@ function renderTop(){
     ${ui.page==='tasks'?`<button class="tbtn${ui.hideDone?' on':''}" data-act="toggleDone" aria-pressed="${ui.hideDone}" title="Show or hide steps that are already done">${ui.hideDone?'Done steps hidden':'Done steps shown'}</button>`:''}
     ${frozen?`<button class="tbtn${ui.showFrozen?' on':''}" data-act="toggleFrozen" aria-pressed="${ui.showFrozen}">❄ ${ui.showFrozen?'Hide':'Show'} frozen (${frozen})</button>`:''}
     <span class="zoom" title="Size"><button data-act="zoom" data-v="-10" aria-label="Smaller">−</button><span>${ui.zoom}%</span><button data-act="zoom" data-v="10" aria-label="Larger">+</button></span>
+    <button class="tbtn" data-act="feedback" title="Report a bug or send a wish — opens an issue on GitHub">✉ Feedback</button>
     ${sync}
     <span class="menu-wrap"><button class="icon" data-act="menu" data-v="main" aria-label="Menu" title="Projects, connection, help">${IC_MORE}</button>
       ${ui.menu==='main'?`<div class="menu" data-k="menu-main"><button data-act="newProject">New project</button><button data-act="archived">Archived projects (${S.projects.filter(p=>p.archived).length})</button><button data-act="resetWidths">Reset column widths</button><div class="sep"></div><button data-act="openSync">GitHub connection</button><button data-act="help">Help</button></div>`:''}</span>
@@ -866,7 +920,8 @@ function renderOne(p){
   return `<section class="one" data-k="one-${esc(p.id)}">${colHead(p,countLabel(p,d),true)}<div class="one-b" style="--n:${cols.length}">${cols.map((c,i)=>`<div data-k="oc-${i}">${c}</div>`).join('')}</div></section>`;
 }
 function isOpen(type,pid,id,sid){const d=ui.drawer;return !!d&&d.type===type&&d.pid===pid&&d.id===id&&(sid===undefined||d.sid===sid);}
-function prioHTML(pr){const n=pr==='high'?3:pr==='medium'?2:1;return `<span class="prio" title="Priority: ${pr}" aria-label="Priority ${pr}"><b class="on"></b><b class="${n>=2?'on':''}"></b><b class="${n>=3?'on':''}"></b></span>`;}
+// Drei Balken = drei Knoepfe: Klick auf Balken 1/2/3 setzt low/medium/high direkt in der Zeile
+function prioHTML(pr,pid,id){const n=pr==='high'?3:pr==='medium'?2:1;return `<span class="prio pe" role="group" aria-label="Priority ${pr}">${PRIOS.map(([v,l],i)=>`<button class="${i<n?'on':''}" data-act="setPrio" data-pid="${esc(pid)}" data-id="${esc(id)}" data-v="${v}" title="Priority: ${pr} — click to set ${l.toLowerCase()}" aria-label="Set priority ${l.toLowerCase()}" aria-pressed="${v===pr}"><b></b></button>`).join('')}</span>`;}
 function elChip(pid,elId){
   const el=elId&&findEl(pid,elId);if(!el)return '';
   return `<button class="chip" data-act="open" data-type="element" data-pid="${esc(pid)}" data-id="${esc(el.id)}" title="${esc(el.label)} — ${esc(stInfo(pid,el.status).label)}"><i style="--c:${esc(elColor(pid,el))}"></i><span>${esc(el.label)}</span></button>`;
@@ -881,12 +936,14 @@ function renderTodo(p,t,isF){
   return `<div class="${cls}" style="--c:${esc(p.color||'#505050')}" data-k="t-${esc(t.id)}">
     <button class="cb s-${st}" data-act="cycle" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${esc(st.replace('_',' '))} — click: ${esc(CYCLE[st].replace('_',' '))}" aria-label="Status ${esc(st)}">${CB_ICON[st]||''}</button>
     <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}${esc(t.text||'Untitled task')}</button>${sl}</div>
-    <div class="rc">${elChip(pid,rowElement(t))}${prioHTML(pr)}</div>
+    <div class="rc">${elChip(pid,rowElement(t))}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">＋</button>${prioHTML(pr,pid,t.id)}</div>
   </div>${renderSubs(p,t)}`;
 }
 function renderSubs(p,t){
-  const subs=t.subtasks||[];if(!subs.length)return '';
-  const pid=p.id,d=S.data[pid],fs=focusStepOf(d,t);
+  const subs=t.subtasks||[],pid=p.id;
+  const inp=ui.adding===pid+'|step|'+t.id?`<input class="add-in sub-in" data-k="ai-st-${esc(t.id)}" data-add="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" placeholder="New step — Enter adds, Esc stops">`:'';
+  if(!subs.length)return inp;
+  const d=S.data[pid],fs=focusStepOf(d,t);
   const list=fs?[fs,...subs.filter(s=>s!==fs)]:subs;
   let hidden=0;
   const rows=list.map(s=>{
@@ -898,7 +955,7 @@ function renderSubs(p,t){
       <div class="tm"><button class="tt" data-act="open" data-type="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s===fs?IC_STAR:''}${esc(s.text||'Untitled step')}</button></div>
       <div class="rc">${chip}</div></div>`;
   }).join('');
-  return `<div class="subs" data-k="ss-${esc(t.id)}">${rows}${hidden?`<div class="s hidden-n">${plural(hidden,'done step')} hidden</div>`:''}</div>`;
+  return `<div class="subs" data-k="ss-${esc(t.id)}">${rows}${hidden?`<div class="s hidden-n">${plural(hidden,'done step')} hidden</div>`:''}</div>${inp}`;
 }
 function boardGroups(p,d){
   const pid=p.id;
@@ -1035,6 +1092,19 @@ function closeDialog(){const d=ui.dialog;if(!d)return;if(d.type==='choice'){reso
 function ask(title,msg,options){return new Promise(res=>{if(ui.dialog)ui.stack.push(ui.dialog);ui.dialog={type:'choice',title,msg,options,res};ui.focusSel='.dlg .choice';render();});}
 function confirmAsk(title,msg,yes){return ask(title,msg,[{label:yes,value:true,danger:true},{label:'Cancel',value:null}]).then(v=>v===true);}
 function resolveChoice(v){const d=ui.dialog;ui.dialog=ui.stack.pop()||null;render();if(d&&d.res)d.res(v);}
+// Feedback als GitHub-Issue. Der Token (fine-grained, nur "Issues: write" auf diesem einen Repo) wird einmal
+// eingefuegt und liegt nur in localStorage — NIE in dieser Datei, die oeffentlich ueber GitHub Pages ausgeliefert wird.
+const FB_REPO='qwertzuiop151/ResearchGraph-app',FB_TOKEN_KEY='rg_fb_token';
+// Was automatisch mitgeht — im Dialog sichtbar, damit nichts unbemerkt erfasst wird
+function fbContext(){
+  const L=['App: v3','Page: '+ui.page,'Layout: '+(ui.mode==='one'?'one project ('+(projById(onePid())?.name||'—')+')':'all projects')];
+  const dr=ui.drawer;
+  if(dr){const lab=dr.type==='todo'?findT(dr.pid,dr.id)?.text:dr.type==='step'?findS(dr.pid,dr.id,dr.sid)?.text:dr.type==='idea'?S.data[dr.pid]?.ideas.find(x=>x.id===dr.id)?.title:dr.type==='element'?findEl(dr.pid,dr.id)?.label:dr.type==='entry'?S.data[dr.pid]?.journal.find(x=>x.id===dr.id)?.date:'';
+    L.push('Open: '+dr.type+(lab?' "'+snip(lab,60)+'"':'')+(projById(dr.pid)?' in '+projById(dr.pid).name:''));}
+  L.push('Browser: '+navigator.userAgent);
+  return L;
+}
+function fbBody(d){return [String(d.desc||'').trim(),'','---',...fbContext()].join('\n');}
 function _ink(h){h=String(h).replace('#','');if(h.length<6)return '#000';const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (0.299*r+0.587*g+0.114*b)>150?'#000':'#fff';}
 function renderDialog(){
   const d=ui.dialog;if(!d)return '';
@@ -1066,13 +1136,25 @@ function renderDialog(){
     const q=(d.q||'').trim().toLowerCase();const dd=S.data[d.pid];
     const els=dd.elements.filter(e=>e.status!=='abandoned'&&(!q||(e.label||'').toLowerCase().includes(q))).sort((a,b)=>(a.label||'').localeCompare(b.label||''));
     inner=`<h2>Link an element</h2><div class="fld"><input type="text" data-in="dlg" data-name="q" value="${esc(d.q||'')}" placeholder="Filter" autocomplete="off"></div><div class="pick">${els.map(e=>`<button data-act="pickItem" data-id="${esc(e.id)}"><span class="chip"><i style="--c:${esc(elColor(d.pid,e))}"></i><span>${esc(e.label)}</span></span><span class="ro">${esc(stInfo(d.pid,e.status).label)}</span></button>`).join('')||'<div class="empty">Nothing matches.</div>'}</div><div class="acts"><button class="btn" data-act="closeDialog">Cancel</button></div>`;
+  }else if(d.type==='feedback'){
+    inner=`<h2>Send feedback</h2><p>Opens a <b>public</b> issue in <b>${esc(FB_REPO)}</b> on GitHub.</p>
+      <div class="fld"><label for="fbt">In one line: what is wrong or missing?</label><input id="fbt" type="text" data-in="dlg" data-name="title" value="${esc(d.title||'')}" autocomplete="off"></div>
+      <div class="fld"><label for="fbd">Details</label><textarea id="fbd" rows="5" data-in="dlg" data-name="desc" placeholder="What happened, and what did you expect?">${esc(d.desc||'')}</textarea></div>
+      <div class="fld"><div class="help">Attached automatically: ${esc(fbContext().join(' · '))}</div></div>
+      ${d.showTok?`<div class="fld"><label for="fbk">GitHub token for feedback (one-time setup)</label><input id="fbk" type="password" data-in="dlg" data-name="token" value="${esc(d.token||'')}" placeholder="github_pat_…" autocomplete="off">
+        <div class="help">A <b>fine-grained</b> token with <b>Issues: write</b> on <b>${esc(FB_REPO)}</b> only — nothing more. It is stored only in this browser, never in this file, so a leaked token could at most open issues in that one repository. The gist token cannot do this.</div></div>`
+        :`<div class="fld"><button class="lbtn" style="margin-left:-6px" data-act="fbTok">GitHub token for feedback…</button></div>`}
+      ${d.msg?`<div class="fld"><div class="${d.ok?'ok':'err'}">${esc(d.msg)}</div></div>`:''}
+      <div class="acts"><button class="btn l" data-act="fbCopy" title="No token or no network? Copy the report and paste it into GitHub yourself">Copy text</button><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="fbSend"${d.busy?' disabled':''}>${d.busy?'Sending…':'Send'}</button></div>`;
   }else if(d.type==='help'){
     wide=true;
     inner=`<h2>How ResearchGraph works</h2><ul class="hl">
       <li>Every active project is a column. Drag the thin line between two columns to change their width.</li>
       <li>The box in front of a task or step shows its status. Click it to move on: open → in progress → done → open. Blocked tasks show what they wait for.</li>
-      <li>The bars after a title show the priority: one bar low, two medium, three high. ★ marks the focus task and the focus step.</li>
-      <li>Click a title to open details on the right: status, priority, focus, steps, notes. ≡ means there are notes. The chip after a title is the linked element.</li>
+      <li>The bars after a title show the priority: one bar low, two medium, three high. Click the first, second or third bar to set it. ★ marks the focus task and the focus step.</li>
+      <li>Hover a task and click ＋ to add a step right there.</li>
+      <li>Click a title to open details on the right: status, priority, focus, steps, notes. The chip after a title is the linked element.</li>
+      <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
       <li>Board and Journal show what your agent keeps — read-only here.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with your agent’s, so nothing is overwritten.</li></ul>
@@ -1133,8 +1215,8 @@ const ACT={
   unlink:el=>{const t=findT(A(el).pid,A(el).id);if(t)change(A(el).pid,()=>{t.elementId=null;t.modifiedAt=nowIso();});},
   unlinkStep:el=>{const a=A(el),s=findS(a.pid,a.id,a.sid);if(s)change(a.pid,d=>{s.elementId=null;d.todos.find(x=>x.id===a.id).modifiedAt=nowIso();});},
   pickItem:el=>{const d=ui.dialog;ui.dialog=null;const tg=d.target;if(tg.sid){const s=findS(d.pid,tg.id,tg.sid);if(s)change(d.pid,dd=>{s.elementId=A(el).id;dd.todos.find(x=>x.id===tg.id).modifiedAt=nowIso();});}else{const t=findT(d.pid,tg.id);if(t)change(d.pid,()=>{t.elementId=A(el).id;t.modifiedAt=nowIso();});}},
-  delTodo:async el=>{const a=A(el),t=findT(a.pid,a.id);if(!t)return;if(!await confirmAsk('Delete this task?','“'+snip(t.text,80)+'”'+((t.subtasks||[]).length?' and its '+plural(t.subtasks.length,'step'):'')+' will be removed. This cannot be undone.','Delete task'))return;ui.drawer=null;ui.edit=null;change(a.pid,d=>{d.todos=d.todos.filter(x=>x.id!==a.id);});},
-  delStep:async el=>{const a=A(el),s=findS(a.pid,a.id,a.sid);if(!s)return;if(!await confirmAsk('Delete this step?','“'+snip(s.text,80)+'” will be removed. This cannot be undone.','Delete step'))return;ui.edit=null;ui.drawer={type:'todo',pid:a.pid,id:a.id};change(a.pid,d=>{const t=d.todos.find(x=>x.id===a.id);t.subtasks=t.subtasks.filter(x=>x.id!==a.sid);t.modifiedAt=nowIso();});},
+  delTodo:async el=>{const a=A(el),t=findT(a.pid,a.id);if(!t)return;if(!await confirmAsk('Delete this task?','“'+snip(t.text,80)+'”'+((t.subtasks||[]).length?' and its '+plural(t.subtasks.length,'step'):'')+' will be removed. Ctrl+Z brings it back.','Delete task'))return;ui.drawer=null;ui.edit=null;change(a.pid,d=>{d.todos=d.todos.filter(x=>x.id!==a.id);});},
+  delStep:async el=>{const a=A(el),s=findS(a.pid,a.id,a.sid);if(!s)return;if(!await confirmAsk('Delete this step?','“'+snip(s.text,80)+'” will be removed. Ctrl+Z brings it back.','Delete step'))return;ui.edit=null;ui.drawer={type:'todo',pid:a.pid,id:a.id};change(a.pid,d=>{const t=d.todos.find(x=>x.id===a.id);t.subtasks=t.subtasks.filter(x=>x.id!==a.sid);t.modifiedAt=nowIso();});},
   startAdd:el=>{ui.adding=ui.adding===A(el).v?null:A(el).v;ui.focusSel='.add-in';render();},
   // Markdown-Entwuerfe
   edit:el=>startEdit(A(el).key),
@@ -1166,9 +1248,27 @@ const ACT={
   connect:async()=>{const d=ui.dialog,tok=String(d.token||'').trim();if(!tok){d.msg='Paste the token first.';render();return;}d.busy=true;d.msg='';render();try{await connect(tok);ui.dialog=null;render();toast('Connected — your data is live.');}catch(e){d.busy=false;d.msg=e.message;render();}},
   syncNow:async()=>{ui.dialog=null;_pausedUntil=0;if(SY.state==='error'){SY.state='idle';SY.msg='';}render();if(PENDING.length)await push();else{_commitsEtag=null;await poll(true);}},
   disconnect:async()=>{if(!await confirmAsk('Disconnect GitHub?','This browser stops syncing. Your data stays on GitHub.','Disconnect'))return;ui.dialog=null;disconnect();},
+  // Feedback -> GitHub-Issue
+  feedback:()=>{const tok=localStorage.getItem(FB_TOKEN_KEY)||'';openDialog({type:'feedback',title:'',desc:'',token:tok,showTok:!tok});ui.focusSel='#fbt';},
+  fbTok:()=>{ui.dialog.showTok=true;ui.focusSel='#fbk';render();},
+  fbCopy:async()=>{const d=ui.dialog;try{await navigator.clipboard.writeText((String(d.title||'').trim()||'(no title)')+'\n\n'+fbBody(d));d.ok=true;d.msg='Copied — paste it into a new issue at github.com/'+FB_REPO+'/issues';}catch(e){d.ok=false;d.msg='Could not copy: '+e.message;}render();},
+  fbSend:async()=>{
+    const d=ui.dialog,title=String(d.title||'').trim(),token=String(d.token||'').trim();
+    if(!title){d.ok=false;d.msg='Write a short title first.';ui.focusSel='#fbt';render();return;}
+    if(!token){d.showTok=true;d.ok=false;d.msg='No feedback token yet — paste one, or use “Copy text”.';ui.focusSel='#fbk';render();return;}
+    d.busy=true;d.msg='';render();
+    try{
+      const r=await fetch('https://api.github.com/repos/'+FB_REPO+'/issues',{method:'POST',headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},body:JSON.stringify({title,body:fbBody(d),labels:['feedback']})});
+      if(!r.ok){let m='GitHub answered '+r.status;try{const j=await r.json();if(j&&j.message)m+=': '+j.message;}catch(e){}if(r.status===401||r.status===403||r.status===404)m+=' — is the token valid, with “Issues: write” on this repository?';throw new Error(m);}
+      const j=await r.json();
+      localStorage.setItem(FB_TOKEN_KEY,token); // nur einen Token speichern, der tatsaechlich funktioniert hat
+      if(ui.dialog===d)ui.dialog=null;
+      toast('Thanks — issue #'+j.number+' created.');
+    }catch(e){d.busy=false;d.ok=false;d.msg='Sending failed: '+e.message+'. Use “Copy text” so the report is not lost.';render();}
+  },
   // Dialog-Grundlagen
   closeDialog:()=>closeDialog(),
-  dscrim:(el,ev)=>{if(ev.target===el)closeDialog();},
+  dscrim:(el,ev)=>{if(ev.target!==el)return;const d=ui.dialog;if(d&&d.type==='feedback'&&String((d.title||'')+(d.desc||'')).trim())return;closeDialog();}, // angefangenes Feedback nicht per Fehlklick verlieren
   choose:el=>{const d=ui.dialog;if(d&&d.type==='choice')resolveChoice(d.options[+A(el).i]?.value??null);}
 };
 function handleAdd(inp){
@@ -1214,6 +1314,11 @@ document.addEventListener('keydown',ev=>{
     if(ev.key==='Escape'){ev.preventDefault();closeDialog();return;}
     if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
     return;
+  }
+  // Strg+Z / Strg+Y (Strg+Umschalt+Z) ueberall — nur in Textfeldern bleibt es das Rueckgaengig des Browsers fuer den Text
+  if(mod&&!ev.altKey&&/^[zy]$/i.test(ev.key)){
+    if(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)return;
+    ev.preventDefault();undoRedo(ev.key.toLowerCase()==='y'||ev.shiftKey?'redo':'undo');return;
   }
   if(ev.key==='Escape'){if(ui.menu){ui.menu=null;render();}else if(ui.drawer){commitDraft();ui.drawer=null;render();}else if(k==='q'){ui.q='';t.blur();render();}return;}
   if(mod&&ev.key.toLowerCase()==='f'){ev.preventDefault();const s=document.querySelector('.search input');if(s){s.focus();s.select();}}

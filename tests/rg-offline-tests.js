@@ -259,6 +259,79 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   console.log('   requests for 15 ticks:',gh.log.length-reqBefore,'| revisions:',gh.revs.length-1);
   env.w.close();
 
+  // ── 13. Direkt in der Zeile: Prioritaet, Schritt anlegen; Strg+Z / Strg+Y; Feedback ──
+  console.log('13. inline priority + step, undo/redo, feedback');
+  gh=makeGitHub(snapText);
+  env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+  ok(await until(()=>env.doc.querySelectorAll('.col').length===3),'loaded');
+  const tq=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.focus);
+  const prOld=typeof tq.priority==='boolean'?(tq.priority?'high':'low'):(tq.priority||'low'),prNew=prOld==='high'?'low':'high';
+  ok(!env.doc.querySelector('.drawer'),'no drawer open');
+  click(env,`.col .t [data-act="setPrio"][data-id="${tq.id}"][data-v="${prNew}"]`);await tick();
+  ok(!env.doc.querySelector('.drawer'),'priority changed without opening the drawer');
+  ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===tq.id).priority===prNew),'inline priority uploaded');
+  ok(env.doc.querySelectorAll(`.col .t [data-act="setPrio"][data-id="${tq.id}"].on`).length===(prNew==='high'?3:1),'bars show the new priority');
+  // Schritt direkt anlegen
+  click(env,`.col .t [data-act="startAdd"][data-v="${P0}|step|${tq.id}"]`);await tick();
+  inp=env.doc.querySelector(`.sub-in[data-id="${tq.id}"]`);ok(inp&&env.doc.activeElement===inp,'step input appears under the task, focused');
+  typeIn(env,inp,'INLINE STEP 1');key(env,inp,'Enter');await tick();
+  inp=env.doc.querySelector(`.sub-in[data-id="${tq.id}"]`);ok(inp,'input stays for the next step');
+  typeIn(env,inp,'INLINE STEP 2');key(env,inp,'Enter');await tick();key(env,inp,'Escape');await tick();
+  ok(!env.doc.querySelector('.sub-in'),'Esc closes the input');
+  ok(!env.doc.querySelector('.drawer'),'still no drawer');
+  ok(await until(()=>{const s=gh.doc().projects[0].todos.find(t=>t.id===tq.id).subtasks||[];return s.slice(-2).map(x=>x.text).join('|')==='INLINE STEP 1|INLINE STEP 2';}),'both steps uploaded in order');
+  // Strg+Z: Aenderungen nacheinander zuruecknehmen, waehrend der Agent anderswo schreibt
+  gh.agentWrite(doc=>{doc.projects[0].todos.find(t=>t.id===tq.id).notes='AGENT NOTE DURING UNDO';});
+  ok(await until(()=>env.w.eval(`findT(${JSON.stringify(P0)},${JSON.stringify(tq.id)}).notes`)==='AGENT NOTE DURING UNDO'),'agent note arrived');
+  const body=env.doc.body,z=o=>key(env,body,'z',Object.assign({ctrlKey:true},o||{}));
+  z();await tick();
+  ok(await until(()=>{const s=gh.doc().projects[0].todos.find(t=>t.id===tq.id).subtasks||[];return !s.some(x=>x.text==='INLINE STEP 2')&&s.some(x=>x.text==='INLINE STEP 1');}),'Ctrl+Z removes the last step only');
+  ok(env.doc.querySelector('.toast')&&env.doc.querySelector('.toast').textContent.includes('INLINE STEP 2'),'toast names what was undone');
+  z();await tick();z();await tick();
+  ok(await until(()=>{const t=gh.doc().projects[0].todos.find(t=>t.id===tq.id);return !(t.subtasks||[]).some(x=>x.text.startsWith('INLINE STEP'))&&t.priority===tq.priority;}),'two more Ctrl+Z: step 1 gone, old priority back');
+  ok(gh.doc().projects[0].todos.find(t=>t.id===tq.id).notes==='AGENT NOTE DURING UNDO','undo keeps what the agent wrote meanwhile');
+  key(env,body,'y',{ctrlKey:true});await tick();
+  ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===tq.id).priority===prNew),'Ctrl+Y redoes the priority');
+  // Versehentlich abgehakt -> Strg+Z (der gemeldete Fall)
+  const tz=snap.projects[1].todos.find(t=>t.status==='open'||!t.status);
+  click(env,`[data-act="cycle"][data-id="${tz.id}"]`);click(env,`[data-act="cycle"][data-id="${tz.id}"]`);await tick();
+  ok(await until(()=>gh.doc().projects[1].todos.find(t=>t.id===tz.id).status==='done'),'task ticked done by two clicks');
+  z();await tick();z();await tick();
+  ok(await until(()=>{const t=gh.doc().projects[1].todos.find(t=>t.id===tz.id);return (t.status||'open')===(tz.status||'open')&&(t.completedAt??null)===(tz.completedAt??null);}),'Ctrl+Z twice restores status and completedAt');
+  // Geloeschte Aufgabe kommt mit allen Schritten zurueck
+  const td=snap.projects[0].todos.find(t=>t.status!=='done'&&(t.subtasks||[]).length>1&&t.id!==tq.id);
+  env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P0)},id:${JSON.stringify(td.id)}})`);await tick();
+  click(env,'.drawer [data-act="delTodo"]');await tick();click(env,'.dlg .choice',0);
+  ok(await until(()=>!gh.doc().projects[0].todos.some(t=>t.id===td.id)),'task deleted');
+  z();await tick();
+  ok(await until(()=>JSON.stringify(gh.doc().projects[0].todos.find(t=>t.id===td.id))===JSON.stringify(td)),'Ctrl+Z restores the deleted task byte-identical');
+  // Neue Idee: Strg+Z archiviert, loescht nie
+  env.w.eval(`ui.adding=${JSON.stringify(P0+'|idea')};render()`);await tick();
+  inp=env.doc.querySelector('.add-in[data-add="idea"]');typeIn(env,inp,'UNDO IDEA');key(env,inp,'Enter');key(env,inp,'Escape');await tick();
+  ok(await until(()=>gh.doc().projects[0].ideas.some(i=>i.title==='UNDO IDEA')),'idea added');
+  z();await tick();
+  ok(await until(()=>gh.doc().projects[0].ideas.find(i=>i.title==='UNDO IDEA').archived===true),'Ctrl+Z archives the new idea instead of deleting it');
+  // In Textfeldern bleibt Strg+Z das Text-Rueckgaengig
+  const nUndo=env.w.eval('UNDO.length');const s=env.doc.querySelector('.search input');s.focus();key(env,s,'z',{ctrlKey:true});await tick();
+  ok(env.w.eval('UNDO.length')===nUndo,'Ctrl+Z in a text field does not undo data');
+  // Feedback-Dialog: ohne Token -> Tokenfeld; Fehlklick daneben verliert nichts
+  env.doc.activeElement.blur();
+  click(env,'[data-act="feedback"]');await tick();
+  ok(env.doc.querySelector('.dlg #fbt')&&env.doc.querySelector('.dlg #fbk'),'feedback dialog with token field (no token yet)');
+  ok(env.doc.querySelector('.dlg').textContent.includes('App: v3'),'context shown');
+  typeIn(env,env.doc.querySelector('#fbt'),'Test title');
+  env.doc.querySelector('.dscrim').dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();
+  ok(env.doc.querySelector('.dlg #fbt'),'click beside a started report does not close it');
+  let issue=null;const ghFetch=gh.fetch;gh.fetch=async(u,i)=>{if(u.endsWith('/repos/qwertzuiop151/ResearchGraph-app/issues')){issue={u,i};return {ok:true,status:201,headers:{get:()=>null},json:async()=>({number:42})};}return ghFetch(u,i);};
+  typeIn(env,env.doc.querySelector('#fbk'),'github_pat_x');click(env,'[data-act="fbSend"]');
+  ok(await until(()=>!env.doc.querySelector('.dlg')),'dialog closes after sending');
+  ok(issue&&JSON.parse(issue.i.body).title==='Test title'&&issue.i.headers.Authorization==='Bearer github_pat_x','issue posted with the feedback token');
+  ok(env.w.localStorage.getItem('rg_fb_token')==='github_pat_x','working token remembered');
+  ok(env.doc.querySelector('.toast').textContent.includes('#42'),'issue number shown');
+  ok(!html.includes('github_pat_')||!/github_pat_[A-Za-z0-9]{20,}/.test(html),'no token inside the app file');
+  ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+  env.w.close();
+
   console.log(`\nTOTAL: ${pass} passed, ${fail} failed`);
   process.exit(fail?1:0);
 })().catch(e=>{console.error('HARNESS CRASH',e);process.exit(2);});
