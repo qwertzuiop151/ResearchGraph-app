@@ -352,6 +352,29 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .arow .x{flex:1;min-width:0;overflow-wrap:anywhere}
 .arow small{display:block;color:var(--ink-3);font-size:11.5px}
 .agrp{font-size:12px;font-weight:700;color:var(--ink-2);margin:12px 0 4px}
+
+/* Farbe = Projekt, Art = Form (Dominik 06.11.2026: "instantly erkennbar, was was ist", ohne Kopfschmerz-Farben).
+   Farbe nur auf kleinen Flaechen (Kopf, Kanten, Icons, Statusmarken), Lesebereich bleibt weiss. Kein zweites Farbsystem
+   fuer Arten/Status: unter Rot-Gruen-Simulation kollidierte es mit den Projektfarben (gemessen dE 1-3). */
+.col-h{background:var(--c);box-shadow:none;border-bottom:0}
+.col-h h2,.col-h .n,.col-h .icon{color:var(--on)}
+.col-h .n{opacity:.85}
+.col-h .dot{display:none}
+.col-h .icon:hover{background:rgba(0,0,0,.12)}
+.sec-h{background:var(--paper);border-top:1px solid var(--rule);border-bottom:2px solid var(--c);box-shadow:inset 4px 0 0 var(--c);text-transform:uppercase;letter-spacing:.6px;font-size:13px;color:var(--ink)}
+.sec-h .sec-ic{display:grid;place-items:center;width:18px;height:18px;color:var(--cm)}
+.sec-h .sec-ic svg{width:16px;height:16px}
+.t>.tm>.tt{font-weight:650;font-size:14px;color:var(--ink)}
+.t.focus{background:var(--paper);box-shadow:inset 4px 0 0 var(--c)}
+.t.focus .tt .star path{fill:var(--cm)}
+.s .tt{color:#4A5466}
+.s.done .tt{color:#9AA2AE}
+/* Status nur ueber die Form: offen = leer, in progress = Rand + Punkt, erledigt = gefuellt + Haken */
+.cb.s-in_progress{background:var(--paper);border:2px solid var(--cm,var(--prog));color:var(--cm,var(--prog))}
+.cb.s-done{background:var(--cm,var(--done));border-color:var(--cm,var(--done));color:var(--cmon,#fff)}
+.sl.prog{color:var(--ink-2)}
+.sl.prog svg{color:var(--cm,var(--prog))}
+.idea .ic{color:var(--cm)}
 </style>
 </head>
 <body>
@@ -393,16 +416,25 @@ const PRIOS=[['low','Low'],['medium','Medium'],['high','High']];
 const PRANK={high:0,medium:1,low:2};
 // Gezeichnete Symbole (gleich gross, unabhaengig von der Schrift). Form traegt die Bedeutung: leer / Punkt / Strich / Haken.
 const CB_ICON={open:'',
-  in_progress:'<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2.7" fill="#000"/></svg>',
+  in_progress:'<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2.7" fill="currentColor"/></svg>',
   blocked:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 9.4l6.8-6.8" stroke="#172033" stroke-width="2" stroke-linecap="round"/></svg>',
-  done:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.3 6.4l2.4 2.4 5-5.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
+  done:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.3 6.4l2.4 2.4 5-5.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
 const IC_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 3.5L5 7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 3v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const IC_SOLO='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M5.5 11.5h-3v-3M11.5 2.5L8 6M2.5 11.5L6 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const IC_MORE='<svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="3" cy="7" r="1.3" fill="currentColor"/><circle cx="7" cy="7" r="1.3" fill="currentColor"/><circle cx="11" cy="7" r="1.3" fill="currentColor"/></svg>';
 const IC_NOTES='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 3h8M2 6h8M2 9h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const IC_STAR='<svg class="star" viewBox="0 0 12 12" aria-label="Focus"><path d="M6 .8l1.55 3.25 3.55.45-2.6 2.45.68 3.5L6 8.75 2.82 10.45l.68-3.5L.9 4.5l3.55-.45z" fill="#172033"/></svg>';
 const IC_IDEA='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1l1.3 3.7L11 6 7.3 7.3 6 11 4.7 7.3 1 6l3.7-1.3z" fill="currentColor"/></svg>';
-const IC_PROG='<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="#E69F00" stroke="#7A4100" stroke-width="1"/><circle cx="6" cy="6" r="1.8" fill="#000"/></svg>';
+const IC_PROG='<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.4" fill="#fff" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="6" r="1.9" fill="currentColor"/></svg>';
+const IC_LAB='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5h5M6.5 1.5v4.8L2.6 13a1.2 1.2 0 0 0 1 1.8h8.8a1.2 1.2 0 0 0 1-1.8L9.5 6.3V1.5M4.6 10h6.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+const IC_GEN='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+// Farbe = Projekt, Art = Form (Dominik 06.11.2026): jede Spalte traegt nur ihre Projektfarbe, Status/Abschnitt unterscheidet die Form.
+// --c Projektfarbe (Flaechen), --on Schrift darauf, --cm Marken-Farbe (zu helle Farben abgedunkelt, Kontrast >= 2,6 auf Weiss), --cmon Haken darauf
+function lumOf(r,g,b){const f=x=>{x/=255;return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4);};return .2126*f(r)+.7152*f(g)+.0722*f(b);}
+function rgbOf(c){const m=/^#?([0-9a-f]{6})$/i.exec(c||'');return m?[0,2,4].map(i=>parseInt(m[1].substr(i,2),16)):null;}
+function onColor(c){const v=rgbOf(c);return v&&lumOf(...v)>.36?'#172033':'#fff';}
+function markColor(c){let v=rgbOf(c);if(!v)return '#505050';for(let k=0;k<12&&1.05/(lumOf(...v)+.05)<2.6;k++)v=v.map(x=>x*.88);return '#'+v.map(x=>Math.round(x).toString(16).padStart(2,'0')).join('');}
+function projVars(p){const c=rgbOf(p&&p.color)?p.color:'#505050',m=markColor(c);return `--c:${c};--on:${onColor(c)};--cm:${m};--cmon:${onColor(m)}`;}
 const IC_BLOCK='<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.9 9.1l6.2-6.2" stroke="currentColor" stroke-width="1.5"/></svg>';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -903,7 +935,7 @@ function renderMain(){
 function countLabel(p,d){return ui.page==='board'?plural(d.elements.filter(e=>e.status!=='abandoned'&&!isArch(e)).length,'element'):ui.page==='journal'?plural(d.journal.length,'day'):d.todos.filter(t=>tSt(t)!=='done'&&!isArch(t)).length+' open';}
 function renderStrip(p){const d=S.data[p.id];return `<button class="strip" data-k="strip-${esc(p.id)}" data-act="expand" data-pid="${esc(p.id)}" style="--c:${esc(p.color||'#505050')}" title="Expand ${esc(p.name)}"><span class="dot"></span><b>${p.frozen?'❄ ':''}${esc(p.name)}</b><small>${esc(countLabel(p,d))}</small></button>`;}
 function colHead(p,count,inOne){
-  return `<div class="col-h" style="--c:${esc(p.color||'#505050')}"><span class="dot"></span><h2 title="${esc(p.name)}">${p.frozen?'❄ ':''}${esc(p.name)}</h2><span class="n">${esc(count)}</span>
+  return `<div class="col-h" style="${projVars(p)}"><span class="dot"></span><h2 title="${esc(p.name)}">${p.frozen?'❄ ':''}${esc(p.name)}</h2><span class="n">${esc(count)}</span>
     ${inOne?'':`<button class="icon" data-act="collapse" data-pid="${esc(p.id)}" title="Collapse this column" aria-label="Collapse ${esc(p.name)}">${IC_COLLAPSE}</button><button class="icon" data-act="solo" data-pid="${esc(p.id)}" title="Show only this project" aria-label="Show only ${esc(p.name)}">${IC_SOLO}</button>`}
     <span class="menu-wrap"><button class="icon" data-act="menu" data-v="p:${esc(p.id)}" aria-label="Project menu">${IC_MORE}</button>
     ${ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}">Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive project (finished)</button></div>`:''}</span></div>`;
@@ -919,13 +951,13 @@ function taskParts(p){
     const label=c==='labor'?'Lab':c==='general'?'General':c.charAt(0).toUpperCase()+c.slice(1);
     const add=ui.adding===pid+'|'+c;
     if(!list.length&&!add&&c!=='labor'&&c!=='general')return;
-    parts.cats[c]=`<div class="sec-h" data-k="sh-${esc(c)}"><span>${esc(label)}</span><span class="c">${list.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|'+c)}" title="Add a ${esc(label.toLowerCase())} task" aria-label="Add a ${esc(label.toLowerCase())} task">＋</button></div>`
+    parts.cats[c]=`<div class="sec-h" data-k="sh-${esc(c)}"><i class="sec-ic">${c==='labor'?IC_LAB:IC_GEN}</i><span>${esc(label)}</span><span class="c">${list.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|'+c)}" title="Add a ${esc(label.toLowerCase())} task" aria-label="Add a ${esc(label.toLowerCase())} task">＋</button></div>`
       +(add?`<input class="add-in" data-k="ai-${esc(c)}" data-add="todo" data-pid="${esc(pid)}" data-cat="${esc(c)}" placeholder="New task — Enter adds, Esc stops">`:'')
       +list.map(t=>renderTodo(p,t,false)).join('');
   });
   const ideas=d.ideas.filter(i=>!i.archived&&hit(i.title,i.desc)).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   const addI=ui.adding===pid+'|idea';
-  parts.ideas=`<div class="sec-h" data-k="sh-ideas"><span>Ideas</span><span class="c">${ideas.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|idea')}" title="Add an idea" aria-label="Add an idea">＋</button></div>`
+  parts.ideas=`<div class="sec-h" data-k="sh-ideas"><i class="sec-ic">${IC_IDEA}</i><span>Ideas</span><span class="c">${ideas.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|idea')}" title="Add an idea" aria-label="Add an idea">＋</button></div>`
     +(addI?`<input class="add-in" data-k="ai-idea" data-add="idea" data-pid="${esc(pid)}" placeholder="New idea — Enter adds, Esc stops">`:'')
     +ideas.map(i=>`<div class="idea${isOpen('idea',pid,i.id)?' sel':''}" data-k="i-${esc(i.id)}"><span class="ic">${IC_IDEA}</span><div class="tm"><button class="tt" data-act="open" data-type="idea" data-pid="${esc(pid)}" data-id="${esc(i.id)}">${esc(i.title||'Untitled idea')}</button></div></div>`).join('');
   return parts;
@@ -936,7 +968,7 @@ function renderCol(p){
   if(ui.page==='board')body=boardBody(p,d);
   else if(ui.page==='journal')body=journalBody(p,d);
   else{const x=taskParts(p);body=x.focus+Object.values(x.cats).join('')+x.ideas;}
-  return `<section class="col${p.frozen?' frozen':''}" data-k="col-${esc(pid)}" data-col="${esc(pid)}" style="${colStyle(pid)}">${colHead(p,countLabel(p,d))}<div class="col-b" data-k="cb-${esc(pid)}">${body}</div></section>`;
+  return `<section class="col${p.frozen?' frozen':''}" data-k="col-${esc(pid)}" data-col="${esc(pid)}" style="${colStyle(pid)};${projVars(p)}">${colHead(p,countLabel(p,d))}<div class="col-b" data-k="cb-${esc(pid)}">${body}</div></section>`;
 }
 // Ein Projekt ueber die ganze Breite: Lab | General | Ideas nebeneinander (Board: Status nebeneinander)
 function renderOne(p){
@@ -945,7 +977,7 @@ function renderOne(p){
   else if(ui.page==='journal')cols=[journalBody(p,d)];
   else{const x=taskParts(p),c=x.cats;cols=[x.focus+(c.labor||''),(c.general||'')+Object.entries(c).filter(([k])=>k!=='labor'&&k!=='general').map(([,v])=>v).join(''),x.ideas];}
   if(!cols.length)cols=['<div class="empty">Nothing here.</div>'];
-  return `<section class="one" data-k="one-${esc(p.id)}">${colHead(p,countLabel(p,d),true)}<div class="one-b" style="--n:${cols.length}">${cols.map((c,i)=>`<div data-k="oc-${i}">${c}</div>`).join('')}</div></section>`;
+  return `<section class="one" data-k="one-${esc(p.id)}" style="${projVars(p)}">${colHead(p,countLabel(p,d),true)}<div class="one-b" style="--n:${cols.length}">${cols.map((c,i)=>`<div data-k="oc-${i}">${c}</div>`).join('')}</div></section>`;
 }
 function isOpen(type,pid,id,sid){const d=ui.drawer;return !!d&&d.type===type&&d.pid===pid&&d.id===id&&(sid===undefined||d.sid===sid);}
 // Drei Balken = drei Knoepfe: Klick auf Balken 1/2/3 setzt low/medium/high direkt in der Zeile
@@ -1109,7 +1141,7 @@ function renderDrawer(){
     head=`<div style="flex:1;min-width:0"><div class="k">Journal · ${esc(p.name)}</div><div class="ttl" style="border:0">${esc(fmtDate(e.date,{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</div></div>`;
     body=`<div class="ro">Mostly written by your agent. <button class="lbtn" data-act="jwrite" data-pid="${esc(dr.pid)}" data-date="${esc(e.date)}">＋ Add a section to this day</button></div>`+(e.sections||[]).map(s=>`<div class="dsec"><h3>${esc(s.title)}</h3>${(s.content||'').trim()?`<div class="md">${md(s.content)}</div>`:'<div class="ro">—</div>'}</div>`).join('');
   }
-  return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" data-k="dr-${esc(dr.type+dr.pid+dr.id+(dr.sid||''))}" role="dialog" aria-label="Details"><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
+  return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" style="${projVars(p)}" data-k="dr-${esc(dr.type+dr.pid+dr.id+(dr.sid||''))}" role="dialog" aria-label="Details"><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
 }
 
 // ── Dialoge + Toast ──
