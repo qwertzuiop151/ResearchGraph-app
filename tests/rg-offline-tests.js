@@ -205,7 +205,8 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   click(env,`[data-act="collapse"][data-pid="${P1}"]`);await tick();
   ok(env.doc.querySelectorAll('.col').length===NC-1&&env.doc.querySelector('.strip'),'collapsed column becomes a strip');
   {const sp=env.doc.querySelector('.split+.strip')?.previousElementSibling,lc=sp?.previousElementSibling;
-   ok(sp&&lc&&lc.matches('.col')&&lc.dataset.col===sp.dataset.split,'column left of a strip keeps its resize handle (#5)');}
+   ok(sp&&lc&&lc.matches('.col')&&lc.dataset.col===sp.dataset.split,'column left of a strip keeps its resize handle (#5)');
+   ok(sp&&sp.dataset.right===snap.projects[2].id,'handle pairs with the next open column past the strip');}
   click(env,'.strip');await tick();
   ok(env.doc.querySelectorAll('.col').length===NC&&!env.doc.querySelector('.strip'),'strip click expands it again');
   click(env,`[data-act="solo"][data-pid="${P1}"]`);await tick();

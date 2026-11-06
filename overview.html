@@ -841,7 +841,7 @@ const ui={
   q:'',showFrozen:false,menu:null,dialog:null,stack:[],toast:null,drawer:null,edit:null,adding:null,
   hideDone:localStorage.getItem('rg_hideDoneSubtasks')==='1',
   zoom:+(localStorage.getItem('rg3_zoom')||100),
-  widths:lsGet('rg3_widths',{}),focusSel:null,
+  colw:lsGet('rg3_colw',{}),focusSel:null,
   mode:localStorage.getItem('rg3_mode')==='one'?'one':'all',one:localStorage.getItem('rg3_one')||'',
   collapsed:new Set(lsGet('rg3_collapsed',[]))
 };
@@ -919,19 +919,23 @@ function renderTop(){
       ${ui.menu==='main'?`<div class="menu" data-k="menu-main"><button data-act="newProject">New project</button><button data-act="archived">Archived projects (${S.projects.filter(p=>p.archived).length})</button><button data-act="resetWidths">Reset column widths</button><div class="sep"></div><button data-act="openSync">GitHub connection</button><button data-act="help">Help</button></div>`:''}</span>
   </header>`;
 }
-function colStyle(pid){const w=ui.widths[pid];return w?`flex:0 0 ${w}px;width:${w}px`:`flex:1 1 0`;}
+// Spaltenbreiten als Anteile (flex-grow), nicht als feste Pixel: Ziehen verschiebt Breite nur zwischen den zwei Nachbarn, alle anderen bleiben stehen (Dominik 06.11.2026)
+function colStyle(pid,def){const w=ui.colw[pid]||def||1;return `flex:${w} 1 0`;}
 function onePid(){const v=visibleProjects();return (v.find(p=>p.id===ui.one)||v[0]||{}).id;}
 function renderMain(){
   const projs=visibleProjects();
   if(!projs.length)return `<main class="board" data-k="main"><div class="nodata">${ghToken?'No active project. Use ⋯ → New project.':'Connect GitHub (top right) to load your ResearchGraph data.'}</div></main>`;
   if(ui.mode==='one'){const p=projById(onePid());return `<main class="board" data-k="main-one-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${renderOne(p)}</div></main>`;}
   let html='',prevOpen=null;
-  // Jede offene Spalte bekommt rechts ihren Zieh-Griff, sobald etwas folgt — auch wenn das eine eingeklappte Leiste ist (#5)
+  const open=projs.filter(p=>!ui.collapsed.has(p.id)).map(p=>p.id),known=open.map(id=>ui.colw[id]).filter(Boolean);
+  const def=known.length?known.reduce((a,b)=>a+b,0)/known.length:1; // neue Spalte bekommt den Durchschnitt
+  // Zieh-Griff rechts jeder offenen Spalte, wenn rechts noch eine offene folgt — auch ueber eingeklappte Leisten hinweg (#5)
   projs.forEach(p=>{
-    if(prevOpen)html+=`<div class="split" data-split="${esc(prevOpen)}" title="Drag to resize · double-click to reset"></div>`;
+    const right=prevOpen&&open[open.indexOf(prevOpen)+1];
+    if(right)html+=`<div class="split" data-split="${esc(prevOpen)}" data-right="${esc(right)}" title="Drag to resize · double-click to make both equal"></div>`;
     else if(html)html+='<div class="gap"></div>';
     const shut=ui.collapsed.has(p.id);
-    html+=shut?renderStrip(p):renderCol(p);prevOpen=shut?null:p.id;
+    html+=shut?renderStrip(p):renderCol(p,def);prevOpen=shut?null:p.id;
   });
   return `<main class="board" data-k="main-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${html}</div></main>`;
 }
@@ -965,13 +969,13 @@ function taskParts(p){
     +ideas.map(i=>`<div class="idea${isOpen('idea',pid,i.id)?' sel':''}" data-k="i-${esc(i.id)}"><span class="ic">${IC_IDEA}</span><div class="tm"><button class="tt" data-act="open" data-type="idea" data-pid="${esc(pid)}" data-id="${esc(i.id)}">${esc(i.title||'Untitled idea')}</button></div></div>`).join('');
   return parts;
 }
-function renderCol(p){
+function renderCol(p,def){
   const d=S.data[p.id];if(!d)return '';
   const pid=p.id;let body;
   if(ui.page==='board')body=boardBody(p,d);
   else if(ui.page==='journal')body=journalBody(p,d);
   else{const x=taskParts(p);body=x.focus+Object.values(x.cats).join('')+x.ideas;}
-  return `<section class="col${p.frozen?' frozen':''}" data-k="col-${esc(pid)}" data-col="${esc(pid)}" style="${colStyle(pid)};${projVars(p)}">${colHead(p,countLabel(p,d))}<div class="col-b" data-k="cb-${esc(pid)}">${body}</div></section>`;
+  return `<section class="col${p.frozen?' frozen':''}" data-k="col-${esc(pid)}" data-col="${esc(pid)}" style="${colStyle(pid,def)};${projVars(p)}">${colHead(p,countLabel(p,d))}<div class="col-b" data-k="cb-${esc(pid)}">${body}</div></section>`;
 }
 // Ein Projekt ueber die ganze Breite: Lab | General | Ideas nebeneinander (Board: Status nebeneinander)
 function renderOne(p){
@@ -1292,7 +1296,7 @@ const ACT={
   collapse:el=>{ui.collapsed.add(A(el).pid);lsSet('rg3_collapsed',[...ui.collapsed]);render();},
   expand:el=>{ui.collapsed.delete(A(el).pid);lsSet('rg3_collapsed',[...ui.collapsed]);render();},
   expandAll:()=>{ui.collapsed.clear();lsSet('rg3_collapsed',[]);render();},
-  resetWidths:()=>{ui.widths={};lsSet('rg3_widths',{});ui.menu=null;render();},
+  resetWidths:()=>{ui.colw={};lsSet('rg3_colw',{});ui.menu=null;render();},
   // Tasks
   cycle:el=>{const t=findT(A(el).pid,A(el).id);if(!t)return;const nx=CYCLE[tSt(t)]||'open';change(A(el).pid,()=>setTodoStatus(t,nx));},
   cycleStep:el=>{const s=findS(A(el).pid,A(el).id,A(el).sid);if(!s)return;const nx={open:'in_progress',in_progress:'done',done:'open'}[sSt(s)]||'open';change(A(el).pid,d=>{s.status=nx;const t=d.todos.find(x=>x.id===A(el).id);t.modifiedAt=nowIso();});},
@@ -1448,17 +1452,23 @@ document.addEventListener('keydown',ev=>{
   if(ev.key==='Escape'){if(ui.menu){ui.menu=null;render();}else if(ui.drawer){commitDraft();ui.drawer=null;render();}else if(k==='q'){ui.q='';t.blur();render();}return;}
   if(mod&&ev.key.toLowerCase()==='f'){ev.preventDefault();const s=document.querySelector('.search input');if(s){s.focus();s.select();}}
 });
-// Spaltenbreite ziehen: die linke Spalte bekommt eine feste Breite, der Rest teilt sich den Platz
+// Spaltenbreite ziehen: nur die beiden Spalten am Griff aendern sich, ihre Summe bleibt — alle anderen stehen still.
+// Beim Greifen werden alle offenen Spalten auf ihre aktuelle Breite als Anteil festgeschrieben, damit nichts springt.
+function _splitCols(sp){const q=id=>document.querySelector('.col[data-col="'+CSS.escape(id)+'"]');return [q(sp.dataset.split),q(sp.dataset.right)];}
+function _freezeWeights(z){document.querySelectorAll('.board .col[data-col]').forEach(c=>{const w=c.getBoundingClientRect().width/z;if(w>0)ui.colw[c.dataset.col]=Math.round(w);});}
 document.addEventListener('pointerdown',ev=>{
   const sp=ev.target.closest&&ev.target.closest('.split');if(!sp)return;
-  const pid=sp.dataset.split;const col=document.querySelector('.col[data-col="'+CSS.escape(pid)+'"]');if(!col)return;
+  const [a,b]=_splitCols(sp);if(!a||!b)return;
   ev.preventDefault();sp.classList.add('drag');
-  const z=ui.zoom/100,startX=ev.clientX,startW=col.getBoundingClientRect().width/z;
-  const mv=e=>{const w=Math.max(240,Math.round(startW+(e.clientX-startX)/z));col.style.flex='0 0 '+w+'px';col.style.width=w+'px';ui.widths[pid]=w;};
-  const up=()=>{sp.classList.remove('drag');document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);lsSet('rg3_widths',ui.widths);render();};
+  const z=ui.zoom/100,startX=ev.clientX;_freezeWeights(z);
+  const A=sp.dataset.split,B=sp.dataset.right,wa=ui.colw[A],sum=wa+ui.colw[B],MIN=240;
+  document.querySelectorAll('.board .col[data-col]').forEach(c=>{c.style.flex=ui.colw[c.dataset.col]+' 1 0';});
+  const mv=e=>{const na=Math.min(sum-MIN,Math.max(MIN,Math.round(wa+(e.clientX-startX)/z)));ui.colw[A]=na;ui.colw[B]=sum-na;a.style.flex=na+' 1 0';b.style.flex=(sum-na)+' 1 0';};
+  const up=()=>{sp.classList.remove('drag');document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);lsSet('rg3_colw',ui.colw);render();};
   document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);
 });
-document.addEventListener('dblclick',ev=>{const sp=ev.target.closest&&ev.target.closest('.split');if(!sp)return;delete ui.widths[sp.dataset.split];lsSet('rg3_widths',ui.widths);render();});
+// Doppelklick: die beiden Nachbarn teilen sich ihren gemeinsamen Platz zu gleichen Teilen
+document.addEventListener('dblclick',ev=>{const sp=ev.target.closest&&ev.target.closest('.split');if(!sp)return;const [a,b]=_splitCols(sp);if(!a||!b)return;_freezeWeights(ui.zoom/100);const A=sp.dataset.split,B=sp.dataset.right,m=Math.round((ui.colw[A]+ui.colw[B])/2);ui.colw[A]=m;ui.colw[B]=m;lsSet('rg3_colw',ui.colw);render();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll(true);});
 window.addEventListener('focus',()=>poll(true));
 window.addEventListener('beforeunload',()=>{commitDraft();});
