@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>try{var _t=localStorage.getItem('rg3_theme');document.documentElement.dataset.theme=(_t==='dark'||_t==='light')?_t:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}catch(e){document.documentElement.dataset.theme='light';}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>ResearchGraph</title>
@@ -375,6 +376,28 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .sl.prog{color:var(--ink-2)}
 .sl.prog svg{color:var(--cm,var(--prog))}
 .idea .ic{color:var(--cm)}
+
+/* Dark Mode (Dominik 06.11.2026): eigener Block, der helle Modus bleibt unberuehrt. Ruhige, nicht schwarze Flaechen,
+   keine Pastelle; Projektfarben bleiben, ihre Marken werden in projVars() fuer dunkles Papier aufgehellt. */
+:root[data-theme="dark"]{color-scheme:dark;
+  --ink:#E6E9EE;--ink-2:#C3C9D2;--ink-3:#9AA3AF;--ink-4:#78818E;
+  --paper:#171C23;--bg:#0F1318;--rule:#2A313B;--rule-2:#3A434F;--hover:#1F252E;--sel:#27313D;
+  --prog-ink:#F0B54A;--danger:#FF8A5C}
+[data-theme="dark"] .nav button.on,[data-theme="dark"] .tbtn.on,[data-theme="dark"] .seg button.on,[data-theme="dark"] .btn.primary{color:#10141B}
+[data-theme="dark"] .toast{background:#2B3444;color:#E8ECF2}
+[data-theme="dark"] .toast.err{background:#5A1F00}
+[data-theme="dark"] .sync.err{background:#3A2216}
+[data-theme="dark"] .btn.danger,[data-theme="dark"] .choice.danger,[data-theme="dark"] .sync.err{border-color:#7A3A1E}
+[data-theme="dark"] .cb.s-blocked{background:var(--rule-2);color:var(--ink)}
+[data-theme="dark"] .md{color:var(--ink)}
+[data-theme="dark"] .md code{background:var(--hover);border-color:var(--rule)}
+[data-theme="dark"] .md pre,[data-theme="dark"] .md th,[data-theme="dark"] .archb{background:#1C222A}
+[data-theme="dark"] .md a{color:#7FB8F0}
+[data-theme="dark"] .s .tt{color:#B4BCC7}
+[data-theme="dark"] .s.done .tt{color:#6E7784;text-decoration-color:#4A525E}
+[data-theme="dark"] .scrim,[data-theme="dark"] .dscrim{background:rgba(0,0,0,.5)}
+[data-theme="dark"] .menu,[data-theme="dark"] .drawer,[data-theme="dark"] .dlg{box-shadow:0 12px 40px rgba(0,0,0,.55)}
+[data-theme="dark"] .col-h .dot,[data-theme="dark"] .strip .dot{box-shadow:0 0 0 1px rgba(255,255,255,.25)}
 </style>
 </head>
 <body>
@@ -417,15 +440,15 @@ const PRANK={high:0,medium:1,low:2};
 // Gezeichnete Symbole (gleich gross, unabhaengig von der Schrift). Form traegt die Bedeutung: leer / Punkt / Strich / Haken.
 const CB_ICON={open:'',
   in_progress:'<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2.7" fill="currentColor"/></svg>',
-  blocked:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 9.4l6.8-6.8" stroke="#172033" stroke-width="2" stroke-linecap="round"/></svg>',
+  blocked:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 9.4l6.8-6.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   done:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.3 6.4l2.4 2.4 5-5.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
 const IC_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 3.5L5 7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 3v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const IC_SOLO='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M5.5 11.5h-3v-3M11.5 2.5L8 6M2.5 11.5L6 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const IC_MORE='<svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="3" cy="7" r="1.3" fill="currentColor"/><circle cx="7" cy="7" r="1.3" fill="currentColor"/><circle cx="11" cy="7" r="1.3" fill="currentColor"/></svg>';
 const IC_NOTES='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 3h8M2 6h8M2 9h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-const IC_STAR='<svg class="star" viewBox="0 0 12 12" aria-label="Focus"><path d="M6 .8l1.55 3.25 3.55.45-2.6 2.45.68 3.5L6 8.75 2.82 10.45l.68-3.5L.9 4.5l3.55-.45z" fill="#172033"/></svg>';
+const IC_STAR='<svg class="star" viewBox="0 0 12 12" aria-label="Focus"><path d="M6 .8l1.55 3.25 3.55.45-2.6 2.45.68 3.5L6 8.75 2.82 10.45l.68-3.5L.9 4.5l3.55-.45z" fill="currentColor"/></svg>';
 const IC_IDEA='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1l1.3 3.7L11 6 7.3 7.3 6 11 4.7 7.3 1 6l3.7-1.3z" fill="currentColor"/></svg>';
-const IC_PROG='<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.4" fill="#fff" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="6" r="1.9" fill="currentColor"/></svg>';
+const IC_PROG='<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.4" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="6" r="1.9" fill="currentColor"/></svg>';
 const IC_LAB='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5h5M6.5 1.5v4.8L2.6 13a1.2 1.2 0 0 0 1 1.8h8.8a1.2 1.2 0 0 0 1-1.8L9.5 6.3V1.5M4.6 10h6.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
 const IC_GEN='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
 // Farbe = Projekt, Art = Form (Dominik 06.11.2026): jede Spalte traegt nur ihre Projektfarbe, Status/Abschnitt unterscheidet die Form.
@@ -433,8 +456,14 @@ const IC_GEN='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5
 function lumOf(r,g,b){const f=x=>{x/=255;return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4);};return .2126*f(r)+.7152*f(g)+.0722*f(b);}
 function rgbOf(c){const m=/^#?([0-9a-f]{6})$/i.exec(c||'');return m?[0,2,4].map(i=>parseInt(m[1].substr(i,2),16)):null;}
 function onColor(c){const v=rgbOf(c);return v&&lumOf(...v)>.36?'#172033':'#fff';}
-function markColor(c){let v=rgbOf(c);if(!v)return '#505050';for(let k=0;k<12&&1.05/(lumOf(...v)+.05)<2.6;k++)v=v.map(x=>x*.88);return '#'+v.map(x=>Math.round(x).toString(16).padStart(2,'0')).join('');}
-function projVars(p){const c=rgbOf(p&&p.color)?p.color:'#505050',m=markColor(c);return `--c:${c};--on:${onColor(c)};--cm:${m};--cmon:${onColor(m)}`;}
+function isDark(){return document.documentElement.dataset.theme==='dark';}
+function markColor(c){let v=rgbOf(c);if(!v)return '#505050';
+  if(isDark()){const bg=lumOf(23,28,35);for(let k=0;k<14&&(lumOf(...v)+.05)/(bg+.05)<3;k++)v=v.map(x=>x+(255-x)*.15);} // dunkles Papier: aufhellen bis Kontrast 3
+  else for(let k=0;k<12&&1.05/(lumOf(...v)+.05)<2.6;k++)v=v.map(x=>x*.88);
+  return '#'+v.map(x=>Math.round(x).toString(16).padStart(2,'0')).join('');}
+function mixHex(a,b,t){const x=rgbOf(a),y=rgbOf(b);return '#'+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,'0')).join('');}
+// Im Dunkeln die Flaechen (Kopfband, Kanten) um 30 % Richtung Papier daempfen, damit Gelb/Tuerkis nicht blenden
+function projVars(p){const c0=rgbOf(p&&p.color)?p.color:'#505050',c=isDark()?mixHex(c0,'#171c23',.3):c0,m=markColor(c0);return `--c:${c};--on:${onColor(c)};--cm:${m};--cmon:${onColor(m)}`;}
 const IC_BLOCK='<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.9 9.1l6.2-6.2" stroke="currentColor" stroke-width="1.5"/></svg>';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -912,6 +941,7 @@ function renderTop(){
     <span class="search"><input type="text" data-in="q" value="${esc(ui.q)}" placeholder="Search" aria-label="Search">${ui.q?'<button data-act="clearQ" aria-label="Clear search">✕</button>':''}</span>
     ${ui.page==='tasks'?`<button class="tbtn${ui.hideDone?' on':''}" data-act="toggleDone" aria-pressed="${ui.hideDone}" title="Show or hide steps that are already done">${ui.hideDone?'Done steps hidden':'Done steps shown'}</button>`:''}
     ${frozen?`<button class="tbtn${ui.showFrozen?' on':''}" data-act="toggleFrozen" aria-pressed="${ui.showFrozen}">❄ ${ui.showFrozen?'Hide':'Show'} frozen (${frozen})</button>`:''}
+    <button class="tbtn" data-act="theme" title="Switch between light and dark">${isDark()?'☀ Light':'☾ Dark'}</button>
     <span class="zoom" title="Size"><button data-act="zoom" data-v="-10" aria-label="Smaller">−</button><span>${ui.zoom}%</span><button data-act="zoom" data-v="10" aria-label="Larger">+</button></span>
     <button class="tbtn" data-act="feedback" title="Report a bug or send a wish — opens an issue on GitHub">✉ Feedback</button>
     ${sync}
@@ -1287,6 +1317,7 @@ const ACT={
   clearQ:()=>{ui.q='';render();},
   toggleDone:()=>{ui.hideDone=!ui.hideDone;localStorage.setItem('rg_hideDoneSubtasks',ui.hideDone?'1':'');render();},
   toggleFrozen:()=>{ui.showFrozen=!ui.showFrozen;render();},
+  theme:()=>{const t=isDark()?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('rg3_theme',t);}catch(e){}render();},
   zoom:el=>{ui.zoom=Math.max(60,Math.min(160,ui.zoom+(+A(el).v)));localStorage.setItem('rg3_zoom',ui.zoom);render();},
   menu:el=>{ui.menu=ui.menu===A(el).v?null:A(el).v;render();},
   closeToast:()=>{ui.toast=null;render();},
