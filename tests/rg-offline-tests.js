@@ -62,26 +62,28 @@ const typeIn=(env,el,v)=>{el.focus();el.value=v;el.dispatchEvent(new env.w.Event
 const tick=()=>sleep(10);
 const until=async(cond,ms)=>{const t0=Date.now();while(Date.now()-t0<(ms||8000)){if(cond())return true;await sleep(40);}return false;};
 const P0=snap.projects[0].id,P1=snap.projects[1].id;
+// Spaltenzahl aus dem Snapshot, nicht fest verdrahtet — der Gist bekommt neue Projekte
+const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
 
 (async()=>{
   // ── 1. Start: laedt von GitHub, zeigt alle Projekte als Spalten, schreibt nichts ──
   console.log('1. boot + render');
   let gh=makeGitHub(snapText);
   let env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,{projects:[]},{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
-  ok(await until(()=>env.doc.querySelectorAll('.col').length===3),'3 project columns after load');
+  ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),NC+' project columns after load');
   ok(env.errors.length===0,'no errors at boot: '+env.errors.join('\n'));
   ok(gh.log.every(l=>l.startsWith('GET')),'loading writes nothing');
   ok(gh.revs.length===1,'no revision created by loading');
   // Jede offene Subtask sichtbar (Regel 7), wenn "done steps" gezeigt werden
-  const openSubs=snap.projects.reduce((n,p)=>n+p.todos.filter(t=>t.status!=='done').reduce((m,t)=>m+(t.subtasks||[]).length,0),0);
+  const openSubs=snap.projects.reduce((n,p)=>n+p.todos.filter(t=>t.status!=='done'&&!t.archived).reduce((m,t)=>m+(t.subtasks||[]).filter(x=>!x.archived).length,0),0);
   ok(env.doc.querySelectorAll('.col .subs .s:not(.hidden-n)').length===openSubs,'all subtasks of open tasks shown ('+openSubs+')');
-  const openTodos=snap.projects.reduce((n,p)=>n+p.todos.filter(t=>t.status!=='done').length,0);
+  const openTodos=snap.projects.reduce((n,p)=>n+p.todos.filter(t=>t.status!=='done'&&!t.archived).length,0);
   ok(env.doc.querySelectorAll('.col .t').length===openTodos,'every open task shown, no done task ('+openTodos+')');
   const ideasN=snap.projects.reduce((n,p)=>n+p.ideas.filter(i=>!i.archived).length,0);
   ok(env.doc.querySelectorAll('.col .idea').length===ideasN,'all open ideas shown ('+ideasN+')');
-  ok(env.doc.querySelectorAll('.col .t.focus').length===snap.projects.filter(p=>p.todos.some(t=>t.focus&&t.status!=='done')).length,'one focus task marked per project');
+  ok(env.doc.querySelectorAll('.col .t.focus').length===snap.projects.filter(p=>p.todos.some(t=>t.focus&&t.status!=='done'&&!t.archived)).length,'one focus task marked per project');
   // Board + Journal + jede Schublade
-  for(const pg of ['board','journal','tasks']){click(env,`[data-act="page"][data-v="${pg}"]`);await tick();ok(env.doc.querySelectorAll('.col').length===3,'3 columns on '+pg);}
+  for(const pg of ['board','journal','tasks']){click(env,`[data-act="page"][data-v="${pg}"]`);await tick();ok(env.doc.querySelectorAll('.col').length===NC,NC+' columns on '+pg);}
   let opened=0;
   for(const p of snap.projects){
     const items=[...p.todos.map(t=>({type:'todo',id:t.id})),...p.todos.flatMap(t=>(t.subtasks||[]).map(s=>({type:'step',id:t.id,sid:s.id}))),...p.ideas.map(i=>({type:'idea',id:i.id})),...p.elements.map(e=>({type:'element',id:e.id})),...p.journal.map(e=>({type:'entry',id:e.id}))];
@@ -93,8 +95,8 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
 
   // ── 2. Abhaken: eine Op, ein PATCH, Rest der Datei bytegleich ──
   console.log('2. tick a step');
-  const t0=snap.projects[0].todos.find(t=>t.status!=='done'&&(t.subtasks||[]).some(s=>s.status!=='done'));
-  const s0=t0.subtasks.find(s=>s.status!=='done');
+  const t0=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.archived&&(t.subtasks||[]).some(s=>s.status!=='done'&&!s.archived));
+  const s0=t0.subtasks.find(s=>s.status!=='done'&&!s.archived);
   click(env,`[data-act="cycleStep"][data-sid="${s0.id}"]`);await tick();
   ok(env.doc.querySelector(`[data-act="cycleStep"][data-sid="${s0.id}"]`).className.includes('s-'+({open:'in_progress',in_progress:'done'}[s0.status||'open'])),'step cycles one state at once on screen');
   ok(await until(()=>gh.revs.length===2),'one upload after the click');
@@ -127,7 +129,7 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   env.w.document.dispatchEvent(new env.w.Event('visibilitychange'));
   const agentOnlyV=gh.agentWrite(doc=>{doc.projects[0].todos.find(t=>t.id===t0.id).notes+='\nAGENT NOTE LINE';});
   // sofort (bevor die App pollt) abhaken
-  const s1=t0.subtasks.find(s=>s.id!==s0.id&&s.status!=='done')||s0;
+  const s1=t0.subtasks.find(s=>s.id!==s0.id&&s.status!=='done'&&!s.archived)||s0;
   click(env,`[data-act="cycleStep"][data-sid="${s1.id}"]`);
   ok(await until(()=>{const d=gh.doc();const tt=d.projects[0].todos.find(t=>t.id===t0.id);return tt.notes.includes('AGENT NOTE LINE')&&tt.subtasks.find(s=>s.id===s1.id).status!==(snap.projects[0].todos.find(t=>t.id===t0.id).subtasks.find(s=>s.id===s1.id).status||'open');},6000),'agent note AND my tick both on GitHub');
   ok(!env.doc.querySelector('.dlg'),'no conflict dialog');
@@ -169,10 +171,10 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   const P2=snap.projects[2].id;
   env.w.eval(`ui.menu='p:${P2}';render()`);await tick();
   click(env,`[data-act="freeze"][data-pid="${P2}"]`);await tick();
-  ok(env.doc.querySelectorAll('.col').length===2,'frozen project hidden');
+  ok(env.doc.querySelectorAll('.col').length===NC-1,'frozen project hidden');
   ok(await until(()=>gh.doc().projects[2].frozen===true),'frozen flag on GitHub');
   click(env,'[data-act="toggleFrozen"]');await tick();
-  ok(env.doc.querySelectorAll('.col').length===3,'show frozen brings it back');
+  ok(env.doc.querySelectorAll('.col').length===NC,'show frozen brings it back');
   env.w.eval(`ui.menu='p:${P2}';render()`);await tick();click(env,`[data-act="freeze"][data-pid="${P2}"]`);
   ok(await until(()=>!('frozen' in gh.doc().projects[2])),'unfreeze removes the flag');
   // Projekt umbenennen mit sichtbarer Farbwahl
@@ -187,16 +189,18 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   console.log('7b. collapse + one-project mode');
   await sleep(800);revsBefore7b=gh.revs.length;
   click(env,`[data-act="collapse"][data-pid="${P1}"]`);await tick();
-  ok(env.doc.querySelectorAll('.col').length===2&&env.doc.querySelector('.strip'),'collapsed column becomes a strip');
+  ok(env.doc.querySelectorAll('.col').length===NC-1&&env.doc.querySelector('.strip'),'collapsed column becomes a strip');
+  {const sp=env.doc.querySelector('.split+.strip')?.previousElementSibling,lc=sp?.previousElementSibling;
+   ok(sp&&lc&&lc.matches('.col')&&lc.dataset.col===sp.dataset.split,'column left of a strip keeps its resize handle (#5)');}
   click(env,'.strip');await tick();
-  ok(env.doc.querySelectorAll('.col').length===3&&!env.doc.querySelector('.strip'),'strip click expands it again');
+  ok(env.doc.querySelectorAll('.col').length===NC&&!env.doc.querySelector('.strip'),'strip click expands it again');
   click(env,`[data-act="solo"][data-pid="${P1}"]`);await tick();
   ok(env.doc.querySelector('.one')&&env.doc.querySelector('.one .col-h h2').textContent.includes(snap.projects[1].name),'solo shows only that project');
   ok(env.doc.querySelectorAll('.one-b>div').length===3,'one-project mode: Lab | General | Ideas side by side');
   click(env,`[data-act="pickOne"][data-pid="${P0}"]`);await tick();
   ok(env.doc.querySelector('.one .col-h h2').textContent.includes(snap.projects[0].name),'project tab switches with one click');
   click(env,'[data-act="mode"][data-v="all"]');await tick();
-  ok(env.doc.querySelectorAll('.col').length===3,'back to all projects');
+  ok(env.doc.querySelectorAll('.col').length===NC,'back to all projects');
   ok(gh.revs.length===revsBefore7b,'layout changes write nothing to GitHub');
 
   // ── 8. Rest der Daten unberuehrt ──
@@ -214,7 +218,7 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   failing.fetch=async(u,i)=>{calls++;if(i&&i.method==='PATCH')return {ok:false,status:500,headers:{get:()=>null},json:async()=>({}),text:async()=>''};return gh.fetch(u,i);};
   env=boot(failing,{timing:{poll:50,push:20,cap:30},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
   await sleep(300);
-  const t2=snap.projects[0].todos.find(t=>t.status!=='done');
+  const t2=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.archived);
   for(let k=0;k<40;k++){env.w.eval(`(()=>{const t=findT(${JSON.stringify(P0)},${JSON.stringify(t2.id)});change(${JSON.stringify(P0)},()=>{t.notes=(t.notes||'')+'x';});})()`);await sleep(25);}
   await sleep(2500);
   ok(calls<=30,'at most 30 requests in the burst (got '+calls+')');
@@ -239,7 +243,7 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   console.log('11. offline then connect');
   gh=makeGitHub(snapText);
   env=boot(gh,{seed:ls=>seed(ls,snap,{rg_gh_gist:'G'})});await sleep(100);
-  ok(env.doc.querySelectorAll('.col').length===3,'local copy shown without token');
+  ok(env.doc.querySelectorAll('.col').length===NC,'local copy shown without token');
   click(env,`[data-act="cycle"][data-id="${t2.id}"]`);await tick();
   ok(gh.log.length===0,'no network without token');
   click(env,'[data-act="openSync"]');await tick();
@@ -252,8 +256,8 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   console.log('12. rapid ticking under the real cap');
   gh=makeGitHub(snapText);
   env=boot(gh,{timing:{poll:10000,push:300,burst:3000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
-  ok(await until(()=>env.doc.querySelectorAll('.col').length===3),'loaded');
-  const steps=[];snap.projects.forEach(p=>p.todos.filter(t=>t.status!=='done').forEach(t=>(t.subtasks||[]).filter(s=>s.status!=='done').forEach(s=>steps.push({pid:p.id,tid:t.id,sid:s.id,was:s.status||'open'}))));
+  ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+  const steps=[];snap.projects.forEach(p=>p.todos.filter(t=>t.status!=='done'&&!t.archived).forEach(t=>(t.subtasks||[]).filter(s=>s.status!=='done'&&!s.archived).forEach(s=>steps.push({pid:p.id,tid:t.id,sid:s.id,was:s.status||'open'}))));
   const pick=steps.slice(0,15);const reqBefore=gh.log.length;
   for(const x of pick){click(env,`[data-act="cycleStep"][data-sid="${x.sid}"]`);await sleep(700);}
   ok(await until(()=>{const d=gh.doc();return pick.every(x=>{const t=d.projects.find(p=>p.id===x.pid).todos.find(t=>t.id===x.tid);return (t.subtasks.find(s=>s.id===x.sid).status||'open')!==x.was;});},40000),'all 15 ticks reached GitHub');
@@ -265,8 +269,8 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   console.log('13. inline priority + step, undo/redo, feedback');
   gh=makeGitHub(snapText);
   env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
-  ok(await until(()=>env.doc.querySelectorAll('.col').length===3),'loaded');
-  const tq=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.focus);
+  ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+  const tq=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.focus&&!t.archived);
   const prOld=typeof tq.priority==='boolean'?(tq.priority?'high':'low'):(tq.priority||'low'),prNew=prOld==='high'?'low':'high';
   ok(!env.doc.querySelector('.drawer'),'no drawer open');
   click(env,`.col .t [data-act="setPrio"][data-id="${tq.id}"][data-v="${prNew}"]`);await tick();
@@ -295,13 +299,13 @@ const P0=snap.projects[0].id,P1=snap.projects[1].id;
   key(env,body,'y',{ctrlKey:true});await tick();
   ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===tq.id).priority===prNew),'Ctrl+Y redoes the priority');
   // Versehentlich abgehakt -> Strg+Z (der gemeldete Fall)
-  const tz=snap.projects[1].todos.find(t=>t.status==='open'||!t.status);
+  const tz=snap.projects[1].todos.find(t=>(t.status==='open'||!t.status)&&!t.archived);
   click(env,`[data-act="cycle"][data-id="${tz.id}"]`);click(env,`[data-act="cycle"][data-id="${tz.id}"]`);await tick();
   ok(await until(()=>gh.doc().projects[1].todos.find(t=>t.id===tz.id).status==='done'),'task ticked done by two clicks');
   z();await tick();z();await tick();
   ok(await until(()=>{const t=gh.doc().projects[1].todos.find(t=>t.id===tz.id);return (t.status||'open')===(tz.status||'open')&&(t.completedAt??null)===(tz.completedAt??null);}),'Ctrl+Z twice restores status and completedAt');
   // Archivierte Aufgabe: Archiv-Liste zeigt sie mit Schritt-Stand, Restore und Strg+Z bringen sie byte-gleich zurueck
-  const td=snap.projects[0].todos.find(t=>t.status!=='done'&&(t.subtasks||[]).length>1&&t.id!==tq.id&&!t.focus);
+  const td=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.archived&&(t.subtasks||[]).filter(x=>!x.archived).length>1&&t.id!==tq.id&&!t.focus);
   env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P0)},id:${JSON.stringify(td.id)}})`);await tick();
   click(env,'.drawer [data-act="archiveAsk"][data-kind="todo"]');await tick();click(env,'[data-act="doArchive"]');
   ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===td.id).archived===true),'task archived');

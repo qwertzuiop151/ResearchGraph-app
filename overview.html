@@ -891,11 +891,12 @@ function renderMain(){
   if(!projs.length)return `<main class="board" data-k="main"><div class="nodata">${ghToken?'No active project. Use ⋯ → New project.':'Connect GitHub (top right) to load your ResearchGraph data.'}</div></main>`;
   if(ui.mode==='one'){const p=projById(onePid());return `<main class="board" data-k="main-one-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${renderOne(p)}</div></main>`;}
   let html='',prevOpen=null;
+  // Jede offene Spalte bekommt rechts ihren Zieh-Griff, sobald etwas folgt — auch wenn das eine eingeklappte Leiste ist (#5)
   projs.forEach(p=>{
-    if(ui.collapsed.has(p.id)){if(html)html+='<div class="gap"></div>';html+=renderStrip(p);prevOpen=null;return;}
     if(prevOpen)html+=`<div class="split" data-split="${esc(prevOpen)}" title="Drag to resize · double-click to reset"></div>`;
     else if(html)html+='<div class="gap"></div>';
-    html+=renderCol(p);prevOpen=p.id;
+    const shut=ui.collapsed.has(p.id);
+    html+=shut?renderStrip(p):renderCol(p);prevOpen=shut?null:p.id;
   });
   return `<main class="board" data-k="main-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${html}</div></main>`;
 }
