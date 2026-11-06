@@ -368,8 +368,8 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .t>.tm>.tt{font-weight:650;font-size:14px;color:var(--ink)}
 .t.focus{background:var(--paper);box-shadow:inset 4px 0 0 var(--c)}
 .t.focus .tt .star path{fill:var(--cm)}
-.s .tt{color:#4A5466}
-.s.done .tt{color:#9AA2AE}
+.s .tt{color:var(--ink)}
+.s.done .tt{color:#6F7885}
 /* Status nur ueber die Form: offen = leer, in progress = Rand + Punkt, erledigt = gefuellt + Haken */
 .cb.s-in_progress{background:var(--paper);border:2px solid var(--cm,var(--prog));color:var(--cm,var(--prog))}
 .cb.s-done{background:var(--cm,var(--done));border-color:var(--cm,var(--done));color:var(--cmon,#fff)}
@@ -380,7 +380,7 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 /* Dark Mode (Dominik 06.11.2026): eigener Block, der helle Modus bleibt unberuehrt. Ruhige, nicht schwarze Flaechen,
    keine Pastelle; Projektfarben bleiben, ihre Marken werden in projVars() fuer dunkles Papier aufgehellt. */
 :root[data-theme="dark"]{color-scheme:dark;
-  --ink:#E6E9EE;--ink-2:#C3C9D2;--ink-3:#9AA3AF;--ink-4:#78818E;
+  --ink:#ECEFF3;--ink-2:#DCE1E7;--ink-3:#BCC4CE;--ink-4:#949DA9;
   --paper:#171C23;--bg:#0F1318;--rule:#2A313B;--rule-2:#3A434F;--hover:#1F252E;--sel:#27313D;
   --prog-ink:#F0B54A;--danger:#FF8A5C}
 [data-theme="dark"] .nav button.on,[data-theme="dark"] .tbtn.on,[data-theme="dark"] .seg button.on,[data-theme="dark"] .btn.primary{color:#10141B}
@@ -393,8 +393,8 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 [data-theme="dark"] .md code{background:var(--hover);border-color:var(--rule)}
 [data-theme="dark"] .md pre,[data-theme="dark"] .md th,[data-theme="dark"] .archb{background:#1C222A}
 [data-theme="dark"] .md a{color:#7FB8F0}
-[data-theme="dark"] .s .tt{color:#B4BCC7}
-[data-theme="dark"] .s.done .tt{color:#6E7784;text-decoration-color:#4A525E}
+[data-theme="dark"] .s .tt{color:var(--ink)}
+[data-theme="dark"] .s.done .tt{color:#9AA3AF;text-decoration-color:#5A636F}
 [data-theme="dark"] .scrim,[data-theme="dark"] .dscrim{background:rgba(0,0,0,.5)}
 [data-theme="dark"] .menu,[data-theme="dark"] .drawer,[data-theme="dark"] .dlg{box-shadow:0 12px 40px rgba(0,0,0,.55)}
 [data-theme="dark"] .col-h .dot,[data-theme="dark"] .strip .dot{box-shadow:0 0 0 1px rgba(255,255,255,.25)}
