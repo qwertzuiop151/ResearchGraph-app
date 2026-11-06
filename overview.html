@@ -482,7 +482,7 @@ function md(src){
 // 4. DATEN — lokale Kopie in localStorage (Keys wie overview.html), Wahrheit ist der Gist
 // ════════════════════════════════════════════════════════════════════════════
 const S={projects:[],data:{}};
-function _arch(p){const o={};if(p&&p.archived){o.archived=true;o.archivedAt=p.archivedAt||null;}if(p&&p.frozen){o.frozen=true;o.frozenAt=p.frozenAt||null;}return o;} // nur wenn gesetzt
+function _arch(p){const o={};if(p&&p.archived){o.archived=true;o.archivedAt=p.archivedAt||null;}if(p&&p.frozen){o.frozen=true;o.frozenAt=p.frozenAt||null;}if(p&&Array.isArray(p.categories)&&p.categories.length)o.categories=p.categories.slice();return o;} // nur wenn gesetzt
 function projById(id){return S.projects.find(p=>p.id===id);}
 function liveProjects(){return S.projects.filter(p=>!p.archived);}
 function loadProject(pid){
@@ -813,6 +813,9 @@ function archNote(x){return isArch(x)?`<div class="archb"><b>Archived</b>${x.arc
 function archCount(d){let n=d.todos.filter(isArch).length+d.ideas.filter(isArch).length+d.elements.filter(isArch).length;d.todos.forEach(t=>{if(!isArch(t))n+=(t.subtasks||[]).filter(isArch).length;});return n;}
 function tPr(t){return typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low');}
 function tCat(t){return t.category||'general';}
+// Eigene Listen pro Projekt (Dominik 06.11.2026): Projektfeld `categories` (Namen) haelt sie auch leer am Leben
+function projCats(p,d){const out=['labor','general'];const add=c=>{if(c&&!out.some(x=>x.toLowerCase()===String(c).toLowerCase()))out.push(c);};((p&&p.categories)||[]).forEach(add);((d&&d.todos)||[]).forEach(t=>{if(!isArch(t))add(tCat(t));});return out;}
+function catLabel(c){return c==='labor'?'Lab':c==='general'?'General':c.charAt(0).toUpperCase()+c.slice(1);}
 function sSt(s){return s.status||'open';}
 function focusOf(d){return d.todos.find(t=>(t.focus||t.northStar)&&!isArch(t))||null;}
 function focusStepOf(d,t){const f=focusOf(d);return f&&f.id===t.id?(t.subtasks||[]).find(s=>s.focus)||null:null;}
@@ -938,19 +941,19 @@ function colHead(p,count,inOne){
   return `<div class="col-h" style="${projVars(p)}"><span class="dot"></span><h2 title="${esc(p.name)}">${p.frozen?'❄ ':''}${esc(p.name)}</h2><span class="n">${esc(count)}</span>
     ${inOne?'':`<button class="icon" data-act="collapse" data-pid="${esc(p.id)}" title="Collapse this column" aria-label="Collapse ${esc(p.name)}">${IC_COLLAPSE}</button><button class="icon" data-act="solo" data-pid="${esc(p.id)}" title="Show only this project" aria-label="Show only ${esc(p.name)}">${IC_SOLO}</button>`}
     <span class="menu-wrap"><button class="icon" data-act="menu" data-v="p:${esc(p.id)}" aria-label="Project menu">${IC_MORE}</button>
-    ${ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}">Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive project (finished)</button></div>`:''}</span></div>`;
+    ${ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="newList" data-pid="${esc(p.id)}">New list…</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}">Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive project (finished)</button></div>`:''}</span></div>`;
 }
 // Bausteine der Task-Seite: Focus, je Kategorie ein Abschnitt, dazu der Ideen-Abschnitt
 function taskParts(p){
   const d=S.data[p.id],pid=p.id,f=focusOf(d);
   const open=d.todos.filter(t=>tSt(t)!=='done'&&!isArch(t));
-  const cats=['labor','general'];open.forEach(t=>{if(!cats.includes(tCat(t)))cats.push(tCat(t));});
+  const own=(p.categories||[]),cats=projCats(p,{todos:open});
   const parts={focus:(f&&tSt(f)!=='done'&&todoHit(f))?renderTodo(p,f,true):'',cats:{}};
   cats.forEach(c=>{
     const list=open.filter(t=>tCat(t)===c&&!(f&&t.id===f.id)&&todoHit(t)).sort(byPrio);
-    const label=c==='labor'?'Lab':c==='general'?'General':c.charAt(0).toUpperCase()+c.slice(1);
+    const label=catLabel(c);
     const add=ui.adding===pid+'|'+c;
-    if(!list.length&&!add&&c!=='labor'&&c!=='general')return;
+    if(!list.length&&!add&&c!=='labor'&&c!=='general'&&!own.includes(c))return;
     parts.cats[c]=`<div class="sec-h" data-k="sh-${esc(c)}"><i class="sec-ic">${c==='labor'?IC_LAB:IC_GEN}</i><span>${esc(label)}</span><span class="c">${list.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|'+c)}" title="Add a ${esc(label.toLowerCase())} task" aria-label="Add a ${esc(label.toLowerCase())} task">＋</button></div>`
       +(add?`<input class="add-in" data-k="ai-${esc(c)}" data-add="todo" data-pid="${esc(pid)}" data-cat="${esc(c)}" placeholder="New task — Enter adds, Esc stops">`:'')
       +list.map(t=>renderTodo(p,t,false)).join('');
@@ -1084,7 +1087,7 @@ function renderDrawer(){
   if(dr.type==='todo'){
     const t=findT(dr.pid,dr.id);if(!t)return '';
     const st=tSt(t),pr=tPr(t),isF=focusOf(d)?.id===t.id,k=dr.pid+'|'+t.id,ia=pa+` data-id="${esc(t.id)}"`;
-    const cats=[['labor','','Lab'],['general','','General']];if(!['labor','general'].includes(tCat(t)))cats.push([tCat(t),'',tCat(t)]);
+    const cats=projCats(p,d).map(c=>[c,'',catLabel(c)]);
     const subs=(t.subtasks||[]).filter(s=>!isArch(s)),asubs=(t.subtasks||[]).filter(isArch);
     head=`<div style="flex:1;min-width:0"><div class="k">Task · ${esc(p.name)}${isF?' · ★ Focus':''}${isArch(t)?' · archived':''}</div>${titleIn('todo.text|'+k,t.text,'Task')}</div>`;
     body=`${archNote(t)}<div class="kv">
@@ -1178,6 +1181,10 @@ function renderDialog(){
       <div class="fld"><label for="pj">Name</label><input id="pj" type="text" data-in="dlg" data-name="name" value="${esc(d.name)}" autocomplete="off">${d.err?`<div class="err">${esc(d.err)}</div>`:''}</div>
       <div class="fld"><span class="k">Colour</span><div class="sws" role="radiogroup">${cols.map(c=>`<button class="sw${c===d.color?' on':''}" role="radio" aria-checked="${c===d.color}" data-act="pickColor" data-c="${esc(c)}"><i style="--c:${esc(c)};color:${_ink(c)}">${c===d.color?'✓':''}</i>${esc(PROJ_COLOR_NAMES[c]||'Current')}</button>`).join('')}</div></div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="saveProject">${d.mode==='new'?'Create project':'Save'}</button></div>`;
+  }else if(d.type==='list'){
+    inner=`<h2>New list in ${esc((projById(d.pid)||{}).name||'')}</h2><p>A list of its own next to Lab and General — for example “Writing” or “Orders”.</p>
+      <div class="fld"><label for="ln">Name</label><input id="ln" type="text" data-in="dlg" data-name="name" value="${esc(d.name)}" autocomplete="off">${d.err?`<div class="err">${esc(d.err)}</div>`:''}</div>
+      <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="saveList">Create list</button></div>`;
   }else if(d.type==='sync'){
     if(!ghToken){
       inner=`<h2>Connect GitHub</h2><p>Your ResearchGraph data lives in a private GitHub gist. Paste a personal access token with the <b>gist</b> scope to load it and keep it live.</p>
@@ -1319,6 +1326,14 @@ const ACT={
   newProject:()=>{openDialog({type:'project',mode:'new',name:'',color:PROJ_COLORS[S.projects.length%PROJ_COLORS.length]});ui.focusSel='#pj';},
   editProject:el=>{const p=projById(A(el).pid);if(!p)return;openDialog({type:'project',mode:'edit',pid:p.id,name:p.name,color:p.color||PROJ_COLORS[0]});ui.focusSel='#pj';},
   pickColor:el=>{ui.dialog.color=A(el).c;render();},
+  newList:el=>{ui.menu=null;openDialog({type:'list',pid:A(el).pid,name:''});ui.focusSel='#ln';},
+  saveList:()=>{
+    const d=ui.dialog,p=projById(d.pid),name=String(d.name||'').trim().replace(/\s+/g,' ');if(!p)return;
+    const taken=[...projCats(p,S.data[p.id]).map(catLabel),'Ideas','Focus'].some(x=>x.toLowerCase()===name.toLowerCase());
+    d.err=!name?'Give the list a name.':name.includes('|')?'The name cannot contain “|”.':taken?'“'+name+'” already exists in this project.':'';
+    if(d.err){ui.focusSel='#ln';render();return;}
+    ui.dialog=null;changeProject(p.id,{categories:[...(p.categories||[]),name]});toast('List “'+name+'” added to '+p.name+'.');
+  },
   saveProject:()=>{
     const d=ui.dialog,name=String(d.name||'').trim();
     if(!name){d.err='Give the project a name.';ui.focusSel='#pj';render();return;}
@@ -1422,7 +1437,7 @@ document.addEventListener('keydown',ev=>{
     if(ev.key==='Escape'){ev.preventDefault();closeDialog();return;}
     if(mod&&ev.key==='Enter'&&ui.dialog.type==='jwrite'){ev.preventDefault();ACT.jsave();return;}
     if(ev.key==='Enter'&&ui.dialog.type==='jwrite'&&t.tagName==='INPUT'){ev.preventDefault();return;} // Enter im Titel speichert nicht halbfertig
-    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='archive')ACT.doArchive();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
+    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='list')ACT.saveList();else if(d.type==='archive')ACT.doArchive();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
     return;
   }
   // Strg+Z / Strg+Y (Strg+Umschalt+Z) ueberall — nur in Textfeldern bleibt es das Rueckgaengig des Browsers fuer den Text

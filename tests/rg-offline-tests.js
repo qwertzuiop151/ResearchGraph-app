@@ -183,6 +183,20 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(env.doc.querySelector('.dlg .sw.on').textContent.includes('Blue')&&env.doc.querySelector('.dlg .sw.on i').textContent==='✓','chosen colour visibly ticked');
   click(env,'.dlg [data-act="saveProject"]');
   ok(await until(()=>gh.doc().projects[2].color==='#0050ff'),'colour saved via button');
+  // Eigene Liste anlegen (Dominik 06.11.2026): bleibt leer sichtbar, Tasks lassen sich hineinschieben
+  env.w.eval(`ui.menu='p:${P2}';render()`);await tick();click(env,`[data-act="newList"][data-pid="${P2}"]`);await tick();
+  let ln=env.doc.querySelector('#ln');ok(ln&&env.doc.activeElement===ln,'new-list dialog opens with the name field focused');
+  typeIn(env,ln,'general');key(env,ln,'Enter');await tick();
+  ok(env.doc.querySelector('.dlg .err')&&env.doc.querySelector('.dlg .err').textContent.includes('already exists'),'duplicate name refused');
+  ln=env.doc.querySelector('#ln');typeIn(env,ln,'Writing');key(env,ln,'Enter');await tick();
+  ok(!env.doc.querySelector('.dlg'),'dialog closes on Enter');
+  ok(await until(()=>JSON.stringify(gh.doc().projects[2].categories)==='["Writing"]'),'list stored on the project in GitHub');
+  ok(env.doc.querySelector(`.col[data-col="${P2}"] .sec-h[data-k="sh-Writing"]`),'empty list shown as its own section');
+  const tw=snap.projects[2].todos.find(t=>t.status!=='done'&&!t.archived);
+  env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P2)},id:${JSON.stringify(tw.id)}})`);await tick();
+  click(env,'.drawer [data-act="setCat"][data-v="Writing"]');await tick();
+  ok(await until(()=>gh.doc().projects[2].todos.find(t=>t.id===tw.id).category==='Writing'),'task moved into the new list');
+  click(env,'[data-act="closeDrawer"]');await tick();
   ok(env.errors.length===0,'no errors in editing: '+env.errors.slice(0,3).join('\n'));
 
   // ── 7b. Spalten einklappen und Ein-Projekt-Modus ──
@@ -207,7 +221,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   console.log('8. untouched data');
   remote=gh.doc();
   ['nodes','elements','tags','statuses','journal'].forEach(k=>ok(snap.projects.every((p,i)=>JSON.stringify(remote.projects[i][k])===JSON.stringify(p[k])),k+' byte-identical on GitHub'));
-  const changedTodoIds=new Set([t0.id,mine.id,oldF&&oldF.id].filter(Boolean));
+  const changedTodoIds=new Set([t0.id,mine.id,oldF&&oldF.id,tw.id].filter(Boolean));
   ok(snap.projects.every((p,i)=>p.todos.filter(t=>!changedTodoIds.has(t.id)).every(t=>JSON.stringify(remote.projects[i].todos.find(x=>x.id===t.id))===JSON.stringify(t))),'all other todos byte-identical');
   env.w.close();
 
