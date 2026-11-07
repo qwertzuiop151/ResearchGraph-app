@@ -511,7 +511,7 @@ function md(src){
 // 4. DATEN — lokale Kopie in localStorage (Keys wie overview.html), Wahrheit ist der Gist
 // ════════════════════════════════════════════════════════════════════════════
 const S={projects:[],data:{}};
-function _arch(p){const o={};if(p&&p.archived){o.archived=true;o.archivedAt=p.archivedAt||null;}if(p&&p.frozen){o.frozen=true;o.frozenAt=p.frozenAt||null;}if(p&&Array.isArray(p.categories)&&p.categories.length)o.categories=p.categories.slice();return o;} // nur wenn gesetzt
+function _arch(p){const o={};if(p&&p.archived){o.archived=true;o.archivedAt=p.archivedAt||null;}if(p&&p.frozen){o.frozen=true;o.frozenAt=p.frozenAt||null;}if(p&&Array.isArray(p.lists))o.lists=p.lists.slice();if(p&&Array.isArray(p.categories)&&p.categories.length)o.categories=p.categories.slice();return o;} // nur wenn gesetzt; `categories` nur noch Altform fuer projLists()
 function projById(id){return S.projects.find(p=>p.id===id);}
 function liveProjects(){return S.projects.filter(p=>!p.archived);}
 function loadProject(pid){
@@ -841,10 +841,22 @@ function setArchived(x,on,reason){if(on){x.archived=true;x.archivedAt=nowIso();x
 function archNote(x){return isArch(x)?`<div class="archb"><b>Archived</b>${x.archivedAt?' '+esc(fmtDT(x.archivedAt)):''}${x.archivedReason?' — '+esc(x.archivedReason):''}</div>`:'';}
 function archCount(d){let n=d.todos.filter(isArch).length+d.ideas.filter(isArch).length+d.elements.filter(isArch).length;d.todos.forEach(t=>{if(!isArch(t))n+=(t.subtasks||[]).filter(isArch).length;});return n;}
 function tPr(t){return typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low');}
-function tCat(t){return t.category||'general';}
-// Eigene Listen pro Projekt (Dominik 06.11.2026): Projektfeld `categories` (Namen) haelt sie auch leer am Leben
-function projCats(p,d){const out=['labor','general'];const add=c=>{if(c&&!out.some(x=>x.toLowerCase()===String(c).toLowerCase()))out.push(c);};((p&&p.categories)||[]).forEach(add);((d&&d.todos)||[]).forEach(t=>{if(!isArch(t))add(tCat(t));});return out;}
-function catLabel(c){return c==='labor'?'Lab':c==='general'?'General':c.charAt(0).toUpperCase()+c.slice(1);}
+// Listen (Dominik 07.11.2026): fest sind nur Lab (Schluessel 'labor', Kolben) und der Ideen-Bereich, alles andere sind
+// normale Listen. Projektfeld `lists` = geordnete Namen, 'labor' steht fuer Lab. Todo.category = Listenname, Vergleich
+// ohne Gross/Klein (altes 'general' gehoert so zur Liste "General", ohne die alten Todos umzuschreiben).
+function tCat(t){return t.category||'General';}
+function sameCat(a,b){return String(a).toLowerCase()===String(b).toLowerCase();}
+// Fehlt `lists`, wird es aus den Daten abgeleitet: Lab + General, falls irgendein Todo (auch erledigt/archiviert) dort liegt
+function projLists(p,d){
+  if(p&&Array.isArray(p.lists))return p.lists.slice();
+  const out=['labor'],add=c=>{if(c&&!out.some(x=>sameCat(x,c)))out.push(c);};
+  if(((d&&d.todos)||[]).some(t=>sameCat(tCat(t),'general')))add('General');
+  ((p&&p.categories)||[]).forEach(add);
+  return out;
+}
+// Angezeigte Listen: die gespeicherten plus jede, in der noch ein offenes Todo liegt — nie etwas verstecken
+function projCats(p){const d=S.data[p.id]||{todos:[]},out=projLists(p,d);d.todos.forEach(t=>{if(!isArch(t)&&tSt(t)!=='done'&&!out.some(x=>sameCat(x,tCat(t))))out.push(tCat(t));});return out;}
+function catLabel(c){return c==='labor'?'Lab':String(c).charAt(0).toUpperCase()+String(c).slice(1);}
 function sSt(s){return s.status||'open';}
 function focusOf(d){return d.todos.find(t=>(t.focus||t.northStar)&&!isArch(t))||null;}
 function focusStepOf(d,t){const f=focusOf(d);return f&&f.id===t.id?(t.subtasks||[]).find(s=>s.focus)||null:null;}
@@ -975,19 +987,18 @@ function colHead(p,count,inOne){
   return `<div class="col-h" style="${projVars(p)}"><span class="dot"></span><h2 title="${esc(p.name)}">${p.frozen?'❄ ':''}${esc(p.name)}</h2><span class="n">${esc(count)}</span>
     ${inOne?'':`<button class="icon" data-act="collapse" data-pid="${esc(p.id)}" title="Collapse this column" aria-label="Collapse ${esc(p.name)}">${IC_COLLAPSE}</button><button class="icon" data-act="solo" data-pid="${esc(p.id)}" title="Show only this project" aria-label="Show only ${esc(p.name)}">${IC_SOLO}</button>`}
     <span class="menu-wrap"><button class="icon" data-act="menu" data-v="p:${esc(p.id)}" aria-label="Project menu">${IC_MORE}</button>
-    ${ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="newList" data-pid="${esc(p.id)}">New list…</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}">Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive project (finished)</button></div>`:''}</span></div>`;
+    ${ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="newList" data-pid="${esc(p.id)}">New list…</button><button data-act="removeList" data-pid="${esc(p.id)}">Remove a list…</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}">Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive project (finished)</button></div>`:''}</span></div>`;
 }
 // Bausteine der Task-Seite: Focus, je Kategorie ein Abschnitt, dazu der Ideen-Abschnitt
 function taskParts(p){
   const d=S.data[p.id],pid=p.id,f=focusOf(d);
   const open=d.todos.filter(t=>tSt(t)!=='done'&&!isArch(t));
-  const own=(p.categories||[]),cats=projCats(p,{todos:open});
+  const cats=projCats(p);
   const parts={focus:(f&&tSt(f)!=='done'&&todoHit(f))?renderTodo(p,f,true):'',cats:{}};
   cats.forEach(c=>{
-    const list=open.filter(t=>tCat(t)===c&&!(f&&t.id===f.id)&&todoHit(t)).sort(byPrio);
+    const list=open.filter(t=>sameCat(tCat(t),c)&&!(f&&t.id===f.id)&&todoHit(t)).sort(byPrio);
     const label=catLabel(c);
     const add=ui.adding===pid+'|'+c;
-    if(!list.length&&!add&&c!=='labor'&&c!=='general'&&!own.includes(c))return;
     parts.cats[c]=`<div class="sec-h" data-k="sh-${esc(c)}"><i class="sec-ic">${c==='labor'?IC_LAB:IC_GEN}</i><span>${esc(label)}</span><span class="c">${list.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|'+c)}" title="Add a ${esc(label.toLowerCase())} task" aria-label="Add a ${esc(label.toLowerCase())} task">＋</button></div>`
       +(add?`<input class="add-in" data-k="ai-${esc(c)}" data-add="todo" data-pid="${esc(pid)}" data-cat="${esc(c)}" placeholder="New task — Enter adds, Esc stops">`:'')
       +list.map(t=>renderTodo(p,t,false)).join('');
@@ -1012,7 +1023,8 @@ function renderOne(p){
   const d=S.data[p.id];let cols=[];
   if(ui.page==='board')cols=boardGroups(p,d);
   else if(ui.page==='journal')cols=[journalBody(p,d)];
-  else{const x=taskParts(p),c=x.cats;cols=[x.focus+(c.labor||''),(c.general||'')+Object.entries(c).filter(([k])=>k!=='labor'&&k!=='general').map(([,v])=>v).join(''),x.ideas];}
+  else{const x=taskParts(p),c=x.cats,rest=Object.entries(c).filter(([k])=>k!=='labor').map(([,v])=>v).join('');
+    cols=('labor' in c)?[x.focus+c.labor,rest,x.ideas]:[x.focus+rest,x.ideas];cols=cols.filter((s,i)=>s||i===cols.length-1);}
   if(!cols.length)cols=['<div class="empty">Nothing here.</div>'];
   return `<section class="one" data-k="one-${esc(p.id)}" style="${projVars(p)}">${colHead(p,countLabel(p,d),true)}<div class="one-b" style="--n:${cols.length}">${cols.map((c,i)=>`<div data-k="oc-${i}">${c}</div>`).join('')}</div></section>`;
 }
@@ -1121,7 +1133,8 @@ function renderDrawer(){
   if(dr.type==='todo'){
     const t=findT(dr.pid,dr.id);if(!t)return '';
     const st=tSt(t),pr=tPr(t),isF=focusOf(d)?.id===t.id,k=dr.pid+'|'+t.id,ia=pa+` data-id="${esc(t.id)}"`;
-    const cats=projCats(p,d).map(c=>[c,'',catLabel(c)]);
+    const cl=projCats(p);if(!cl.some(c=>sameCat(c,tCat(t))))cl.push(tCat(t)); // erledigtes Todo aus einer entfernten Liste
+    const cats=cl.map(c=>[c,'',catLabel(c)]),curCat=cl.find(c=>sameCat(c,tCat(t)));
     const subs=(t.subtasks||[]).filter(s=>!isArch(s)),asubs=(t.subtasks||[]).filter(isArch);
     head=`<div style="flex:1;min-width:0"><div class="k">Task · ${esc(p.name)}${isF?' · ★ Focus':''}${isArch(t)?' · archived':''}</div>${titleIn('todo.text|'+k,t.text,'Task')}</div>`;
     body=`${archNote(t)}<div class="kv">
@@ -1129,7 +1142,7 @@ function renderDrawer(){
       ${st==='blocked'?`<span>Waiting for</span><div style="display:block">${titleIn('todo.blockedBy|'+k,t.blockedBy||'','e.g. primers, sequencing')}</div>`:''}
       <span>Priority</span><div>${seg(PRIOS.map(([v,l])=>[v,'',l]),pr,'setPrio',ia)}</div>
       <span>Focus</span><div><button class="btn${isF?' primary':''}" data-act="toggleFocus"${ia}>${isF?'★ Focus task':'☆ Make focus task'}</button></div>
-      <span>List</span><div>${seg(cats,tCat(t),'setCat',ia)}</div>
+      <span>List</span><div>${seg(cats,curCat,'setCat',ia)}</div>
       <span>Element</span><div>${t.elementId?elChip(dr.pid,t.elementId)+`<button class="lbtn" data-act="unlink"${ia}>Remove</button>`:(rowElement(t)?elChip(dr.pid,rowElement(t))+'<span class="ro">via its steps</span>':'')}<button class="lbtn" data-act="pickEl"${ia}>${t.elementId?'Change':'＋ Link element'}</button></div>
       <span>Due</span><div><input type="date" class="inl" style="width:auto" data-in="due"${ia} value="${esc(t.dueDate||'')}">${t.dueDate?`<button class="lbtn" data-act="clearDue"${ia}>Clear</button>`:''}</div>
     </div>
@@ -1216,7 +1229,7 @@ function renderDialog(){
       <div class="fld"><span class="k">Colour</span><div class="sws" role="radiogroup">${cols.map(c=>`<button class="sw${c===d.color?' on':''}" role="radio" aria-checked="${c===d.color}" data-act="pickColor" data-c="${esc(c)}"><i style="--c:${esc(c)};color:${_ink(c)}">${c===d.color?'✓':''}</i>${esc(PROJ_COLOR_NAMES[c]||'Current')}</button>`).join('')}</div></div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="saveProject">${d.mode==='new'?'Create project':'Save'}</button></div>`;
   }else if(d.type==='list'){
-    inner=`<h2>New list in ${esc((projById(d.pid)||{}).name||'')}</h2><p>A list of its own next to Lab and General — for example “Writing” or “Orders”.</p>
+    inner=`<h2>New list in ${esc((projById(d.pid)||{}).name||'')}</h2><p>A new list in this project — for example “Writing” or “Orders”. Typing “Lab” brings back a removed Lab list.</p>
       <div class="fld"><label for="ln">Name</label><input id="ln" type="text" data-in="dlg" data-name="name" value="${esc(d.name)}" autocomplete="off">${d.err?`<div class="err">${esc(d.err)}</div>`:''}</div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="saveList">Create list</button></div>`;
   }else if(d.type==='sync'){
@@ -1335,7 +1348,7 @@ const ACT={
   closeDrawer:()=>{commitDraft();ui.drawer=null;render();},
   setStatus:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tSt(t)===A(el).v)return;change(A(el).pid,()=>setTodoStatus(t,A(el).v));if(A(el).v==='blocked')ui.focusSel='textarea[data-key^="todo.blockedBy"]';},
   setPrio:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tPr(t)===A(el).v)return;change(A(el).pid,()=>{t.priority=A(el).v;t.modifiedAt=nowIso();});},
-  setCat:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tCat(t)===A(el).v)return;change(A(el).pid,()=>{t.category=A(el).v;t.modifiedAt=nowIso();});},
+  setCat:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tCat(t)===A(el).v)return;/* exakt: altes 'general' -> 'General' darf umschreiben */change(A(el).pid,()=>{t.category=A(el).v;t.modifiedAt=nowIso();});},
   toggleFocus:el=>{const pid=A(el).pid,t=findT(pid,A(el).id);if(!t)return;const on=focusOf(S.data[pid])?.id!==t.id;change(pid,d=>setFocus(d,t,on));},
   setStepStatus:el=>{const s=findS(A(el).pid,A(el).id,A(el).sid);if(!s||sSt(s)===A(el).v)return;change(A(el).pid,d=>{s.status=A(el).v;d.todos.find(x=>x.id===A(el).id).modifiedAt=nowIso();});},
   toggleStepFocus:el=>{const a=A(el),t=findT(a.pid,a.id),s=findS(a.pid,a.id,a.sid);if(!t||!s)return;const was=!!s.focus;change(a.pid,()=>{(t.subtasks||[]).forEach(x=>{if(x.focus)x.focus=false;});s.focus=!was;t.modifiedAt=nowIso();});},
@@ -1364,16 +1377,28 @@ const ACT={
   newList:el=>{ui.menu=null;openDialog({type:'list',pid:A(el).pid,name:''});ui.focusSel='#ln';},
   saveList:()=>{
     const d=ui.dialog,p=projById(d.pid),name=String(d.name||'').trim().replace(/\s+/g,' ');if(!p)return;
-    const taken=[...projCats(p,S.data[p.id]).map(catLabel),'Ideas','Focus'].some(x=>x.toLowerCase()===name.toLowerCase());
+    const cur=projLists(p,S.data[p.id]),isLab=sameCat(name,'lab')||sameCat(name,'labor');
+    const taken=(isLab&&cur.includes('labor'))||[...projCats(p).map(catLabel),'Ideas','Focus'].some(x=>sameCat(x,name));
     d.err=!name?'Give the list a name.':name.includes('|')?'The name cannot contain “|”.':taken?'“'+name+'” already exists in this project.':'';
     if(d.err){ui.focusSel='#ln';render();return;}
-    ui.dialog=null;changeProject(p.id,{categories:[...(p.categories||[]),name]});toast('List “'+name+'” added to '+p.name+'.');
+    ui.dialog=null;changeProject(p.id,{lists:isLab?['labor',...cur]:[...cur,name]});toast('List “'+(isLab?'Lab':name)+'” added to '+p.name+'.');
+  },
+  // Liste entfernen: nur ohne offene Tasks; erledigte/archivierte behalten ihren Listennamen (nichts geht verloren)
+  removeList:async el=>{
+    ui.menu=null;const p=projById(A(el).pid);if(!p)return;const d=S.data[p.id],cur=projLists(p,d);
+    if(!cur.length){toast(p.name+' has no lists.');return;}
+    const openIn=c=>d.todos.filter(t=>!isArch(t)&&tSt(t)!=='done'&&sameCat(tCat(t),c)).length;
+    const v=await ask('Remove a list from '+p.name,'Done and archived tasks keep their list name and stay findable in the archive. A list that still has open tasks cannot be removed — move them first (open the task → List).',
+      [...cur.map(c=>{const n=openIn(c);return {label:catLabel(c),sub:n?plural(n,'open task')+' — move them first':'no open tasks',value:c};}),{label:'Cancel',value:null}]);
+    if(v==null)return;
+    const n=openIn(v);if(n){toast('“'+catLabel(v)+'” still has '+plural(n,'open task')+'. Move them to another list first.');return;}
+    changeProject(p.id,{lists:cur.filter(x=>x!==v)});toast('List “'+catLabel(v)+'” removed from '+p.name+' — Ctrl+Z brings it back.');
   },
   saveProject:()=>{
     const d=ui.dialog,name=String(d.name||'').trim();
     if(!name){d.err='Give the project a name.';ui.focusSel='#pj';render();return;}
     ui.dialog=null;
-    if(d.mode==='new'){addProject({id:_uid('proj'),name,color:d.color,created:nowIso()});toast('Project “'+name+'” created.');}
+    if(d.mode==='new'){addProject({id:_uid('proj'),name,color:d.color,created:nowIso(),lists:['labor','General']});toast('Project “'+name+'” created.');}
     else changeProject(d.pid,{name,color:d.color});
   },
   freeze:el=>{const p=projById(A(el).pid);if(!p)return;ui.menu=null;if(p.frozen){changeProject(p.id,{frozen:null,frozenAt:null});toast('“'+p.name+'” is shown again.');}else{changeProject(p.id,{frozen:true,frozenAt:nowIso()});toast('“'+p.name+'” frozen — “Show frozen” at the top brings it back.');}},

@@ -183,19 +183,36 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(env.doc.querySelector('.dlg .sw.on').textContent.includes('Blue')&&env.doc.querySelector('.dlg .sw.on i').textContent==='✓','chosen colour visibly ticked');
   click(env,'.dlg [data-act="saveProject"]');
   ok(await until(()=>gh.doc().projects[2].color==='#0050ff'),'colour saved via button');
+  // Abgeleitete Listen ohne `lists`-Feld (07.11.2026): General nur, wo ein Todo (auch erledigt/archiviert) dort liegt
+  snap.projects.filter(p=>!p.archived&&!p.frozen&&!Array.isArray(p.lists)).forEach(p=>{
+    const hasG=(p.todos||[]).some(t=>String(t.category||'general').toLowerCase()==='general');
+    ok(!!env.doc.querySelector(`.col[data-col="${p.id}"] .sec-h[data-k="sh-General"]`)===hasG,`${p.name}: General list ${hasG?'kept':'absent'} as its data says`);
+    ok(!!env.doc.querySelector(`.col[data-col="${p.id}"] .sec-h[data-k="sh-labor"]`),`${p.name}: Lab list present`);
+  });
   // Eigene Liste anlegen (Dominik 06.11.2026): bleibt leer sichtbar, Tasks lassen sich hineinschieben
   env.w.eval(`ui.menu='p:${P2}';render()`);await tick();click(env,`[data-act="newList"][data-pid="${P2}"]`);await tick();
   let ln=env.doc.querySelector('#ln');ok(ln&&env.doc.activeElement===ln,'new-list dialog opens with the name field focused');
-  typeIn(env,ln,'general');key(env,ln,'Enter');await tick();
+  typeIn(env,ln,'lab');key(env,ln,'Enter');await tick();
   ok(env.doc.querySelector('.dlg .err')&&env.doc.querySelector('.dlg .err').textContent.includes('already exists'),'duplicate name refused');
   ln=env.doc.querySelector('#ln');typeIn(env,ln,'Writing');key(env,ln,'Enter');await tick();
   ok(!env.doc.querySelector('.dlg'),'dialog closes on Enter');
-  ok(await until(()=>JSON.stringify(gh.doc().projects[2].categories)==='["Writing"]'),'list stored on the project in GitHub');
+  const lists0=env.w.eval(`JSON.stringify(projLists(projById(${JSON.stringify(P2)}),{todos:[]}))`);
+  ok(await until(()=>JSON.stringify(gh.doc().projects[2].lists)===JSON.stringify([...JSON.parse(lists0).filter(x=>x!=='Writing'),'Writing'])),'list stored on the project in GitHub');
   ok(env.doc.querySelector(`.col[data-col="${P2}"] .sec-h[data-k="sh-Writing"]`),'empty list shown as its own section');
   const tw=snap.projects[2].todos.find(t=>t.status!=='done'&&!t.archived);
   env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P2)},id:${JSON.stringify(tw.id)}})`);await tick();
   click(env,'.drawer [data-act="setCat"][data-v="Writing"]');await tick();
   ok(await until(()=>gh.doc().projects[2].todos.find(t=>t.id===tw.id).category==='Writing'),'task moved into the new list');
+  // Liste entfernen (07.11.2026): verweigert, solange offene Tasks drinliegen; leer geht sie, Strg+Z holt sie zurueck
+  const pickList=async lbl=>{env.w.eval(`ui.menu='p:${P2}';render()`);await tick();click(env,`[data-act="removeList"][data-pid="${P2}"]`);await tick();
+    const b=[...env.doc.querySelectorAll('.dlg .choice')].find(x=>x.textContent.startsWith(lbl));if(b)b.click();await tick();return !!b;};
+  ok(await pickList('Writing'),'remove-list dialog lists the new list');
+  ok(gh.doc().projects[2].lists.includes('Writing')&&env.doc.querySelector(`.col[data-col="${P2}"] .sec-h[data-k="sh-Writing"]`),'list with an open task is not removed');
+  click(env,`.drawer [data-act="setCat"][data-v="${tw.category||'labor'}"]`);await tick();
+  ok(await until(()=>gh.doc().projects[2].todos.find(t=>t.id===tw.id).category===(tw.category||'labor')),'task moved back');
+  await pickList('Writing');
+  ok(await until(()=>!gh.doc().projects[2].lists.includes('Writing')),'empty list removed on GitHub');
+  ok(!env.doc.querySelector(`.col[data-col="${P2}"] .sec-h[data-k="sh-Writing"]`),'removed list gone from the column');
   click(env,'[data-act="closeDrawer"]');await tick();
   ok(env.errors.length===0,'no errors in editing: '+env.errors.slice(0,3).join('\n'));
 
