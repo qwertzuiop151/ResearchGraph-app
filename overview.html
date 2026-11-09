@@ -122,6 +122,8 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .s.done .tt{color:var(--ink-4);text-decoration:line-through}
 .s.fstep .tt{font-weight:700;color:var(--ink)}
 .s.hidden-n{display:block;font-size:11.5px;font-style:italic;color:var(--ink-4)}
+.s.folded-n{display:block;font-size:11.5px;color:var(--ink-3);cursor:pointer}
+.s.folded-n:hover{color:var(--ink)}
 .idea{display:grid;grid-template-columns:16px minmax(0,1fr) auto;column-gap:7px;align-items:start;padding:3px 5px;border-radius:5px}
 .idea:hover{background:var(--hover)}
 .idea.sel{background:var(--sel)}
@@ -338,6 +340,9 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .addst{width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--ink-3);font-size:14px;line-height:1;padding:0;visibility:hidden}
 .t:hover .addst,.addst:focus-visible,.addst.on{visibility:visible}
 .addst:hover{background:var(--rule);color:var(--ink)}
+.fold{width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--ink-3);font-size:11px;line-height:1;padding:0;visibility:hidden}
+.t:hover .fold,.fold:focus-visible,.fold.on{visibility:visible}
+.fold:hover{background:var(--rule);color:var(--ink)}
 .sub-in{display:block;margin:2px 0 6px 24px;width:calc(100% - 24px);height:24px;font-size:12.5px}
 .fld textarea{display:block;width:100%;padding:6px 9px;border:1px solid var(--rule-2);border-radius:6px;resize:vertical}
 .fld textarea:focus{outline:none;border-color:var(--ink)}
@@ -884,7 +889,8 @@ const ui={
   zoom:+(localStorage.getItem('rg3_zoom')||100),
   colw:lsGet('rg3_colw',{}),focusSel:null,
   mode:localStorage.getItem('rg3_mode')==='one'?'one':'all',one:localStorage.getItem('rg3_one')||'',
-  collapsed:new Set(lsGet('rg3_collapsed',[]))
+  collapsed:new Set(lsGet('rg3_collapsed',[])),
+  folded:new Set(lsGet('rg3_folded',[])) // eingeklappte Tasks (pid|tid), Issue #6
 };
 function visibleProjects(){return liveProjects().filter(p=>ui.showFrozen||!p.frozen);}
 function validateSel(){
@@ -1045,13 +1051,17 @@ function renderTodo(p,t,isF){
   return `<div class="${cls}" style="--c:${esc(p.color||'#505050')}" data-k="t-${esc(t.id)}">
     <button class="cb s-${st}" data-act="cycle" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${esc(st.replace('_',' '))} — click: ${esc(CYCLE[st].replace('_',' '))}" aria-label="Status ${esc(st)}">${CB_ICON[st]||''}</button>
     <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}${esc(t.text||'Untitled task')}</button>${sl}</div>
-    <div class="rc">${elChip(pid,rowElement(t))}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">＋</button>${prioHTML(pr,pid,t.id)}</div>
+    <div class="rc">${elChip(pid,rowElement(t))}${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">＋</button>${prioHTML(pr,pid,t.id)}</div>
   </div>${renderSubs(p,t)}`;
 }
 function renderSubs(p,t){
   const subs=(t.subtasks||[]).filter(s=>!isArch(s)),pid=p.id;
   const inp=ui.adding===pid+'|step|'+t.id?`<input class="add-in sub-in" data-k="ai-st-${esc(t.id)}" data-add="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" placeholder="New step — Enter adds, Esc stops">`:'';
   if(!subs.length)return inp;
+  if(ui.folded.has(pid+'|'+t.id)&&!qq()&&!subs.some(s=>isOpen('step',pid,t.id,s.id))){ // eingeklappt: nur Zaehler, Klick klappt auf
+    const dn=subs.filter(s=>sSt(s)==='done').length;
+    return `<div class="subs" data-k="ss-${esc(t.id)}"><div class="s folded-n" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="Show steps">▸ ${plural(subs.length,'step')}${dn?` · ${dn} done`:''}</div></div>${inp}`;
+  }
   const d=S.data[pid],fs=focusStepOf(d,t);
   const list=fs?[fs,...subs.filter(s=>s!==fs)]:subs;
   let hidden=0;
@@ -1339,6 +1349,7 @@ const ACT={
   solo:el=>{ui.one=A(el).pid;ui.mode='one';localStorage.setItem('rg3_one',ui.one);localStorage.setItem('rg3_mode','one');render();},
   collapse:el=>{ui.collapsed.add(A(el).pid);lsSet('rg3_collapsed',[...ui.collapsed]);render();},
   expand:el=>{ui.collapsed.delete(A(el).pid);lsSet('rg3_collapsed',[...ui.collapsed]);render();},
+  fold:el=>{const a=A(el),k=a.pid+'|'+a.id;if(ui.folded.has(k))ui.folded.delete(k);else ui.folded.add(k);lsSet('rg3_folded',[...ui.folded]);render();},
   expandAll:()=>{ui.collapsed.clear();lsSet('rg3_collapsed',[]);render();},
   resetWidths:()=>{ui.colw={};lsSet('rg3_colw',{});ui.menu=null;render();},
   // Tasks

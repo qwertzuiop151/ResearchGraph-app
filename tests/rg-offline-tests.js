@@ -228,7 +228,8 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(env.doc.querySelectorAll('.col').length===NC&&!env.doc.querySelector('.strip'),'strip click expands it again');
   click(env,`[data-act="solo"][data-pid="${P1}"]`);await tick();
   ok(env.doc.querySelector('.one')&&env.doc.querySelector('.one .col-h h2').textContent.includes(snap.projects[1].name),'solo shows only that project');
-  ok(env.doc.querySelectorAll('.one-b>div').length===3,'one-project mode: Lab | General | Ideas side by side');
+  {const ob=env.doc.querySelector('.one-b'),n=ob?ob.children.length:0; // Spaltenzahl folgt seit dem Listenmodell den Daten (Lab | Rest | Ideas, leere fallen weg)
+   ok(n>=2&&n<=3&&+ob.style.getPropertyValue('--n')===n,'one-project mode: lists and Ideas side by side');}
   click(env,`[data-act="pickOne"][data-pid="${P0}"]`);await tick();
   ok(env.doc.querySelector('.one .col-h h2').textContent.includes(snap.projects[0].name),'project tab switches with one click');
   click(env,'[data-act="mode"][data-v="all"]');await tick();
@@ -398,6 +399,27 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(env.w.localStorage.getItem('rg_fb_token')==='github_pat_x','working token remembered');
   ok(env.doc.querySelector('.toast').textContent.includes('#42'),'issue number shown');
   ok(!html.includes('github_pat_')||!/github_pat_[A-Za-z0-9]{20,}/.test(html),'no token inside the app file');
+  ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+  env.w.close();
+
+  // ── 14. Task einklappen (Issue #6): Schritte weg, Zaehler bleibt, merkt sich pro Task, nichts geht in den Gist ──
+  console.log('14. fold a task\'s steps (#6)');
+  gh=makeGitHub(snapText);
+  env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+  ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+  {const live=x=>!x.archived;let fp=null,ft=null,ot=null;
+   for(const pr of snap.projects){const ts=(pr.todos||[]).filter(t=>live(t)&&t.status!=='done'&&(t.subtasks||[]).some(live));if(ts.length>=2&&env.doc.querySelector(`.col[data-col="${pr.id}"] .t [data-act="fold"][data-id="${ts[0].id}"]`)&&env.doc.querySelector(`.col[data-col="${pr.id}"] .t [data-act="fold"][data-id="${ts[1].id}"]`)){fp=pr;ft=ts[0];ot=ts[1];break;}}
+   ok(fp,'found a project with two tasks that have steps');
+   if(fp){const sel=id=>`.col[data-col="${fp.id}"] .subs[data-k="ss-${id}"]`,revs=gh.revs.length,nSub=ft.subtasks.filter(live).length;
+    ok(env.doc.querySelector(sel(ft.id)+' .s:not(.folded-n)'),'steps visible by default');
+    click(env,`.col[data-col="${fp.id}"] .t [data-act="fold"][data-id="${ft.id}"]`);await tick();
+    ok(!env.doc.querySelector(sel(ft.id)+' .s:not(.folded-n)'),'folded: no step rows left');
+    const fl=env.doc.querySelector(sel(ft.id)+' .folded-n');ok(fl&&fl.textContent.includes(nSub+' step'),'folded: step count still shown');
+    ok(env.doc.querySelector(sel(ot.id)+' .s:not(.folded-n)'),'other task keeps its steps (per task)');
+    ok(JSON.parse(env.w.localStorage.getItem('rg3_folded')).includes(fp.id+'|'+ft.id),'fold remembered on this device');
+    await tick();ok(gh.revs.length===revs,'folding writes nothing to the gist');
+    click(env,sel(ft.id)+' .folded-n');await tick();
+    ok(env.doc.querySelector(sel(ft.id)+' .s:not(.folded-n)'),'click on the count unfolds');}}
   ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
   env.w.close();
 
