@@ -13,7 +13,7 @@
 :root{
   --ink:#172033;--ink-2:#364153;--ink-3:#5A6475;--ink-4:#858E9C;
   --paper:#FFFFFF;--bg:#EEF0F4;--rule:#DCE0E6;--rule-2:#C5CCD6;--hover:#EEF1F5;--sel:#DFE6F0;
-  --done:#0072B2;--prog:#E69F00;--prog-ink:#7A4100;--danger:#B23A00;
+  --done:#0072B2;--prog:#E69F00;--danger:#B23A00;
   --ui:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
   --read:"Sitka Text",Georgia,serif;--mono:"Cascadia Mono",Consolas,monospace;
 }
@@ -97,7 +97,6 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .star{display:inline-block;width:12px;height:12px;vertical-align:-1px;margin-right:3px}
 .sl{display:flex;gap:4px;align-items:flex-start;font-size:11.5px;color:var(--ink-3);margin-top:1px}
 .sl svg{width:11px;height:11px;flex-shrink:0;margin-top:2px}
-.sl.prog{color:var(--prog-ink);font-weight:600}
 .sl.block{color:var(--ink-2);font-style:italic}
 .rc{display:flex;gap:5px;align-items:center;justify-content:flex-end;height:18px}
 .chip{display:inline-flex;align-items:center;gap:4px;height:17px;font-size:11px;padding:0 6px 0 0;border:1px solid var(--rule-2);border-radius:4px;color:var(--ink-2);background:var(--paper);overflow:hidden;max-width:118px}
@@ -378,8 +377,6 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 /* Status nur ueber die Form: offen = leer, in progress = Rand + Punkt, erledigt = gefuellt + Haken */
 .cb.s-in_progress{background:var(--paper);border:2px solid var(--cm,var(--prog));color:var(--cm,var(--prog))}
 .cb.s-done{background:var(--cm,var(--done));border-color:var(--cm,var(--done));color:var(--cmon,#fff)}
-.sl.prog{color:var(--ink-2)}
-.sl.prog svg{color:var(--cm,var(--prog))}
 .idea .ic{color:var(--cm)}
 
 /* Dark Mode (Dominik 06.11.2026): eigener Block, der helle Modus bleibt unberuehrt. Ruhige, nicht schwarze Flaechen,
@@ -387,7 +384,7 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 :root[data-theme="dark"]{color-scheme:dark;
   --ink:#ECEFF3;--ink-2:#DCE1E7;--ink-3:#BCC4CE;--ink-4:#949DA9;
   --paper:#171C23;--bg:#0F1318;--rule:#2A313B;--rule-2:#3A434F;--hover:#1F252E;--sel:#27313D;
-  --prog-ink:#F0B54A;--danger:#FF8A5C}
+  --danger:#FF8A5C}
 [data-theme="dark"] .nav button.on,[data-theme="dark"] .tbtn.on,[data-theme="dark"] .seg button.on,[data-theme="dark"] .btn.primary{color:#10141B}
 [data-theme="dark"] .toast{background:#2B3444;color:#E8ECF2}
 [data-theme="dark"] .toast.err{background:#5A1F00}
@@ -453,7 +450,6 @@ const IC_MORE='<svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="3" cy="7"
 const IC_NOTES='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 3h8M2 6h8M2 9h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const IC_STAR='<svg class="star" viewBox="0 0 12 12" aria-label="Focus"><path d="M6 .8l1.55 3.25 3.55.45-2.6 2.45.68 3.5L6 8.75 2.82 10.45l.68-3.5L.9 4.5l3.55-.45z" fill="currentColor"/></svg>';
 const IC_IDEA='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1l1.3 3.7L11 6 7.3 7.3 6 11 4.7 7.3 1 6l3.7-1.3z" fill="currentColor"/></svg>';
-const IC_PROG='<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.4" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="6" r="1.9" fill="currentColor"/></svg>';
 const IC_LAB='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5h5M6.5 1.5v4.8L2.6 13a1.2 1.2 0 0 0 1 1.8h8.8a1.2 1.2 0 0 0 1-1.8L9.5 6.3V1.5M4.6 10h6.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
 const IC_GEN='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
 // Farbe = Projekt, Art = Form (Dominik 06.11.2026): jede Spalte traegt nur ihre Projektfarbe, Status/Abschnitt unterscheidet die Form.
@@ -1047,7 +1043,7 @@ function rowElement(t){if(t.elementId)return t.elementId;const c={};(t.subtasks|
 function renderTodo(p,t,isF){
   const pid=p.id,st=tSt(t),pr=tPr(t);
   const cls=['t',isF?'focus':'',st==='blocked'?'blocked':'',isOpen('todo',pid,t.id)?'sel':''].filter(Boolean).join(' ');
-  const sl=st==='in_progress'?`<div class="sl prog">${IC_PROG}<span>in progress</span></div>`:st==='blocked'?`<div class="sl block">${IC_BLOCK}<span>${esc(t.blockedBy||'blocked')}</span></div>`:'';
+  const sl=st==='blocked'?`<div class="sl block">${IC_BLOCK}<span>${esc(t.blockedBy||'blocked')}</span></div>`:'';
   return `<div class="${cls}" style="--c:${esc(p.color||'#505050')}" data-k="t-${esc(t.id)}">
     <button class="cb s-${st}" data-act="cycle" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${esc(st.replace('_',' '))} — click: ${esc(CYCLE[st].replace('_',' '))}" aria-label="Status ${esc(st)}">${CB_ICON[st]||''}</button>
     <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}${esc(t.text||'Untitled task')}</button>${sl}</div>
