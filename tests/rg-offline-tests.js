@@ -616,6 +616,52 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
   env.w.close();
 
+  // ── 19. Faelligkeits-Marke in der Zeile + Vorlauf pro Eintrag (11.11.2026) ──
+  console.log('19. due marks and lead time');
+  {
+   const day=n=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA');};
+   const doc0=JSON.parse(snapText);
+   const PQ=doc0.projects.find(pr=>{const op=(pr.todos||[]).filter(t=>liveX(t)&&t.status!=='done');return op.length>=4&&op.some(t=>(t.subtasks||[]).some(x=>liveX(x)&&x.status!=='done'));});
+   ok(PQ,'found a project with four open tasks, one of them with an open step');
+   if(PQ){const QI=doc0.projects.indexOf(PQ),col=`.col[data-col="${PQ.id}"]`,op=PQ.todos.filter(t=>liveX(t)&&t.status!=='done');
+    const tS=op.find(t=>(t.subtasks||[]).some(x=>liveX(x)&&x.status!=='done')),sQ=tS.subtasks.find(x=>liveX(x)&&x.status!=='done'),[tLate,tToday,tFar]=op.filter(t=>t!==tS);
+    op.forEach(t=>{t.dueDate=null;delete t.dueWarnDays;(t.subtasks||[]).forEach(x=>{x.dueDate=null;});});
+    tLate.dueDate=day(-2);tToday.dueDate=day(0);tFar.dueDate=day(20);tS.dueDate=day(2);sQ.dueDate=day(1);
+    gh=makeGitHub(JSON.stringify(doc0,null,2));
+    env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,{projects:[]},{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+    ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+    const chipT=id=>{const b=env.doc.querySelector(box(id));return b&&b.closest('.t').querySelector('.rc .due');};
+    const chipS=id=>{const b=env.doc.querySelector(box(id));return b&&b.closest('.s').querySelector('.due');};
+    const is=(c,cls,txt)=>!!c&&c.classList.contains(cls)&&c.textContent===txt;
+    ok(is(chipT(tLate.id),'late','2 d late'),'a task two days over shows "2 d late": '+(chipT(tLate.id)||{}).textContent);
+    ok(is(chipT(tToday.id),'today','today'),'a task due today shows "today"');
+    ok(is(chipT(tS.id),'soon','in 2 d'),'a task due in 2 days is inside the default lead of 3 days: "in 2 d"');
+    ok(chipT(tFar.id)&&chipT(tFar.id).classList.contains('far')&&!/in |late|today/.test(chipT(tFar.id).textContent),'a task due in 20 days shows its date, marked as far off: '+(chipT(tFar.id)||{}).textContent);
+    ok(is(chipS(sQ.id),'soon','tomorrow'),'steps carry the same mark: "tomorrow"');
+    ok(env.doc.querySelectorAll(col+' .t:not(.cl) > .rc > .due').length===4,'only tasks with a date carry a mark (4 in this project)');
+    // Vorlauf waehlen: 1 Monat -> die Task in 20 Tagen wird "soon"; eigene Zahl 5 -> wieder weit weg
+    env.w.eval(`openDrawer({type:'todo',pid:${J(PQ.id)},id:${J(tFar.id)}})`);await tick();
+    ok(env.doc.querySelectorAll('.drawer [data-act="setWarn"]').length===4&&env.doc.querySelector('.drawer [data-act="setWarn"].on').dataset.v==='3','details offer same day / 3 days / 1 week / 1 month, 3 days preselected');
+    click(env,'.drawer [data-act="setWarn"][data-v="30"]');await tick();
+    ok(await until(()=>gh.doc().projects[QI].todos.find(t=>t.id===tFar.id).dueWarnDays===30),'the chosen lead is stored with the task (dueWarnDays 30)');
+    ok(is(chipT(tFar.id),'soon','in 20 d'),'with a lead of one month the same task now shows "in 20 d"');
+    const wn=env.doc.querySelector('.drawer input[data-in="warn"]');typeIn(env,wn,'5');wn.dispatchEvent(new env.w.Event('change',{bubbles:true}));await tick();
+    ok(await until(()=>gh.doc().projects[QI].todos.find(t=>t.id===tFar.id).dueWarnDays===5),'an own number of days works too (5)');
+    ok(chipT(tFar.id).classList.contains('far'),'and the mark follows');
+    click(env,'.drawer [data-act="clearDue"]');await tick();
+    ok(await until(()=>{const t=gh.doc().projects[QI].todos.find(t=>t.id===tFar.id);return t.dueDate===null&&!('dueWarnDays' in t);}),'clearing the date removes the lead as well');
+    ok(!chipT(tFar.id),'no date, no mark');
+    env.w.eval('ui.drawer=null;render()');await tick();
+    // Einklappen versteckt kein Datum
+    click(env,`${col} .t [data-act="fold"][data-id="${tS.id}"]`);await tick();
+    const fl=env.doc.querySelector(`${col} .subs[data-k="ss-${tS.id}"] .folded-n`);ok(fl&&fl.querySelector('.due')&&fl.querySelector('.due').textContent==='tomorrow','a folded task still shows the next due step');
+    // Abgeschlossenes traegt keine Marke
+    await setSt(env,tToday.id,'done');await tick();click(env,col+' .cl-h');await tick();
+    const crow=env.doc.querySelector(`${col} .t.cl [data-v$="|${tToday.id}"]`);ok(crow&&!crow.closest('.t').querySelector('.due'),'a closed task carries no due mark');
+    ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+    env.w.close();}
+  }
+
   console.log(`\nTOTAL: ${pass} passed, ${fail} failed`);
   process.exit(fail?1:0);
 })().catch(e=>{console.error('HARNESS CRASH',e);process.exit(2);});

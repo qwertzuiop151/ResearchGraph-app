@@ -379,6 +379,15 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .cb.s-done{background:var(--cm,var(--done));border-color:var(--cm,var(--done));color:var(--cmon,#fff)}
 .cb.s-failed{background:var(--cm,var(--ink-2));border-color:var(--cm,var(--ink-2));color:var(--cmon,#fff)}
 .sl.fail{color:var(--ink-2)}
+/* Faelligkeits-Marke: Helligkeits-Treppe Gelb #F0E442 / Orange #E07B00 / Dunkelrot #8F1010 — unter Deuteranopie-Simulation schlechtestes Paar dE2000 18 (Gelb-Orange),
+   L* 90/65/34; Schrift darauf 15,9:1 / 7,0:1 / 9,3:1. Rand, weil Gelb auf Weiss und Dunkelrot auf dunklem Papier sonst keine Kante haben. */
+.due{display:inline-flex;align-items:center;height:17px;padding:0 6px;border-radius:4px;border:1px solid var(--ink-3);font-size:11px;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0;background:#F0E442;color:#000}
+.due.soon{background:#E07B00;color:#000;font-weight:700}
+.due.today,.due.late{background:#8F1010;color:#fff;font-weight:700}
+.due.late::before{content:"!";margin-right:3px}
+.due:hover{border-color:var(--ink)}
+.folded-n .due{vertical-align:middle;margin-left:2px}
+.warn-n{width:62px;margin-left:8px}
 /* 11.11.2026: Status-Auswahl unter der Zeile, Closed-Liste, Suchtreffer je Seite, Board-Meta. Nur vorhandene Farb-Tokens. */
 .stpick{margin:3px 0 5px 23px}
 .stpick.sub{margin-left:20px}
@@ -911,6 +920,28 @@ const isEnd=st=>st==='done'||st==='failed'; // abgeschlossen
 function closedT(t){return isEnd(tSt(t));}
 function closedS(s){return isEnd(sSt(s));}
 function mark(st){return st==='done'?'✓':st==='failed'?'✕':'○';}
+// Faelligkeit sichtbar (Dominik 11.11.2026, hebt "kein Datums-Chip in Zeilen" vom 05.08. auf): wer ein Datum hat, traegt eine Marke in der Zeile.
+// Vier Stufen, lesbar am TEXT, die Farbe (Gelb / Orange / Dunkelrot, als Helligkeits-Treppe unter Rot-Gruen-Simulation gemessen) kommt nur dazu:
+// far = Datum liegt weiter weg ("14 Dec") · soon = im gewaehlten Vorlauf ("in 3 d") · today · late ("2 d late").
+// Vorlauf pro Eintrag in dueWarnDays (Tage vor dem Datum, ab denen es orange wird); fehlt er, gilt DUE_WARN.
+const DUE_WARN=3;
+const WARN_PRESETS=[['0','','Same day'],['3','','3 days'],['7','','1 week'],['30','','1 month']];
+function todayStr(){return new Date().toLocaleDateString('en-CA');}
+function warnOf(x){const v=x.dueWarnDays;return (v===null||v===undefined||v===''||!Number.isFinite(+v))?DUE_WARN:Math.max(0,Math.round(+v));}
+function dueInfo(x){
+  if(!x||!/^\d{4}-\d{2}-\d{2}$/.test(String(x.dueDate||'')))return null;
+  const d=Math.round((new Date(x.dueDate+'T12:00:00')-new Date(todayStr()+'T12:00:00'))/86400000);if(!Number.isFinite(d))return null;
+  const warn=warnOf(x),cls=d<0?'late':d===0?'today':d<=warn?'soon':'far';
+  const label=d<0?(-d)+' d late':d===0?'today':cls==='soon'?(d===1?'tomorrow':'in '+d+' d'):fmtDate(x.dueDate,{day:'numeric',month:'short'});
+  return {d,warn,cls,label};
+}
+function dueChip(pid,t,s2){
+  const x=s2||t;if(isArch(x)||(s2?closedS(s2):closedT(t)))return '';
+  const i=dueInfo(x);if(!i)return '';
+  return `<button class="due ${i.cls}" data-act="open" data-type="${s2?'step':'todo'}" data-pid="${esc(pid)}" data-id="${esc(t.id)}"${s2?` data-sid="${esc(s2.id)}"`:''} title="Due ${esc(fmtDate(x.dueDate,{weekday:'short',day:'numeric',month:'short',year:'numeric'}))} — turns orange ${i.warn===0?'on the day itself':i.warn+(i.warn===1?' day':' days')+' before'}">${esc(i.label)}</button>`;
+}
+// Dringendster offener Schritt mit Datum — fuer die Zaehlerzeile einer eingeklappten Task, damit Einklappen kein Datum versteckt
+function urgentStep(t){let best=null,bd=Infinity;(t.subtasks||[]).forEach(x=>{if(isArch(x)||closedS(x))return;const i=dueInfo(x);if(i&&i.d<bd){bd=i.d;best=x;}});return best;}
 function failNote(x){return x.failedReason?`<div class="sl fail">failed: ${esc(x.failedReason)}</div>`:'';} // der Grund steht immer bei der Zeile
 function focusOf(d){return d.todos.find(t=>(t.focus||t.northStar)&&!isArch(t))||null;}
 function focusStepOf(d,t){const f=focusOf(d);return f&&f.id===t.id?(t.subtasks||[]).find(s=>s.focus)||null:null;}
@@ -1154,7 +1185,7 @@ function renderTodo(p,t,isF){
   return `<div class="${cls}" style="--c:${esc(p.color||'#505050')}" data-k="t-${esc(t.id)}">
     ${stBox('c',pid,t.id,null,st)}
     <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}${esc(t.text||'Untitled task')}</button>${sl}</div>
-    <div class="rc">${elChip(pid,rowElement(t))}${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">＋</button>${prioHTML(pr,pid,t.id)}</div>
+    <div class="rc">${dueChip(pid,t)}${elChip(pid,rowElement(t))}${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">＋</button>${prioHTML(pr,pid,t.id)}</div>
   </div>${stPick('c',pid,t.id,null,odd?'':st)}${renderSubs(p,t)}`;
 }
 function renderSubs(p,t){
@@ -1163,7 +1194,7 @@ function renderSubs(p,t){
   if(!subs.length)return inp;
   if(ui.folded.has(pid+'|'+t.id)&&!qq()&&!subs.some(s=>isOpen('step',pid,t.id,s.id))){ // eingeklappt: nur Zaehler, Klick klappt auf
     const dn=subs.filter(s=>sSt(s)==='done').length,fl=subs.filter(s=>sSt(s)==='failed').length;
-    return `<div class="subs" data-k="ss-${esc(t.id)}"><div class="s folded-n" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="Show steps">▸ ${plural(subs.length,'step')}${dn?` · ${dn} done`:''}${fl?` · ${fl} failed`:''}</div></div>${inp}`;
+    return `<div class="subs" data-k="ss-${esc(t.id)}"><div class="s folded-n" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="Show steps">▸ ${plural(subs.length,'step')}${dn?` · ${dn} done`:''}${fl?` · ${fl} failed`:''}${(()=>{const u=closedT(t)?null:urgentStep(t);return u?' · next due '+dueChip(pid,t,u):'';})()}</div></div>${inp}`;
   }
   const d=S.data[pid],fs=focusStepOf(d,t);
   const list=fs?[fs,...subs.filter(s=>s!==fs)]:subs;
@@ -1176,7 +1207,7 @@ function renderSubs(p,t){
     const odd=oddSt(s,STEP_KNOWN);
     return `<div class="${cls}" data-k="s-${esc(s.id)}">${stBox('c',pid,t.id,s.id,st)}
       <div class="tm"><button class="tt" data-act="open" data-type="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s===fs?IC_STAR:''}${esc(s.text||'Untitled step')}</button>${odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:''}${failNote(s)}</div>
-      <div class="rc">${chip}</div></div>${stPick('c',pid,t.id,s.id,odd?'':st)}`;
+      <div class="rc">${dueChip(pid,t,s)}${chip}</div></div>${stPick('c',pid,t.id,s.id,odd?'':st)}`;
   }).join('');
   return `<div class="subs" data-k="ss-${esc(t.id)}">${rows}${hidden?`<div class="s hidden-n">${plural(hidden,'done step')} hidden</div>`:''}</div>${inp}`;
 }
@@ -1269,7 +1300,8 @@ function renderDrawer(){
       <span>Focus</span><div><button class="btn${isF?' primary':''}" data-act="toggleFocus"${ia}>${isF?'★ Focus task':'☆ Make focus task'}</button></div>
       <span>List</span><div>${seg(cats,curCat,'setCat',ia)}</div>
       <span>Element</span><div>${t.elementId?elChip(dr.pid,t.elementId)+`<button class="lbtn" data-act="unlink"${ia}>Remove</button>`:(rowElement(t)?elChip(dr.pid,rowElement(t))+'<span class="ro">via its steps</span>':'')}<button class="lbtn" data-act="pickEl"${ia}>${t.elementId?'Change':'＋ Link element'}</button></div>
-      <span>Due</span><div><input type="date" class="inl" style="width:auto" data-in="due"${ia} value="${esc(t.dueDate||'')}">${t.dueDate?`<button class="lbtn" data-act="clearDue"${ia}>Clear</button>`:''}</div>
+      <span>Due</span><div><input type="date" class="inl" style="width:auto" data-in="due"${ia} value="${esc(t.dueDate||'')}">${t.dueDate?`<button class="lbtn" data-act="clearDue"${ia}>Clear</button>`:''}${dueChip(dr.pid,t)}</div>
+      ${t.dueDate?`<span>Turns orange</span><div>${seg(WARN_PRESETS,String(warnOf(t)),'setWarn',ia)}<input type="number" min="0" max="365" class="inl warn-n" data-in="warn"${ia} value="${warnOf(t)}" aria-label="Days before the due date"><span class="ro">days before</span></div>`:''}
     </div>
     <div class="dsec"><h3>Notes ${editLink('todo.notes|'+k,t.notes)}</h3>${mdBox('todo.notes|'+k,t.notes,'Add notes')}</div>
     <div class="dsec"><h3>Steps ${subs.length?`<span class="ro">${subs.filter(s=>sSt(s)==='done').length}/${subs.length} done</span>`:''}</h3>
@@ -1288,7 +1320,8 @@ function renderDrawer(){
       ${st==='failed'?`<span>Why it failed</span><div style="display:block">${titleIn('step.failedReason|'+k,s.failedReason||'','e.g. no band on the gel')}</div>`:''}
       <span>Focus step</span><div>${isF?`<button class="btn${s.focus?' primary':''}" data-act="toggleStepFocus"${sa}>${s.focus?'★ Focus step':'☆ Make focus step'}</button>`:'<span class="ro">Only the focus task has a focus step.</span>'}</div>
       <span>Element</span><div>${s.elementId?elChip(dr.pid,s.elementId)+`<button class="lbtn" data-act="unlinkStep"${sa}>Remove</button>`:''}<button class="lbtn" data-act="pickElStep"${sa}>${s.elementId?'Change':'＋ Link element'}</button></div>
-      <span>Due</span><div><input type="date" class="inl" style="width:auto" data-in="dueStep"${sa} value="${esc(s.dueDate||'')}">${s.dueDate?`<button class="lbtn" data-act="clearDueStep"${sa}>Clear</button>`:''}</div>
+      <span>Due</span><div><input type="date" class="inl" style="width:auto" data-in="dueStep"${sa} value="${esc(s.dueDate||'')}">${s.dueDate?`<button class="lbtn" data-act="clearDueStep"${sa}>Clear</button>`:''}${dueChip(dr.pid,t,s)}</div>
+      ${s.dueDate?`<span>Turns orange</span><div>${seg(WARN_PRESETS,String(warnOf(s)),'setWarn',sa)}<input type="number" min="0" max="365" class="inl warn-n" data-in="warn"${sa} value="${warnOf(s)}" aria-label="Days before the due date"><span class="ro">days before</span></div>`:''}
     </div>
     <div class="dsec"><h3>Notes ${editLink('step.notes|'+k,s.notes)}</h3>${mdBox('step.notes|'+k,s.notes,'Add notes')}</div>
     <div class="dz">${isArch(s)?`<button class="btn" data-act="restore" data-kind="step"${sa}>Restore step</button>`:`<button class="btn" data-act="archiveAsk" data-kind="step"${sa}>Archive step…</button>`}</div>`;
@@ -1430,6 +1463,7 @@ function renderDialog(){
       <li>Search looks through everything — tasks (also closed and archived ones), ideas, elements with their activity, every journal section. The numbers next to Tasks / Board / Journal show where the matches are.</li>
       <li>The bars after a title show the priority: one bar low, two medium, three high. Click the first, second or third bar to set it. ★ marks the focus task and the focus step.</li>
       <li>Hover a task and click ＋ to add a step right there.</li>
+      <li>A task or step with a due date carries a mark in its row: the date in yellow while it is far off, “in 3 d” in orange once it comes close, “today” and “2 d late” in dark red. How many days before it turns orange you choose next to the date in the details (3 days unless you say otherwise).</li>
       <li>Click a title to open details on the right: status, priority, focus, steps, notes. The chip after a title is the linked element.</li>
       <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
@@ -1452,6 +1486,12 @@ function setTodoStatus(t,st,reason){
   if(st==='failed'){t.failedAt=now;t.failedReason=String(reason||'').trim()||null;}else{delete t.failedAt;delete t.failedReason;}
   if(st!=='blocked')t.blockedBy=null;
   t.modifiedAt=now;
+}
+// Vorlauf (Tage vor dem Datum, ab denen die Marke orange wird) an Task oder Schritt setzen
+function setWarn(a,raw){
+  const n=Math.round(+raw);if(!Number.isFinite(n)||n<0||n>365||String(raw).trim()===''){render();return;}
+  const x=a.sid?findS(a.pid,a.id,a.sid):findT(a.pid,a.id);if(!x||warnOf(x)===n&&x.dueWarnDays!==undefined){render();return;}
+  change(a.pid,d=>{x.dueWarnDays=n;d.todos.find(t=>t.id===a.id).modifiedAt=nowIso();});
 }
 function setFocus(d,t,on){
   const now=nowIso();
@@ -1505,8 +1545,9 @@ const ACT={
     else{const s=findS(g.pid,g.id,g.sid);if(!s){render();return;}change(g.pid,d=>{setStepSt(s,'failed',g.reason);d.todos.find(x=>x.id===g.id).modifiedAt=nowIso();});}
   },
   toggleStepFocus:el=>{const a=A(el),t=findT(a.pid,a.id),s=findS(a.pid,a.id,a.sid);if(!t||!s)return;const was=!!s.focus;change(a.pid,()=>{(t.subtasks||[]).forEach(x=>{if(x.focus)x.focus=false;});s.focus=!was;t.modifiedAt=nowIso();});},
-  clearDue:el=>{const t=findT(A(el).pid,A(el).id);if(t)change(A(el).pid,()=>{t.dueDate=null;t.modifiedAt=nowIso();});},
-  clearDueStep:el=>{const a=A(el),s=findS(a.pid,a.id,a.sid);if(s)change(a.pid,d=>{s.dueDate=null;d.todos.find(x=>x.id===a.id).modifiedAt=nowIso();});},
+  clearDue:el=>{const t=findT(A(el).pid,A(el).id);if(t)change(A(el).pid,()=>{t.dueDate=null;delete t.dueWarnDays;t.modifiedAt=nowIso();});},
+  clearDueStep:el=>{const a=A(el),s=findS(a.pid,a.id,a.sid);if(s)change(a.pid,d=>{s.dueDate=null;delete s.dueWarnDays;d.todos.find(x=>x.id===a.id).modifiedAt=nowIso();});},
+  setWarn:el=>setWarn(A(el),A(el).v),
   pickEl:el=>openDialog({type:'pick',pid:A(el).pid,target:{id:A(el).id},q:''}),
   pickElStep:el=>openDialog({type:'pick',pid:A(el).pid,target:{id:A(el).id,sid:A(el).sid},q:''}),
   unlink:el=>{const t=findT(A(el).pid,A(el).id);if(t)change(A(el).pid,()=>{t.elementId=null;t.modifiedAt=nowIso();});},
@@ -1641,6 +1682,7 @@ document.addEventListener('change',ev=>{
   const t=ev.target,k=t.dataset&&t.dataset.in,a=t.dataset||{};
   if(k==='title')commitTitle(a.key,t.value);
   else if(k==='due'){const x=findT(a.pid,a.id);const v=t.value||null;if(x&&(x.dueDate||null)!==v)change(a.pid,()=>{x.dueDate=v;x.modifiedAt=nowIso();});}
+  else if(k==='warn')setWarn(a,t.value);
   else if(k==='dueStep'){const s=findS(a.pid,a.id,a.sid);const v=t.value||null;if(s&&(s.dueDate||null)!==v)change(a.pid,d=>{s.dueDate=v;d.todos.find(x=>x.id===a.id).modifiedAt=nowIso();});}
 });
 document.addEventListener('keydown',ev=>{
