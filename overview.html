@@ -389,7 +389,9 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .cal-l>span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .ab{display:inline-block;min-width:24px;padding:0 4px;border-radius:3px;background:var(--c);color:var(--on);font-size:10.5px;font-weight:700;line-height:15px;text-align:center;flex-shrink:0;letter-spacing:.2px}
 [data-theme="dark"] .ab{box-shadow:0 0 0 1px rgba(255,255,255,.25)}
-.cal-g{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(104px,auto);align-content:start}
+.cal-g{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:max-content;align-content:start}
+/* Zeilenhoehe = Inhalt, erzwungen ueber max-content. NICHT minmax(104px,auto) und NICHT auto: beide wachsen ueber ihr Minimum nur, solange im Blatt Platz frei ist — und das Minimum einer Zelle mit fester min-height ist diese min-height, nicht ihr Inhalt. War der Monat hoeher als das Fenster, blieben die Zeilen bei 104 px und die Eintraege liefen in die naechste Woche (Dominik 11.11.2026; nachgemessen: 11 Zellen, bis 216 px). */
+.cd{min-height:104px}
 .cwd{position:sticky;top:0;z-index:1;background:var(--paper);padding:5px 8px;font-size:12px;font-weight:700;color:var(--ink-2);border-bottom:1px solid var(--rule);grid-row:1;height:28px}
 .cal-g{grid-template-rows:28px}
 .cd{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:3px 4px 6px;min-width:0}
