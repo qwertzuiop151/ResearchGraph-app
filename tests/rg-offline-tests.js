@@ -60,6 +60,10 @@ const click=(env,sel,i)=>{const el=env.doc.querySelectorAll(sel)[i||0];if(!el)th
 const key=(env,el,k,o)=>el.dispatchEvent(new env.w.KeyboardEvent('keydown',Object.assign({key:k,bubbles:true},o||{})));
 const typeIn=(env,el,v)=>{el.focus();el.value=v;el.dispatchEvent(new env.w.Event('input',{bubbles:true}));};
 const tick=()=>sleep(10);
+// Status setzen wie in der App (seit 11.11.2026 kein Klick-Zyklus mehr): Kaestchen klicken, darunter den Zustand waehlen
+const box=id=>`.col [data-act="pickSt"][data-v$="|${id}"]`;
+const setSt=async(env,id,v)=>{click(env,box(id));await tick();click(env,`.stpick [data-v="${v}"]`);};
+const NEXT={open:'in_progress',in_progress:'done',done:'open',blocked:'open'};
 const until=async(cond,ms)=>{const t0=Date.now();while(Date.now()-t0<(ms||8000)){if(cond())return true;await sleep(40);}return false;};
 const P0=snap.projects[0].id,P1=snap.projects[1].id;
 // Spaltenzahl aus dem Snapshot, nicht fest verdrahtet — der Gist bekommt neue Projekte
@@ -97,8 +101,11 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   console.log('2. tick a step');
   const t0=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.archived&&(t.subtasks||[]).some(s=>s.status!=='done'&&!s.archived));
   const s0=t0.subtasks.find(s=>s.status!=='done'&&!s.archived);
-  click(env,`[data-act="cycleStep"][data-sid="${s0.id}"]`);await tick();
-  ok(env.doc.querySelector(`[data-act="cycleStep"][data-sid="${s0.id}"]`).className.includes('s-'+({open:'in_progress',in_progress:'done'}[s0.status||'open'])),'step cycles one state at once on screen');
+  click(env,box(s0.id));await tick();
+  ok(env.doc.querySelectorAll('.stpick').length===1&&env.doc.querySelectorAll('.stpick [data-act="setStepStatus"]').length===3,'clicking the box opens the status choice right under the step (open / in progress / done)');
+  click(env,`.stpick [data-v="${NEXT[s0.status||'open']}"]`);await tick();
+  ok(env.doc.querySelector(box(s0.id)).className.includes('s-'+NEXT[s0.status||'open']),'step takes the picked status at once on screen');
+  ok(!env.doc.querySelector('.stpick'),'the choice closes after picking');
   ok(await until(()=>gh.revs.length===2),'one upload after the click');
   let remote=gh.doc();
   const rs=remote.projects[0].todos.find(t=>t.id===t0.id).subtasks.find(s=>s.id===s0.id);
@@ -130,7 +137,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   const agentOnlyV=gh.agentWrite(doc=>{doc.projects[0].todos.find(t=>t.id===t0.id).notes+='\nAGENT NOTE LINE';});
   // sofort (bevor die App pollt) abhaken
   const s1=t0.subtasks.find(s=>s.id!==s0.id&&s.status!=='done'&&!s.archived)||s0;
-  click(env,`[data-act="cycleStep"][data-sid="${s1.id}"]`);
+  await setSt(env,s1.id,NEXT[s1.status||'open']);
   ok(await until(()=>{const d=gh.doc();const tt=d.projects[0].todos.find(t=>t.id===t0.id);return tt.notes.includes('AGENT NOTE LINE')&&tt.subtasks.find(s=>s.id===s1.id).status!==(snap.projects[0].todos.find(t=>t.id===t0.id).subtasks.find(s=>s.id===s1.id).status||'open');},6000),'agent note AND my tick both on GitHub');
   ok(!env.doc.querySelector('.dlg'),'no conflict dialog');
 
@@ -277,7 +284,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   gh=makeGitHub(snapText);
   env=boot(gh,{seed:ls=>seed(ls,snap,{rg_gh_gist:'G'})});await sleep(100);
   ok(env.doc.querySelectorAll('.col').length===NC,'local copy shown without token');
-  click(env,`[data-act="cycle"][data-id="${t2.id}"]`);await tick();
+  await setSt(env,t2.id,t2.status==='in_progress'?'open':'in_progress');await tick();
   ok(gh.log.length===0,'no network without token');
   click(env,'[data-act="openSync"]');await tick();
   typeIn(env,env.doc.querySelector('#tok'),'tok');click(env,'[data-act="connect"]');
@@ -292,7 +299,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
   const steps=[];snap.projects.forEach(p=>p.todos.filter(t=>t.status!=='done'&&!t.archived).forEach(t=>(t.subtasks||[]).filter(s=>s.status!=='done'&&!s.archived).forEach(s=>steps.push({pid:p.id,tid:t.id,sid:s.id,was:s.status||'open'}))));
   const pick=steps.slice(0,15);const reqBefore=gh.log.length;
-  for(const x of pick){click(env,`[data-act="cycleStep"][data-sid="${x.sid}"]`);await sleep(700);}
+  for(const x of pick){await setSt(env,x.sid,NEXT[x.was]);await sleep(700);}
   ok(await until(()=>{const d=gh.doc();return pick.every(x=>{const t=d.projects.find(p=>p.id===x.pid).todos.find(t=>t.id===x.tid);return (t.subtasks.find(s=>s.id===x.sid).status||'open')!==x.was;});},40000),'all 15 ticks reached GitHub');
   ok(!env.doc.querySelector('.sync.err'),'no pause or error');
   console.log('   requests for 15 ticks:',gh.log.length-reqBefore,'| revisions:',gh.revs.length-1);
@@ -333,10 +340,12 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===tq.id).priority===prNew),'Ctrl+Y redoes the priority');
   // Versehentlich abgehakt -> Strg+Z (der gemeldete Fall)
   const tz=snap.projects[1].todos.find(t=>(t.status==='open'||!t.status)&&!t.archived);
-  click(env,`[data-act="cycle"][data-id="${tz.id}"]`);click(env,`[data-act="cycle"][data-id="${tz.id}"]`);await tick();
-  ok(await until(()=>gh.doc().projects[1].todos.find(t=>t.id===tz.id).status==='done'),'task ticked done by two clicks');
-  z();await tick();z();await tick();
-  ok(await until(()=>{const t=gh.doc().projects[1].todos.find(t=>t.id===tz.id);return (t.status||'open')===(tz.status||'open')&&(t.completedAt??null)===(tz.completedAt??null);}),'Ctrl+Z twice restores status and completedAt');
+  await setSt(env,tz.id,'done');await tick();
+  ok(await until(()=>gh.doc().projects[1].todos.find(t=>t.id===tz.id).status==='done'),'task set to done through the status choice');
+  ok(!env.doc.querySelector(`.col .t:not(.cl) [data-v$="|${tz.id}"]`),'the done task left the open lists');
+  ok(env.doc.querySelector('.toast')&&env.doc.querySelector('.toast').textContent.includes('Closed')&&env.doc.querySelector('.toast').textContent.includes('Ctrl+Z'),'a toast says where it went and how to undo (it used to vanish silently)');
+  z();await tick();
+  ok(await until(()=>{const t=gh.doc().projects[1].todos.find(t=>t.id===tz.id);return (t.status||'open')===(tz.status||'open')&&(t.completedAt??null)===(tz.completedAt??null);}),'one Ctrl+Z restores status and completedAt');
   // Archivierte Aufgabe: Archiv-Liste zeigt sie mit Schritt-Stand, Restore und Strg+Z bringen sie byte-gleich zurueck
   const td=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.archived&&(t.subtasks||[]).filter(x=>!x.archived).length>1&&t.id!==tq.id&&!t.focus);
   env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P0)},id:${JSON.stringify(td.id)}})`);await tick();
@@ -354,7 +363,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   env.w.eval(`ui.dialog=null;openDrawer({type:'step',pid:${JSON.stringify(P0)},id:${JSON.stringify(td.id)},sid:${JSON.stringify(sx.id)}})`);await tick();
   click(env,'.drawer [data-act="archiveAsk"][data-kind="step"]');await tick();click(env,'[data-act="doArchive"]');
   ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===td.id).subtasks.find(s=>s.id===sx.id).archived===true),'step archived, still stored');
-  ok(!env.doc.querySelector(`.col [data-act="cycleStep"][data-sid="${sx.id}"]`),'archived step left the row list');
+  ok(!env.doc.querySelector(box(sx.id)),'archived step left the row list');
   ok(env.doc.querySelector(`.drawer [data-act="restore"][data-sid="${sx.id}"]`),'drawer lists it under archived steps with Restore');
   // Journal selbst schreiben
   click(env,'[data-act="page"][data-v="journal"]');await tick();
@@ -420,6 +429,137 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     await tick();ok(gh.revs.length===revs,'folding writes nothing to the gist');
     click(env,sel(ft.id)+' .folded-n');await tick();
     ok(env.doc.querySelector(sel(ft.id)+' .s:not(.folded-n)'),'click on the count unfolds');}}
+  ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+  env.w.close();
+
+  // ── 15. Status-Auswahl statt Klick-Zyklus, unbekannter Status, Closed-Liste (11.11.2026) ──
+  console.log('15. status choice, unknown status, Closed list');
+  const J=JSON.stringify,liveX=x=>!x.archived;
+  gh=makeGitHub(snapText);
+  env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+  ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+  {
+   // der gemeldete Fall: "in Arbeit" in der Zeile zuruecknehmen, ohne die Schublade
+   let pp=null,ti=null;for(const pr of snap.projects){ti=(pr.todos||[]).find(t=>liveX(t)&&t.status==='in_progress');if(ti){pp=pr;break;}}
+   ok(ti,'found an in-progress task');
+   if(ti){const pi=snap.projects.indexOf(pp);
+    await setSt(env,ti.id,'open');await tick();
+    ok(!env.doc.querySelector('.drawer'),'no drawer needed');
+    ok(await until(()=>gh.doc().projects[pi].todos.find(t=>t.id===ti.id).status==='open'),'in progress -> open in two clicks, uploaded');
+    click(env,box(ti.id));await tick();ok(env.doc.querySelectorAll('.stpick [data-act="setStatus"]').length===4,'task choice offers open / in progress / blocked / done');
+    key(env,env.doc.body,'Escape');await tick();ok(!env.doc.querySelector('.stpick'),'Esc closes the choice');
+    click(env,box(ti.id));await tick();click(env,'.search input');await tick();ok(!env.doc.querySelector('.stpick'),'a click elsewhere closes the choice');
+    await setSt(env,ti.id,'blocked');await tick();
+    ok(env.doc.querySelector('.drawer')&&String((env.doc.activeElement.dataset||{}).key||'').startsWith('todo.blockedBy'),'picking blocked opens the details with the cursor in "Waiting for"');
+    env.w.eval('ui.drawer=null;render()');await tick();}
+   // unbekannter Status vom Agenten: die Seite bleibt stehen und nennt ihn
+   const P=snap.projects.find(pr=>(pr.todos||[]).some(t=>liveX(t)&&t.status==='open')),PI=snap.projects.indexOf(P),tu=P.todos.find(t=>liveX(t)&&t.status==='open');
+   gh.agentWrite(doc=>{doc.projects[PI].todos.find(t=>t.id===tu.id).status='failed';});
+   ok(await until(()=>env.w.eval(`findT(${J(P.id)},${J(tu.id)}).status`)==='failed'),'agent wrote a status the app does not know');
+   await tick();
+   ok(env.doc.querySelectorAll('.col').length===NC,'all columns still there (the Tasks page used to go blank)');
+   const urow=env.doc.querySelector(box(tu.id));ok(urow&&urow.closest('.t').textContent.includes('failed'),'the row names the unknown status');
+   ok(env.errors.length===0,'no errors with an unknown status: '+env.errors.slice(0,2).join('\n'));
+   await setSt(env,tu.id,'in_progress');
+   ok(await until(()=>gh.doc().projects[PI].todos.find(t=>t.id===tu.id).status==='in_progress'),'choosing a status replaces the unknown one');
+   // Closed: zugeklappt eine Zeile mit der Zahl, aufgeklappt alle erledigten Tasks, juengste zuerst
+   const PC=snap.projects.find(pr=>(pr.todos||[]).filter(t=>liveX(t)&&t.status==='done').length>=2);
+   ok(PC,'found a project with closed tasks');
+   if(PC){const PCI=snap.projects.indexOf(PC),done=PC.todos.filter(t=>liveX(t)&&t.status==='done'),col=`.col[data-col="${PC.id}"]`;
+    const head=env.doc.querySelector(col+' .cl-h');ok(head&&head.querySelector('.c').textContent===String(done.length),'Closed header shows the number of closed tasks ('+done.length+')');
+    ok(env.doc.querySelectorAll(col+' .t.cl').length===0,'closed tasks stay out of sight until asked for');
+    const revs=gh.revs.length;
+    click(env,col+' .cl-h');await tick();
+    const rowsC=[...env.doc.querySelectorAll(col+' .t.cl')];ok(rowsC.length===done.length,'one click shows every closed task');
+    const newest=done.slice().sort((a,b)=>String(b.completedAt||b.modifiedAt||'').localeCompare(String(a.completedAt||a.modifiedAt||'')))[0];
+    ok(rowsC[0]&&rowsC[0].querySelector('.tt').textContent.trim()===String(newest.text||'Untitled task').trim(),'newest first');
+    ok(JSON.parse(env.w.localStorage.getItem('rg3_closed')).includes(PC.id),'remembered on this device');
+    await tick();ok(gh.revs.length===revs,'opening the list writes nothing to the gist');
+    await setSt(env,newest.id,'open');
+    ok(await until(()=>{const t=gh.doc().projects[PCI].todos.find(t=>t.id===newest.id);return t.status==='open'&&t.completedAt===null;}),'the box brings a closed task back (open, completedAt cleared)');
+    ok(env.doc.querySelectorAll(col+' .t.cl').length===done.length-1,'and it left the Closed list');}
+  }
+  ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+  env.w.close();
+
+  // ── 16. Suche erreicht alles, Journal zeigt jeden Abschnitt, Board zeigt letzte Aktivitaet + offene Tasks ──
+  console.log('16. search reaches everything, journal titles, board meta');
+  gh=makeGitHub(snapText);
+  env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+  ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+  {
+   const PD=snap.projects.find(pr=>(pr.todos||[]).some(t=>liveX(t)&&t.status==='done')&&(pr.elements||[]).some(e=>liveX(e)&&e.status!=='abandoned'&&(e.log||[]).length)&&(pr.journal||[]).some(e=>(e.sections||[]).length>3));
+   ok(PD,'found a project with a closed task, an element with a log and a day with more than 3 sections');
+   if(PD){const DI=snap.projects.indexOf(PD),col=`.col[data-col="${PD.id}"]`;
+    const dn=PD.todos.find(t=>liveX(t)&&t.status==='done'),el=PD.elements.find(e=>liveX(e)&&e.status!=='abandoned'&&(e.log||[]).length),jd=PD.journal.find(e=>(e.sections||[]).length>3);
+    // eindeutige Woerter an drei Stellen, die die Suche frueher nicht erreichte
+    gh.agentWrite(doc=>{const p=doc.projects[DI];const t=p.todos.find(t=>t.id===dn.id);t.notes=(t.notes||'')+'\nZZDONEWORD';p.elements.find(e=>e.id===el.id).log.push({time:'2026-11-11T09:00:00.000Z',msg:'measured ZZLOGWORD today'});const s=p.journal.find(e=>e.id===jd.id).sections[3];s.content=(s.content||'')+'\nZZJRNWORD';});
+    ok(await until(()=>String(env.w.eval(`findT(${J(PD.id)},${J(dn.id)}).notes`)).includes('ZZDONEWORD')),'agent data arrived');
+    click(env,'[data-act="page"][data-v="journal"]');await tick();
+    const jrow=env.doc.querySelector(col+` .jd[data-k="j-${jd.id}"]`);
+    ok(jrow&&jrow.querySelectorAll('.x div').length===jd.sections.length,'a journal day lists every section title ('+jd.sections.length+', it used to stop at 3)');
+    const hc=()=>[...env.doc.querySelectorAll('.pages .hc')].map(x=>x.textContent).join('/');
+    const search=async v=>{typeIn(env,env.doc.querySelector('.search input'),v);await tick();};
+    await search('zzdoneword');
+    ok(hc()==='1/0/0','match counts next to Tasks / Board / Journal: '+hc());
+    click(env,'[data-act="page"][data-v="tasks"]');await tick();
+    const cr=env.doc.querySelectorAll(col+' .t.cl');
+    ok(cr.length===1&&cr[0].querySelector('.tt').textContent.trim()===String(dn.text||'').trim(),'a closed task is found by a word in its notes (Closed opens by itself under search)');
+    await search('ZZLOGWORD');
+    ok(hc()==='0/1/0','a word that only stands in an element log counts on Board: '+hc());
+    click(env,'[data-act="page"][data-v="board"]');await tick();
+    const er=env.doc.querySelector(col+` .el[data-k="e-${el.id}"]`);
+    ok(er&&er.querySelector('.sn')&&er.querySelector('.sn').textContent.includes('ZZLOGWORD'),'the board row shows where it matched');
+    await search('zzjrnword');
+    ok(hc()==='0/0/1','a word in the 4th section of a day counts on Journal: '+hc());
+    click(env,'[data-act="page"][data-v="journal"]');await tick();
+    const jr=env.doc.querySelector(col+` .jd[data-k="j-${jd.id}"]`);
+    ok(jr&&jr.querySelector('.sn')&&jr.querySelector('.sn').textContent.includes('ZZJRNWORD')&&jr.querySelectorAll('.x div:not(.sn)').length===1,'journal shows the matching section and the place');
+    click(env,'[data-act="clearQ"]');await tick();
+    ok(!env.doc.querySelector('.pages .hc'),'no counts without a search');
+    click(env,'[data-act="page"][data-v="board"]');await tick();
+    const em=env.doc.querySelector(col+` .el[data-k="e-${el.id}"] .em`);
+    ok(em&&em.textContent.includes('11 Nov'),'board row shows the date of the last activity');
+    let link=null;for(const pr of snap.projects){for(const t of pr.todos||[]){if(!liveX(t)||t.status==='done')continue;for(const s2 of t.subtasks||[])if(liveX(s2)&&s2.status!=='done'&&s2.elementId&&(pr.elements||[]).some(e=>e.id===s2.elementId&&liveX(e)&&e.status!=='abandoned')){link={pr,id:s2.elementId};break;}if(link)break;}if(link)break;}
+    if(link){let n=0;link.pr.todos.forEach(t=>{if(!liveX(t)||t.status==='done')return;if(t.elementId===link.id)n++;(t.subtasks||[]).forEach(s2=>{if(s2.elementId===link.id&&liveX(s2)&&s2.status!=='done')n++;});});
+     const b=env.doc.querySelector(`.col[data-col="${link.pr.id}"] .el[data-k="e-${link.id}"] .em b`);ok(b&&b.textContent===n+' open','board row counts the open linked tasks and steps ('+n+')');}
+   }
+  }
+  ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+  env.w.close();
+
+  // ── 17. Sync-Anzeige ehrlich; kein zweites Gist aus Versehen ──
+  console.log('17. sync status is honest; no second gist by accident');
+  const bad=(status,body)=>({ok:false,status,headers:{get:()=>null},json:async()=>(body||{}),text:async()=>''});
+  gh=makeGitHub(snapText);
+  env=boot(gh,{timing:{poll:150,cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+  ok(await until(()=>env.doc.querySelector('.sync')&&env.doc.querySelector('.sync').textContent.includes('Live')),'Live after loading');
+  {const real=gh.fetch,label=()=>env.doc.querySelector('.sync').textContent;
+   gh.fetch=async(u,i)=>u.includes('/commits')?bad(500):real(u,i);
+   ok(await until(()=>label().includes('Not live')),'failing checks show "Not live" (it used to stay "Live")');
+   ok(env.doc.querySelector('.sync.err'),'and it is marked as a problem');
+   gh.fetch=async(u,i)=>{if(u.includes('/commits'))throw new TypeError('Failed to fetch');return real(u,i);};
+   await sleep(450);ok(label().includes('Not live'),'no network: still "Not live"');
+   gh.fetch=real;
+   ok(await until(()=>label().includes('Live')&&!env.doc.querySelector('.sync.err')),'back to Live by itself once the checks work again');
+   let n401=0;gh.fetch=async(u,i)=>{if(u.includes('/commits')){n401++;return bad(401,{message:'Bad credentials'});}return real(u,i);};
+   ok(await until(()=>label().includes('Sync paused')),'a revoked token shows as paused');
+   const seen=n401;await sleep(600);ok(n401===seen,'and the app stops asking every few seconds');
+   gh.fetch=real;}
+  ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+  env.w.close();
+  gh=makeGitHub(snapText);
+  {const real=gh.fetch;let listFails=true;
+   gh.fetch=async(u,i)=>{if(u.includes('/gists?per_page=100')){gh.log.push(((i&&i.method)||'GET')+' '+u);return listFails?bad(502,{message:'Bad Gateway'}):{ok:true,status:200,headers:{get:()=>null},json:async()=>([{id:'G',files:{'researchgraph_data.json':{}}}]),text:async()=>''};}return real(u,i);};
+   env=boot(gh,{});await sleep(100);
+   click(env,'[data-act="openSync"]');await tick();
+   typeIn(env,env.doc.querySelector('#tok'),'tok');click(env,'[data-act="connect"]');
+   ok(await until(()=>env.doc.querySelector('.dlg .err')),'fresh browser, gist list fails: the dialog says so');
+   ok(!gh.log.some(l=>l.startsWith('POST')),'and no new gist is created (it used to create an empty second one)');
+   ok(!env.w.localStorage.getItem('rg_gh_token')&&!env.w.localStorage.getItem('rg_gh_gist'),'nothing is stored');
+   listFails=false;click(env,'[data-act="connect"]');
+   ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'the next try finds the existing gist and loads it');
+   ok(!gh.log.some(l=>l.startsWith('POST')),'still no new gist');}
   ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
   env.w.close();
 
