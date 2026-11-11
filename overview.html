@@ -413,6 +413,12 @@ button.ce.du.today:hover,button.ce.du.late:hover{background:#8F1010}
 .ce.jr span,.ce.cl span,.ce.id span,.ce.ac span{color:var(--ink-2)}
 .ce.cl span,.ce.jr span,.ce.id span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ce .eb{width:3px;align-self:stretch;background:var(--c);flex-shrink:0;border-radius:2px}
+.ab.gcab{background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+[data-theme="dark"] .ab.gcab{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
+.ce.gc{cursor:default}
+.ce.gc span b{font-variant-numeric:tabular-nums}
+.ce.gc small{color:var(--ink-2);font-size:11.5px}
+.cal-l .gc-old{color:var(--danger);font-weight:600}
 .cea{display:flex;flex-wrap:wrap;gap:0 4px}
 .cea .ce{width:auto;white-space:nowrap}
 /* Faelligkeits-Marke: Helligkeits-Treppe Gelb #F0E442 / Orange #E07B00 / Dunkelrot #8F1010 — unter Deuteranopie-Simulation schlechtestes Paar dE2000 18 (Gelb-Orange),
@@ -580,7 +586,7 @@ function md(src){
 // ════════════════════════════════════════════════════════════════════════════
 // 4. DATEN — lokale Kopie in localStorage (Keys wie overview.html), Wahrheit ist der Gist
 // ════════════════════════════════════════════════════════════════════════════
-const S={projects:[],data:{}};
+const S={projects:[],data:{},calendar:null}; // calendar = Block `calendar` aus dem Gist (z.B. calendar.google vom Agenten), in der App nur lesbar
 function _arch(p){const o={};if(p&&p.archived){o.archived=true;o.archivedAt=p.archivedAt||null;}if(p&&p.frozen){o.frozen=true;o.frozenAt=p.frozenAt||null;}if(p&&Array.isArray(p.lists))o.lists=p.lists.slice();if(p&&Array.isArray(p.categories)&&p.categories.length)o.categories=p.categories.slice();return o;} // nur wenn gesetzt; `categories` nur noch Altform fuer projLists()
 function projById(id){return S.projects.find(p=>p.id===id);}
 function liveProjects(){return S.projects.filter(p=>!p.archived);}
@@ -594,6 +600,7 @@ function loadProject(pid){
 function loadLocal(){
   S.projects=lsGet('rg_projects',[]);
   S.data={};S.projects.forEach(p=>{S.data[p.id]=loadProject(p.id);});
+  S.calendar=lsGet('rg_calendar',null);
 }
 // Kompletten Stand (Payload-Form) in den lokalen Speicher und in S uebernehmen
 function writeLocal(doc){
@@ -601,6 +608,7 @@ function writeLocal(doc){
   let ok=true;
   doc.projects.forEach(p=>{const pre='rg_'+p.id+'_';KEYS.forEach(k=>{const v=k==='statuses'?(p.statuses||DEF_ST):k==='tags'?(p.tags||{}):(p[k]||[]);if(!lsSet(pre+k,v))ok=false;});});
   if(!lsSet('rg_projects',list))ok=false;
+  S.calendar=(doc.calendar&&typeof doc.calendar==='object')?doc.calendar:null;lsSet('rg_calendar',S.calendar||'null');
   S.projects=list;S.data={};
   doc.projects.forEach(p=>{S.data[p.id]={nodes:p.nodes||[],elements:p.elements||[],tags:p.tags||{},statuses:p.statuses||clone(DEF_ST),todos:p.todos||[],journal:p.journal||[],ideas:p.ideas||[]};});
   return ok;
@@ -1030,6 +1038,17 @@ function calEntries(from,to){
     d.elements.forEach(el=>{if(isArch(el))return;const per={};(el.log||[]).forEach(l=>{if(!l||!l.time)return;if(qq()&&!hit(el.label,l.msg))return;const day=localDay(l.time);if(day)per[day]=(per[day]||0)+1;});
       Object.keys(per).forEach(day=>add(day,{k:'act',p,el,n:per[day]}));});
     d.ideas.forEach(i=>{if(!i.archived&&hit(i.title,i.desc))add(localDay(i.createdAt),{k:'idea',p,i});});});
+  // Google-Kalender (Dominik 11.11.2026): nur EINE Richtung. Der Agent legt die Termine unter calendar.google.events in den Gist,
+  // die App zeigt sie an — fuer jeden Zeitraum, der dort liegt — und spricht selbst nie mit Google. Projektunabhaengig, also auch im Ein-Projekt-Modus.
+  const g=S.calendar&&S.calendar.google;
+  ((g&&Array.isArray(g.events)&&g.events)||[]).forEach(ev=>{
+    if(!ev||!ev.start||!hit(ev.title,ev.location))return;
+    let a,b;
+    if(ev.allDay){a=String(ev.start).slice(0,10);b=String(ev.end||ev.start).slice(0,10);}
+    else{a=localDay(ev.start);const s0=new Date(ev.start),e0=new Date(ev.end||ev.start);b=localDay(new Date(e0.getTime()-(e0>s0?1:0)));} // endet ein Termin genau um Mitternacht, zaehlt der neue Tag nicht mehr
+    if(!a)return;if(!b||b<a)b=a;
+    let n=0;for(const d=new Date(a+'T12:00:00');n<62&&!isNaN(d);d.setDate(d.getDate()+1),n++){const day=d.toLocaleDateString('en-CA');if(day>b)break;add(day,{k:'gcal',ev,first:day===a});}
+  });
   return out;
 }
 function hitCounts(){const o={tasks:0,board:0,journal:0,calendar:0};{const dd=calDays(calMonth());o.calendar=calEntries(dd[0],dd[dd.length-1]).length;}visibleProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
@@ -1136,8 +1155,14 @@ function renderTop(){
 // Spaltenbreiten als Anteile (flex-grow), nicht als feste Pixel: Ziehen verschiebt Breite nur zwischen den zwei Nachbarn, alle anderen bleiben stehen (Dominik 06.11.2026)
 function colStyle(pid,def){const w=ui.colw[pid]||def||1;return `flex:${w} 1 0`;}
 function onePid(){const v=visibleProjects();return (v.find(p=>p.id===ui.one)||v[0]||{}).id;}
-const CAL_RANK={due:0,journal:1,act:2,done:3,failed:3,idea:4};
+const CAL_RANK={gcal:-1,due:0,journal:1,act:2,done:3,failed:3,idea:4};
+const _gcKey=e=>(e.ev.allDay?'0':'1')+String(e.ev.start); // ganztaegig zuerst, dann nach Uhrzeit
 function calEntry(e){
+  if(e.k==='gcal'){
+    const ev=e.ev,tm=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});};
+    const when=ev.allDay?'all day':tm(ev.start)+'–'+tm(ev.end||ev.start);
+    return `<div class="ce gc" title="Google Calendar · ${esc(when)}${ev.location?' · '+esc(ev.location):''}"><b class="ab gcab">G</b><span>${ev.allDay?'':`<b>${esc(e.first?tm(ev.start):'…')}</b> `}${esc(ev.title||'(no title)')}${ev.location?`<small> · ${esc(ev.location)}</small>`:''}</span></div>`;
+  }
   const pid=e.p.id,ab=`<b class="ab" style="${projVars(e.p)}">${esc(projAbbr(e.p))}</b>`,pn=esc(e.p.name);
   const o=(type,id,sid)=>`data-act="open" data-type="${type}" data-pid="${esc(pid)}" data-id="${esc(id)}"${sid?` data-sid="${esc(sid)}"`:''}`;
   if(e.k==='journal'){const n=(e.e.sections||[]).length;return `<button class="ce jr" ${o('entry',e.e.id)} title="${pn} · journal · ${esc((e.e.sections||[]).map(x=>snip(x.title,60)).join(' · '))}">${ab}<span>Journal · ${plural(n,'section')}</span></button>`;}
@@ -1151,7 +1176,7 @@ function renderCalendar(){
   const ym=calMonth(),days=calDays(ym),today=todayStr(),by={};
   calEntries(days[0],days[days.length-1]).forEach(e=>{(by[e.day]=by[e.day]||[]).push(e);});
   const cells=days.map((day,ix)=>{
-    const list=(by[day]||[]).sort((a,b)=>CAL_RANK[a.k]-CAL_RANK[b.k]);
+    const list=(by[day]||[]).sort((a,b)=>CAL_RANK[a.k]-CAL_RANK[b.k]||(a.k==='gcal'?_gcKey(a).localeCompare(_gcKey(b)):0));
     return `<div class="cd${day.slice(0,7)!==ym?' out':''}${day===today?' now':''}${ix%7>4?' we':''}" data-k="cd-${day}" data-day="${day}"><div class="cdn"><b>${+day.slice(8)}</b>${day===today?'<span>today</span>':(+day.slice(8)===1?`<span>${esc(fmtDate(day,{month:'short'}))}</span>`:'')}</div>${(()=>{
       // Element-Aktivitaet als fliessende Reihe kleiner Marken statt einer Zeile pro Element — sonst erschlaegt sie den Tag
       const act=list.filter(e=>e.k==='act'),pre=list.filter(e=>CAL_RANK[e.k]<CAL_RANK.act),post=list.filter(e=>CAL_RANK[e.k]>CAL_RANK.act);
@@ -1160,7 +1185,11 @@ function renderCalendar(){
   return `<main class="board" data-k="main-calendar"><div class="zoomer" style="zoom:${ui.zoom/100}"><section class="calw" data-k="calw">
     <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(fmtDate(ym+'-01',{month:'long',year:'numeric'}))}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button>
       <span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span>✦ idea</span><span>element · log entries</span></span>
-      <span class="grow"></span><span class="cal-l">${projs.map(p=>`<span><b class="ab" style="${projVars(p)}">${esc(projAbbr(p))}</b>${esc(p.name)}</span>`).join('')}</span></div>
+      <span class="grow"></span><span class="cal-l">${projs.map(p=>`<span><b class="ab" style="${projVars(p)}">${esc(projAbbr(p))}</b>${esc(p.name)}</span>`).join('')}${(()=>{
+        // Legende des Google-Kalenders, mit ehrlichem Alter: aelter als 36 h heisst, der Abgleich des Agenten laeuft nicht mehr
+        const g=S.calendar&&S.calendar.google;if(!g)return '';
+        const old=!g.checkedAt||Date.now()-Date.parse(g.checkedAt)>36*3600*1000;
+        return `<span class="gc-l${old?' gc-old':''}" title="Copied from Google Calendar by your agent — read-only here, nothing goes back to Google.${g.from&&g.to?' Covers '+esc(fmtDate(g.from))+' to '+esc(fmtDate(g.to))+'.':''}${g.checkedAt?' Last refreshed '+esc(fmtDT(g.checkedAt))+'.':''}"><b class="ab gcab">G</b>Google Calendar${old?' — not refreshed since '+esc(g.checkedAt?fmtDT(g.checkedAt):'?'):''}</span>`;})()}</span></div>
     <div class="cal-g">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(w=>`<div class="cwd">${w}</div>`).join('')}${cells}</div>
   </section></div></main>`;
 }
@@ -1561,7 +1590,7 @@ function renderDialog(){
       <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
       <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
-      <li><b>Calendar</b> shows everything that has a date on one month sheet: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Click any entry to open it.</li>
+      <li><b>Calendar</b> shows everything that has a date on one month sheet: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Click any entry to open it. Appointments from your Google Calendar appear there too (marked G) once your agent copies them; that goes one way only, nothing is sent to Google.</li>
       <li>Board shows what your agent keeps — read-only here. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to your agent’s.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with your agent’s, so nothing is overwritten.</li></ul>
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;

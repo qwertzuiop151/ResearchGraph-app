@@ -710,6 +710,51 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     env.w.close();}
   }
 
+  // ── 21. Google-Kalender aus dem Gist: nur Anzeige, jeder Zeitraum, die App schreibt ihn nie (11.11.2026) ──
+  console.log('21. Google Calendar copy (one way)');
+  {
+   const today=new Date().toLocaleDateString('en-CA'),at=(h,m)=>{const d=new Date();d.setHours(h,m,0,0);return d.toISOString();};
+   const dayN=n=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA');};
+   gh=makeGitHub(snapText);
+   env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+   ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+   click(env,'[data-act="page"][data-v="calendar"]');await tick();
+   ok(!env.doc.querySelector('.ce.gc')&&!env.doc.querySelector('.cal-l .gc-l'),'without a copy in the gist: no Google entries, no legend');
+   const cal={google:{checkedAt:new Date().toISOString(),changedAt:new Date().toISOString(),from:dayN(-31),to:dayN(90),events:[
+     {id:'a',title:'ZZ Group meeting',allDay:false,start:at(10,0),end:at(11,0),location:'Seminar room 2'},
+     {id:'b',title:'ZZ Thesis committee',allDay:true,start:today,end:today},
+     {id:'c',title:'ZZ Early call',allDay:false,start:at(8,30),end:at(9,0)}]}};
+   gh.agentWrite(doc=>{doc.calendar=cal;});
+   const gc=()=>[...env.doc.querySelectorAll('.cd.now .ce.gc')];
+   ok(await until(()=>gc().length===3),'the agent copied three appointments for today: they appear without a reload');
+   const tx=gc().map(x=>x.textContent);
+   ok(tx.length===3&&tx[0].includes('ZZ Thesis committee')&&tx[1].includes('08:30')&&tx[1].includes('ZZ Early call')&&tx[2].includes('10:00')&&tx[2].includes('Seminar room 2'),'all-day first, then by time, with time and place: '+tx.join(' | '));
+   ok(env.doc.querySelector('.cd.now .cdn').nextElementSibling.classList.contains('gc'),'appointments stand at the top of the day');
+   ok(env.doc.querySelector('.cal-l .gc-l')&&!env.doc.querySelector('.cal-l .gc-old'),'the legend names Google Calendar; no warning while the copy is fresh');
+   ok(gc().every(x=>!x.dataset.act),'the entries are read-only (nothing to click)');
+   click(env,'[data-act="mode"][data-v="one"]');await tick();ok(gc().length===3,'"One project" still shows them (they belong to no project)');click(env,'[data-act="mode"][data-v="all"]');await tick();
+   // ein eigener Upload der App laesst den Block unangetastet
+   click(env,'[data-act="page"][data-v="tasks"]');await tick();
+   const tg=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.archived&&!t.focus),pg=(tg.priority==='high')?'low':'high';
+   click(env,`.col .t [data-act="setPrio"][data-id="${tg.id}"][data-v="${pg}"]`);
+   ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===tg.id).priority===pg),'the app uploaded a change of its own');
+   ok(JSON.stringify(gh.doc().calendar)===JSON.stringify(cal),'and the calendar block in the gist is untouched by it');
+   // jeder Zeitraum: ein dreitaegiger Termin in zwei Jahren; die Kopie ist drei Tage alt
+   gh.agentWrite(doc=>{doc.calendar.google.events=[{id:'d',title:'ZZ Conference',allDay:true,start:'2028-06-05',end:'2028-06-07'}];doc.calendar.google.checkedAt=new Date(Date.now()-3*86400000).toISOString();});
+   click(env,'[data-act="page"][data-v="calendar"]');await tick();
+   ok(await until(()=>env.w.eval('S.calendar&&S.calendar.google.events.length')===1),'new copy arrived');
+   env.w.eval(`ui.cal='2028-06';render()`);await tick();
+   const on=d=>{const c=env.doc.querySelector(`.cd[data-day="${d}"]`);return !!c&&[...c.querySelectorAll('.ce.gc')].some(x=>x.textContent.includes('ZZ Conference'));};
+   ok(on('2028-06-05')&&on('2028-06-06')&&on('2028-06-07')&&!on('2028-06-08')&&!on('2028-06-04'),'a three-day event two years ahead stands on each of its days (the app has no window of its own)');
+   ok(env.doc.querySelector('.cal-l .gc-old')&&env.doc.querySelector('.cal-l .gc-old').textContent.includes('not refreshed since'),'a copy older than 36 hours is flagged as not refreshed');
+   typeIn(env,env.doc.querySelector('.search input'),'zz conf');await tick();ok(env.doc.querySelectorAll('.cal-g .ce.gc').length===3,'search finds appointments by title');
+   typeIn(env,env.doc.querySelector('.search input'),'zz-nothing-zz');await tick();ok(env.doc.querySelectorAll('.cal-g .ce.gc').length===0,'and filters them out');
+   click(env,'[data-act="clearQ"]');await tick();
+   ok(JSON.parse(env.w.localStorage.getItem('rg_calendar')).google.events[0].title==='ZZ Conference','the copy is kept in this browser for the next start');
+   ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+   env.w.close();
+  }
+
   console.log(`\nTOTAL: ${pass} passed, ${fail} failed`);
   process.exit(fail?1:0);
 })().catch(e=>{console.error('HARNESS CRASH',e);process.exit(2);});
