@@ -389,15 +389,19 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .cal-l>span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .ab{display:inline-block;min-width:24px;padding:0 4px;border-radius:3px;background:var(--c);color:var(--on);font-size:10.5px;font-weight:700;line-height:15px;text-align:center;flex-shrink:0;letter-spacing:.2px}
 [data-theme="dark"] .ab{box-shadow:0 0 0 1px rgba(255,255,255,.25)}
-.cal-g{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:max-content;align-content:start}
+.cal-g{position:relative;flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:max-content;align-content:start}
+/* position:relative ist tragend: damit ist das Band der offsetParent seiner Zellen und offsetTop liegt im selben Mass wie scrollTop (calPlace/calTopCell). Ohne es zaehlt offsetTop ab Seitenanfang — jeder Sprung landete um Kopfzeile + Kalenderkopf zu tief. */
 /* Zeilenhoehe = Inhalt, erzwungen ueber max-content. NICHT minmax(104px,auto) und NICHT auto: beide wachsen ueber ihr Minimum nur, solange im Blatt Platz frei ist — und das Minimum einer Zelle mit fester min-height ist diese min-height, nicht ihr Inhalt. War der Monat hoeher als das Fenster, blieben die Zeilen bei 104 px und die Eintraege liefen in die naechste Woche (Dominik 11.11.2026; nachgemessen: 11 Zellen, bis 216 px). */
 .cd{min-height:104px}
 .cwd{position:sticky;top:0;z-index:1;background:var(--paper);padding:5px 8px;font-size:12px;font-weight:700;color:var(--ink-2);border-bottom:1px solid var(--rule);grid-row:1;height:28px}
 .cal-g{grid-template-rows:28px}
 .cd{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:3px 4px 6px;min-width:0}
 .cd:nth-child(7n){border-right:0}
-.cd.we,.cd.out{background:var(--hover)}
-.cd.out .cdn b{color:var(--ink-3);font-weight:400}
+.cd.we{background:var(--hover)}
+/* Monatsgrenze im durchlaufenden Band: Treppenlinie (ueber den Tagen 1–7, links vom 1.) und der Monat ausgeschrieben am 1. — Form und Text, keine Farbe */
+.cd.mt{border-top:2px solid var(--ink)}
+.cd.ml{border-left:2px solid var(--ink)}
+.cdn .mn{font-size:12.5px;font-weight:700;color:var(--ink)}
 .cdn{display:flex;gap:6px;align-items:baseline;padding:1px 3px 3px;font-size:12.5px}
 .cdn span{font-size:11px;color:var(--ink-2)}
 .cd.now{box-shadow:inset 0 0 0 2px var(--ink)}
@@ -1021,11 +1025,43 @@ function hitSnip(shown,rest){const q=qq();if(!q||shown.some(x=>String(x||'').toL
 // Bewusst NICHT: angelegt/geaendert (jede Task, jeden Tag — Rauschen) und Archiviertes (ueberall ausgeblendet).
 function projAbbr(p){const w=String(p.name||'').trim().split(/\s+/).filter(Boolean);return (w.length>1?w.map(x=>x[0]).join(''):String(p.name||'?').slice(0,2)).toUpperCase().slice(0,3);}
 function localDay(iso){if(!iso)return '';const d=new Date(iso);return isNaN(d)?'':d.toLocaleDateString('en-CA');}
-function calMonth(){return /^\d{4}-\d{2}$/.test(ui.cal||'')?ui.cal:todayStr().slice(0,7);}
 function calProjects(){return ui.mode==='one'?[projById(onePid())].filter(Boolean):visibleProjects();}
-function calDays(ym){const [Y,M]=ym.split('-').map(Number),first=new Date(Y,M-1,1,12),last=new Date(Y,M,0,12);
-  const a=new Date(first);a.setDate(1-((first.getDay()+6)%7));const b=new Date(last);b.setDate(last.getDate()+(6-((last.getDay()+6)%7))); // Montag bis Sonntag
-  const out=[];for(const d=new Date(a);d<=b;d.setDate(d.getDate()+1))out.push(d.toLocaleDateString('en-CA'));return out;}
+// Durchlaufendes Wochenband statt Monatsblatt (Dominik 11.11.2026: "kontinuierlich nach unten scrollen"). Geladen ist ein Stueck ganzer Wochen (ui.cal, Montag bis Sonntag);
+// naehert sich das Scrollen einem Rand, waechst das Stueck dort um CAL_STEP Wochen. Der Kopf nennt den Monat der obersten Woche (Monat ihres Sonntags — so stimmt er auch nach einem Monatssprung).
+const CAL_PRE=8,CAL_POST=26,CAL_STEP=12; // Wochen vor / nach der obersten Woche beim Aufbau, Zuwachs je Nachladen
+function dAdd(day,n){const d=new Date(day+'T12:00:00');d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA');}
+function monOf(day){return dAdd(day,-((new Date(day+'T12:00:00').getDay()+6)%7));}
+function calTop(){return ui.calAt||monOf(todayStr());}
+function calSpan(top){return {from:dAdd(top,-7*CAL_PRE),to:dAdd(top,7*CAL_POST+6)};}
+function calRange(){return ui.cal||(ui.cal=calSpan(calTop()));}
+function calTitle(){return fmtDate(dAdd(calTop(),6),{month:'long',year:'numeric'});}
+// Woche eines Tages nach oben holen. Liegt sie im geladenen Stueck oder nah dran, waechst das Stueck dorthin; liegt sie mehr als ein Jahr weg, entsteht ein neues Stueck um das Ziel.
+function calGoto(day){
+  const m=monOf(day),r=calRange();
+  if(m<dAdd(r.from,-364)||m>dAdd(r.to,364))ui.cal=calSpan(m);
+  else ui.cal={from:m<dAdd(r.from,14)?dAdd(m,-7*CAL_PRE):r.from,to:dAdd(m,7*CAL_STEP+6)>r.to?dAdd(m,7*CAL_POST+6):r.to};
+  ui.calAt=m;ui.calGo=m;render();
+}
+// Scroll-Lage: alles in den eigenen Pixeln des Bandes (offsetTop/scrollTop), damit der Zoom der Seite nicht hineinrechnet.
+const _calHead=g=>{const h=g.querySelector('.cwd');return h?h.offsetHeight:0;};
+function calTopCell(g){const y=g.scrollTop+_calHead(g)+40;for(const c of g.querySelectorAll('.cd:nth-child(7n+1)'))if(c.offsetTop+c.offsetHeight>y)return c;return null;} // oberste Woche, von der noch mindestens 40 px zu sehen sind
+function calAnchor(g){const c=calTopCell(g);return c?{day:c.dataset.day,off:c.offsetTop-g.scrollTop}:null;}
+// Nach jedem Zeichnen: neues Band oder Sprung → Zielwoche an die Oberkante; sonst dieselbe Woche an derselben Stelle halten (oben nachgeladene Wochen oder gewachsene Zeilen duerfen die Ansicht nicht verschieben).
+function calPlace(g,g0,anc){
+  if(!g)return;
+  if(ui.calGo||g!==g0){const c=g.querySelector(`.cd[data-day="${ui.calGo||calTop()}"]`);ui.calGo=null;if(c)g.scrollTop=c.offsetTop-_calHead(g);return;}
+  if(!anc)return;const c=g.querySelector(`.cd[data-day="${anc.day}"]`);if(!c)return;
+  const top=c.offsetTop-anc.off;if(Math.abs(g.scrollTop-top)>1)g.scrollTop=top;
+}
+function calScroll(g){
+  const c=calTopCell(g);
+  if(c&&ui.calAt!==c.dataset.day){ui.calAt=c.dataset.day;const h=document.querySelector('.cal-h h2'),t=calTitle();if(h&&h.textContent!==t)h.textContent=t;}
+  const r=calRange(),edge=Math.max(600,g.clientHeight);
+  if(g.scrollTop<edge)ui.cal={from:dAdd(r.from,-7*CAL_STEP),to:r.to};
+  else if(g.scrollHeight-g.scrollTop-g.clientHeight<edge)ui.cal={from:r.from,to:dAdd(r.to,7*CAL_STEP)};
+  else return;
+  render();
+}
 function calEntries(from,to){
   const out=[],add=(day,e)=>{if(day&&day>=from&&day<=to)out.push(Object.assign({day},e));};
   calProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
@@ -1053,7 +1089,7 @@ function calEntries(from,to){
   });
   return out;
 }
-function hitCounts(){const o={tasks:0,board:0,journal:0,calendar:0};{const dd=calDays(calMonth());o.calendar=calEntries(dd[0],dd[dd.length-1]).length;}visibleProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
+function hitCounts(){const o={tasks:0,board:0,journal:0,calendar:0};o.calendar=calEntries('0000-01-01','9999-12-31').length;visibleProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
   o.tasks+=d.todos.filter(todoHit).length+d.ideas.filter(i=>hit(i.title,i.desc)).length;
   o.board+=d.elements.filter(e=>!isArch(e)&&elHit(d,e)).length;o.journal+=d.journal.filter(jHit).length;});return o;}
 // Letzte Aktivitaet (juengster Log-Eintrag) und offene verknuepfte Tasks/Schritte eines Elements — fuer die Board-Zeile
@@ -1065,7 +1101,9 @@ function elMeta(d,e){let last='';(e.log||[]).forEach(l=>{if(l&&l.time&&String(l.
 // ════════════════════════════════════════════════════════════════════════════
 const ui={
   page:['tasks','board','journal','calendar'].includes(localStorage.getItem('rg3_page'))?localStorage.getItem('rg3_page'):'tasks',
-  cal:null, // gezeigter Monat der Kalender-Seite (YYYY-MM), null = aktueller Monat; nicht gespeichert
+  cal:null,   // geladenes Stueck des Kalender-Bandes {from: Montag, to: Sonntag}, null = um die aktuelle Woche; nicht gespeichert
+  calAt:null, // Montag der obersten sichtbaren Woche (vom Scrollen gesetzt), null = aktuelle Woche
+  calGo:null, // Montag, der nach dem naechsten Zeichnen an die Oberkante soll (Sprung per ‹ › / Today)
   q:'',showFrozen:false,menu:null,dialog:null,stack:[],toast:null,drawer:null,edit:null,adding:null,
   hideDone:localStorage.getItem('rg_hideDoneSubtasks')==='1',
   zoom:+(localStorage.getItem('rg3_zoom')||100),
@@ -1092,7 +1130,9 @@ function renderNow(){
   const app=document.getElementById('app');
   const tpl=document.createElement('template');
   tpl.innerHTML=renderTop()+renderMain()+renderDrawer()+renderDialog()+renderToast();
+  const g0=app.querySelector('.cal-g'),anc=g0&&!ui.calGo?calAnchor(g0):null;
   morphKids(app,tpl.content);
+  calPlace(app.querySelector('.cal-g'),g0,anc);
   app.querySelectorAll('textarea[data-auto]').forEach(autosize);
   if(ui.focusSel){const el=document.querySelector(ui.focusSel);ui.focusSel=null;if(el){el.focus();if(el.select&&el.dataset.sel)el.select();}}
 }
@@ -1175,17 +1215,19 @@ function calEntry(e){
   return `<button class="ce cl" ${o(type,e.t.id,e.s&&e.s.id)} title="${pn}${par} · ${e.k}${x.failedReason?': '+esc(x.failedReason):''}">${ab}<span>${mark(e.k)} ${e.s?'↳ ':''}${esc(x.text||'Untitled')}</span></button>`;
 }
 function renderCalendar(){
-  const ym=calMonth(),days=calDays(ym),today=todayStr(),by={};
-  calEntries(days[0],days[days.length-1]).forEach(e=>{(by[e.day]=by[e.day]||[]).push(e);});
+  const r=calRange(),today=todayStr(),by={},days=[];
+  for(const d=new Date(r.from+'T12:00:00');;d.setDate(d.getDate()+1)){const s=d.toLocaleDateString('en-CA');if(s>r.to||isNaN(d))break;days.push(s);}
+  calEntries(r.from,r.to).forEach(e=>{(by[e.day]=by[e.day]||[]).push(e);});
   const cells=days.map((day,ix)=>{
     const list=(by[day]||[]).sort((a,b)=>CAL_RANK[a.k]-CAL_RANK[b.k]||(a.k==='gcal'?_gcKey(a).localeCompare(_gcKey(b)):0));
-    return `<div class="cd${day.slice(0,7)!==ym?' out':''}${day===today?' now':''}${ix%7>4?' we':''}" data-k="cd-${day}" data-day="${day}"><div class="cdn"><b>${+day.slice(8)}</b>${day===today?'<span>today</span>':(+day.slice(8)===1?`<span>${esc(fmtDate(day,{month:'short'}))}</span>`:'')}</div>${(()=>{
+    const dn=+day.slice(8); // Monatsgrenze: Linie ueber den Tagen 1–7 (mt) und links vom 1. (ml), der 1. traegt den Monat ausgeschrieben
+    return `<div class="cd${day===today?' now':''}${ix%7>4?' we':''}${dn<=7?' mt':''}${dn===1&&ix%7?' ml':''}" data-k="cd-${day}" data-day="${day}"><div class="cdn"><b>${dn}</b>${day===today?'<span>today</span>':''}${dn===1?`<span class="mn">${esc(fmtDate(day,{month:'long',year:'numeric'}))}</span>`:''}</div>${(()=>{
       // Element-Aktivitaet als fliessende Reihe kleiner Marken statt einer Zeile pro Element — sonst erschlaegt sie den Tag
       const act=list.filter(e=>e.k==='act'),pre=list.filter(e=>CAL_RANK[e.k]<CAL_RANK.act),post=list.filter(e=>CAL_RANK[e.k]>CAL_RANK.act);
       return pre.map(calEntry).join('')+(act.length?`<div class="cea">${act.map(calEntry).join('')}</div>`:'')+post.map(calEntry).join('');})()}</div>`;}).join('');
   const projs=calProjects();
   return `<main class="board" data-k="main-calendar"><div class="zoomer" style="zoom:${ui.zoom/100}"><section class="calw" data-k="calw">
-    <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(fmtDate(ym+'-01',{month:'long',year:'numeric'}))}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button>
+    <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(calTitle())}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button>
       <span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span>✦ idea</span><span>element · log entries</span></span>
       <span class="grow"></span><span class="cal-l">${projs.map(p=>`<span><b class="ab" style="${projVars(p)}">${esc(projAbbr(p))}</b>${esc(p.name)}</span>`).join('')}${(()=>{
         // Legende des Google-Kalenders, mit ehrlichem Alter: aelter als 36 h heisst, der Abgleich des Agenten laeuft nicht mehr
@@ -1592,7 +1634,7 @@ function renderDialog(){
       <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
       <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
-      <li><b>Calendar</b> shows everything that has a date on one month sheet: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Click any entry to open it. Appointments from your Google Calendar appear there too (marked G) once your agent copies them; that goes one way only, nothing is sent to Google.</li>
+      <li><b>Calendar</b> shows everything that has a date, week under week without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar appear there too (marked G) once your agent copies them; that goes one way only, nothing is sent to Google.</li>
       <li>Board shows what your agent keeps — read-only here. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to your agent’s.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with your agent’s, so nothing is overwritten.</li></ul>
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
@@ -1647,7 +1689,8 @@ const ACT={
   // Tasks
   // Kaestchen: klappt die Status-Auswahl dieser Zeile auf/zu (kein Klick-Zyklus mehr — der fuehrte nur vorwaerts und liess Tasks spurlos verschwinden)
   pickSt:el=>{ui.pick=ui.pick===A(el).v?null:A(el).v;ui.menu=null;render();},
-  calNav:el=>{const v=+A(el).v;if(!v)ui.cal=null;else{const [Y,M]=calMonth().split('-').map(Number),d=new Date(Y,M-1+v,1,12);ui.cal=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}render();},
+  // ‹ › springen zum Anfang des Monats davor/danach (vom Monat im Kopf aus gerechnet), Today zur aktuellen Woche — das Band selbst laeuft durch
+  calNav:el=>{const v=+A(el).v;if(!v)return calGoto(todayStr());const s=dAdd(calTop(),6),d=new Date(+s.slice(0,4),+s.slice(5,7)-1+v,1,12);calGoto(d.toLocaleDateString('en-CA'));},
   toggleClosed:el=>{const pid=A(el).pid;if(qq())return;if(ui.closedOpen.has(pid))ui.closedOpen.delete(pid);else ui.closedOpen.add(pid);lsSet('rg3_closed',[...ui.closedOpen]);render();},
   open:el=>{const a=A(el);if(ui.dialog&&ui.dialog.type==='parch'){ui.dialog=null;ui.stack=[];}openDrawer({type:a.type,pid:a.pid,id:a.id,sid:a.sid});},
   closeDrawer:()=>{commitDraft();ui.drawer=null;render();},
@@ -1785,6 +1828,8 @@ function handleAdd(inp){
 // ════════════════════════════════════════════════════════════════════════════
 // 12. EREIGNISSE
 // ════════════════════════════════════════════════════════════════════════════
+// scroll steigt nicht auf — deshalb in der Capture-Phase am Dokument, das Band wird bei jedem Zeichnen gemorpht statt neu verdrahtet
+document.addEventListener('scroll',ev=>{const g=ev.target;if(g&&g.classList&&g.classList.contains('cal-g'))calScroll(g);},true);
 document.addEventListener('click',ev=>{
   const el=ev.target.closest('[data-act]');
   // Offene Status-Auswahl schliesst bei jedem Klick ausserhalb von ihr

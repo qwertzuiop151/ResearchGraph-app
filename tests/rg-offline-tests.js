@@ -666,7 +666,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   console.log('20. calendar');
   {
    const lday=iso=>new Date(iso).toLocaleDateString('en-CA'),today=new Date().toLocaleDateString('en-CA');
-   const doc0=JSON.parse(snapText);
+   const doc0=JSON.parse(snapText);delete doc0.calendar; // Google-Termine prueft Abschnitt 21 — hier ohne, seit der Gist eine Kopie traegt
    const PK=doc0.projects.find(pr=>(pr.todos||[]).some(t=>liveX(t)&&t.status==='done'&&t.completedAt)&&(pr.journal||[]).length&&(pr.elements||[]).some(e=>liveX(e)&&(e.log||[]).some(l=>l&&l.time))&&(pr.todos||[]).some(t=>liveX(t)&&t.status!=='done'&&(t.subtasks||[]).some(x=>liveX(x)&&x.status!=='done')));
    ok(PK,'found a project with a closed task, a journal day, an element log and an open step');
    if(PK){const KI=doc0.projects.indexOf(PK);
@@ -680,11 +680,23 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     const revs=gh.revs.length;
     click(env,'[data-act="page"][data-v="calendar"]');await tick();
     const cells=()=>env.doc.querySelectorAll('.cal-g .cd');
-    ok(cells().length>=28&&cells().length%7===0,'a month sheet of whole weeks ('+cells().length+' days)');
+    ok(cells().length>=28*6&&cells().length%7===0,'a running band of whole weeks, several months at once ('+cells().length+' days)');
+    ok(new Date(cells()[0].dataset.day+'T12:00:00').getDay()===1&&cells()[0].dataset.day<today&&cells()[cells().length-1].dataset.day>today,'it starts on a Monday and reaches before and after today');
+    {const firsts=[...cells()].filter(c=>c.dataset.day.endsWith('-01'));
+     ok(firsts.length>=6&&firsts.every(c=>c.querySelector('.cdn .mn')&&/^[A-Z][a-z]+ \d{4}$/.test(c.querySelector('.cdn .mn').textContent)&&c.classList.contains('mt')),'every 1st carries its month written out and starts the month line ('+firsts.length+' months)');
+     ok([...cells()].every(c=>c.classList.contains('mt')===(+c.dataset.day.slice(8)<=7)),'the month line runs above days 1–7 and nowhere else');}
+    // Scrollen laedt nach: oben fruehere, unten spaetere Wochen; was schon da war, bleibt dieselben Knoten
+    {const g=env.doc.querySelector('.cal-g'),n0=cells().length,a0=cells()[0],z0=cells()[n0-1],d0=a0.dataset.day,e0=z0.dataset.day;
+     g.scrollTop=0;g.dispatchEvent(new env.w.Event('scroll'));await tick();
+     ok(cells().length===n0+84&&cells()[0].dataset.day<d0&&cells()[84]===a0&&cells()[cells().length-1]===z0,'scrolling to the top loads twelve earlier weeks above, the rest stays in place');
+     g.scrollTop=1e6;g.dispatchEvent(new env.w.Event('scroll'));await tick();
+     ok(cells().length===n0+168&&cells()[cells().length-1].dataset.day>e0&&cells()[84]===a0,'scrolling to the bottom loads twelve later weeks below');
+     ok(cells().length%7===0&&[...cells()].every((c,i,a)=>!i||new Date(c.dataset.day+'T12:00:00')-new Date(a[i-1].dataset.day+'T12:00:00')>0)&&new Set([...cells()].map(c=>c.dataset.day)).size===cells().length,'the band has no gap and no double day');
+     g.scrollTop=0;}
     const now=env.doc.querySelector('.cd.now');ok(now&&now.dataset.day===today,'today is marked');
     ok(now&&[...now.querySelectorAll('.ce.du.today')].some(b=>b.textContent.includes(String(tD.text).slice(0,20)))&&[...now.querySelectorAll('.ce.du.today')].some(b=>b.textContent.includes('↳')),'a task and a step due today stand in today, marked as due today');
     ok(env.doc.querySelectorAll('.cal-l .ab').length===NC,'every project is named with its short code in the header');
-    const goto=async ym=>{env.w.eval(`ui.cal=${J(ym)};render()`);await tick();};
+    const goto=async ym=>{env.w.eval(`calGoto(${J(ym+'-01')})`);await tick();};
     const cell=d=>env.doc.querySelector(`.cd[data-day="${d}"]`);
     await goto(lday(tC.completedAt).slice(0,7));
     ok(cell(lday(tC.completedAt))&&[...cell(lday(tC.completedAt)).querySelectorAll('.ce.cl')].some(b=>b.textContent.includes('✓')&&b.textContent.includes(String(tC.text).slice(0,20))),'a closed task stands on the day it was done');
@@ -694,9 +706,20 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     if(jb){jb.dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();ok(env.doc.querySelector('.drawer')&&env.doc.querySelector('.drawer .k').textContent.includes('Journal'),'a click opens the entry');env.w.eval('ui.drawer=null;render()');await tick();}
     await goto(lday(lT).slice(0,7));
     ok(cell(lday(lT))&&[...cell(lday(lT)).querySelectorAll('.cea .ce.ac')].some(b=>b.dataset.id===eL.id),'element activity stands on the day of its log entry');
-    const h=()=>env.doc.querySelector('.cal-h h2').textContent;const h0=h();
-    click(env,'[data-act="calNav"][data-v="1"]');await tick();ok(h()!==h0,'› moves to the next month');
-    click(env,'[data-act="calNav"][data-v="0"]');await tick();ok(env.doc.querySelector('.cd.now'),'Today comes back to the current month');
+    const h=()=>env.doc.querySelector('.cal-h h2').textContent;
+    const mName=(y,m)=>new Date(y,m,1,12).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    await goto('2027-03');ok(h()===mName(2027,2)&&cell('2027-03-01'),'a jump puts the week with the 1st on top and the header names that month');
+    click(env,'[data-act="calNav"][data-v="1"]');await tick();ok(h()===mName(2027,3)&&cell('2027-04-01'),'› jumps to the next month');
+    click(env,'[data-act="calNav"][data-v="-1"]');await tick();click(env,'[data-act="calNav"][data-v="-1"]');await tick();ok(h()===mName(2027,1)&&cell('2027-02-01'),'‹ jumps back, month by month');
+    await goto('2019-05');ok(cell('2019-05-01')&&!cell(today)&&cells().length<=7*60,'a jump years away builds a new band around the target instead of loading everything in between ('+cells().length+' days)');
+    click(env,'[data-act="calNav"][data-v="0"]');await tick();ok(env.doc.querySelector('.cd.now')&&env.w.eval('ui.calAt')===env.w.eval('monOf(todayStr())'),'Today comes back to the current week');
+    // Scrollen benennt den Kopf nach der obersten Woche (im Test ohne Layout: ueber den Zustand, den calScroll setzt)
+    env.w.eval(`ui.calAt=monOf('2027-08-10');render()`);await tick();ok(h()===mName(2027,7),'the header follows the week on top');
+    click(env,'[data-act="calNav"][data-v="0"]');await tick();
+    // Seite verlassen und zurueck: dieselbe Stelle, nicht wieder heute
+    await goto('2027-03');click(env,'[data-act="page"][data-v="tasks"]');await tick();click(env,'[data-act="page"][data-v="calendar"]');await tick();
+    ok(h()===mName(2027,2)&&cell('2027-03-01'),'leaving the page and coming back keeps the place');
+    click(env,'[data-act="calNav"][data-v="0"]');await tick();
     const all=env.doc.querySelectorAll('.cal-g .ce').length;
     click(env,`[data-act="mode"][data-v="one"]`);await tick();click(env,`[data-act="pickOne"][data-pid="${PK.id}"]`);await tick();
     const one=env.doc.querySelectorAll('.cal-g .ce').length;
@@ -715,7 +738,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   {
    const today=new Date().toLocaleDateString('en-CA'),at=(h,m)=>{const d=new Date();d.setHours(h,m,0,0);return d.toISOString();};
    const dayN=n=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA');};
-   gh=makeGitHub(snapText);
+   {const d21=JSON.parse(snapText);delete d21.calendar;gh=makeGitHub(JSON.stringify(d21,null,2));} // Ausgangslage ohne Kopie, auch wenn der echte Gist inzwischen eine traegt
    env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
    ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
    click(env,'[data-act="page"][data-v="calendar"]');await tick();
@@ -743,11 +766,14 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    gh.agentWrite(doc=>{doc.calendar.google.events=[{id:'d',title:'ZZ Conference',allDay:true,start:'2028-06-05',end:'2028-06-07'}];doc.calendar.google.checkedAt=new Date(Date.now()-3*86400000).toISOString();});
    click(env,'[data-act="page"][data-v="calendar"]');await tick();
    ok(await until(()=>env.w.eval('S.calendar&&S.calendar.google.events.length')===1),'new copy arrived');
-   env.w.eval(`ui.cal='2028-06';render()`);await tick();
+   env.w.eval(`calGoto('2028-06-01')`);await tick();
    const on=d=>{const c=env.doc.querySelector(`.cd[data-day="${d}"]`);return !!c&&[...c.querySelectorAll('.ce.gc')].some(x=>x.textContent.includes('ZZ Conference'));};
    ok(on('2028-06-05')&&on('2028-06-06')&&on('2028-06-07')&&!on('2028-06-08')&&!on('2028-06-04'),'a three-day event two years ahead stands on each of its days (the app has no window of its own)');
    ok(env.doc.querySelector('.cal-l .gc-old')&&env.doc.querySelector('.cal-l .gc-old').textContent.includes('not refreshed since'),'a copy older than 36 hours is flagged as not refreshed');
    typeIn(env,env.doc.querySelector('.search input'),'zz conf');await tick();ok(env.doc.querySelectorAll('.cal-g .ce.gc').length===3,'search finds appointments by title');
+   click(env,'[data-act="calNav"][data-v="0"]');await tick();
+   ok(env.doc.querySelectorAll('.cal-g .ce.gc').length===0&&[...env.doc.querySelectorAll('.pages .hc')].pop().textContent==='3','the count at "Calendar" covers every date, not only the weeks on screen');
+   env.w.eval(`calGoto('2028-06-01')`);await tick();
    typeIn(env,env.doc.querySelector('.search input'),'zz-nothing-zz');await tick();ok(env.doc.querySelectorAll('.cal-g .ce.gc').length===0,'and filters them out');
    click(env,'[data-act="clearQ"]');await tick();
    ok(JSON.parse(env.w.localStorage.getItem('rg_calendar')).google.events[0].title==='ZZ Conference','the copy is kept in this browser for the next start');
