@@ -379,6 +379,42 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .cb.s-done{background:var(--cm,var(--done));border-color:var(--cm,var(--done));color:var(--cmon,#fff)}
 .cb.s-failed{background:var(--cm,var(--ink-2));border-color:var(--cm,var(--ink-2));color:var(--cmon,#fff)}
 .sl.fail{color:var(--ink-2)}
+/* Kalender-Seite. Projekt = Kuerzel im farbigen Feld (Text UND Farbe), Art = Form/Zeichen; nur vorhandene Tokens + die drei gemessenen Faelligkeits-Farben. */
+.calw{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.cal-h{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.cal-h h2{font-size:16px;font-weight:700;min-width:150px;text-align:center}
+.cal-k,.cal-l{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-size:12px;color:var(--ink-2)}
+.cal-k{margin-left:14px}
+.cal-k .ce{width:auto;margin:0;cursor:default}
+.cal-l>span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.ab{display:inline-block;min-width:24px;padding:0 4px;border-radius:3px;background:var(--c);color:var(--on);font-size:10.5px;font-weight:700;line-height:15px;text-align:center;flex-shrink:0;letter-spacing:.2px}
+[data-theme="dark"] .ab{box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.cal-g{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(104px,auto);align-content:start}
+.cwd{position:sticky;top:0;z-index:1;background:var(--paper);padding:5px 8px;font-size:12px;font-weight:700;color:var(--ink-2);border-bottom:1px solid var(--rule);grid-row:1;height:28px}
+.cal-g{grid-template-rows:28px}
+.cd{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:3px 4px 6px;min-width:0}
+.cd:nth-child(7n){border-right:0}
+.cd.we,.cd.out{background:var(--hover)}
+.cd.out .cdn b{color:var(--ink-3);font-weight:400}
+.cdn{display:flex;gap:6px;align-items:baseline;padding:1px 3px 3px;font-size:12.5px}
+.cdn span{font-size:11px;color:var(--ink-2)}
+.cd.now{box-shadow:inset 0 0 0 2px var(--ink)}
+.cd.now .cdn b{background:var(--ink);color:var(--paper);border-radius:999px;padding:0 6px}
+.cd.now .cdn span{font-weight:700;color:var(--ink)}
+.ce{display:flex;gap:5px;align-items:flex-start;width:100%;margin-top:2px;padding:1px 4px;border-radius:4px;font-size:12px;line-height:15px;color:var(--ink);border:1px solid transparent}
+.ce span{min-width:0;overflow-wrap:anywhere}
+button.ce:hover{background:var(--sel)}
+.ce.du{border-color:var(--ink-3);font-weight:650;background:#F0E442;color:#000}
+.ce.du.soon{background:#E07B00;color:#000}
+.ce.du.today,.ce.du.late{background:#8F1010;color:#fff}
+button.ce.du:hover{background:#F0E442;border-color:var(--ink)}
+button.ce.du.soon:hover{background:#E07B00}
+button.ce.du.today:hover,button.ce.du.late:hover{background:#8F1010}
+.ce.jr span,.ce.cl span,.ce.id span,.ce.ac span{color:var(--ink-2)}
+.ce.cl span,.ce.jr span,.ce.id span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ce .eb{width:3px;align-self:stretch;background:var(--c);flex-shrink:0;border-radius:2px}
+.cea{display:flex;flex-wrap:wrap;gap:0 4px}
+.cea .ce{width:auto;white-space:nowrap}
 /* Faelligkeits-Marke: Helligkeits-Treppe Gelb #F0E442 / Orange #E07B00 / Dunkelrot #8F1010 — unter Deuteranopie-Simulation schlechtestes Paar dE2000 18 (Gelb-Orange),
    L* 90/65/34; Schrift darauf 15,9:1 / 7,0:1 / 9,3:1. Rand, weil Gelb auf Weiss und Dunkelrot auf dunklem Papier sonst keine Kante haben. */
 .due{display:inline-flex;align-items:center;height:17px;padding:0 6px;border-radius:4px;border:1px solid var(--ink-3);font-size:11px;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0;background:#F0E442;color:#000}
@@ -969,7 +1005,34 @@ function jHit(e){return hit(e.date)||(e.sections||[]).some(secHit);}
 function hitSnip(shown,rest){const q=qq();if(!q||shown.some(x=>String(x||'').toLowerCase().includes(q)))return '';
   for(const x of rest){const s=String(x||''),i=s.toLowerCase().indexOf(q);if(i>=0){const a=Math.max(0,i-30);return (a?'…':'')+snip(s.slice(a,i+q.length+60))+'…';}}return '';}
 // Trefferzahlen je Seite fuer die Kopfzeile — zaehlt genau das, was die jeweilige Seite unter der Suche zeigt
-function hitCounts(){const o={tasks:0,board:0,journal:0};visibleProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
+// ── Kalender (Dominik 11.11.2026): ein Monatsblatt, auf dem ALLES steht, was ein Datum hat. Reine Ansicht auf vorhandene Daten, kein neuer Datentyp.
+// Arten: due (Task/Schritt mit Faelligkeit, offen) · done / failed (Task am Abschlusstag, Schritt am Tag des Fehlschlags — erledigte Schritte tragen kein Datum)
+//        journal (Tag mit Eintrag) · act (Element mit Log-Eintraegen an dem Tag) · idea (neu angelegte Idee).
+// Bewusst NICHT: angelegt/geaendert (jede Task, jeden Tag — Rauschen) und Archiviertes (ueberall ausgeblendet).
+function projAbbr(p){const w=String(p.name||'').trim().split(/\s+/).filter(Boolean);return (w.length>1?w.map(x=>x[0]).join(''):String(p.name||'?').slice(0,2)).toUpperCase().slice(0,3);}
+function localDay(iso){if(!iso)return '';const d=new Date(iso);return isNaN(d)?'':d.toLocaleDateString('en-CA');}
+function calMonth(){return /^\d{4}-\d{2}$/.test(ui.cal||'')?ui.cal:todayStr().slice(0,7);}
+function calProjects(){return ui.mode==='one'?[projById(onePid())].filter(Boolean):visibleProjects();}
+function calDays(ym){const [Y,M]=ym.split('-').map(Number),first=new Date(Y,M-1,1,12),last=new Date(Y,M,0,12);
+  const a=new Date(first);a.setDate(1-((first.getDay()+6)%7));const b=new Date(last);b.setDate(last.getDate()+(6-((last.getDay()+6)%7))); // Montag bis Sonntag
+  const out=[];for(const d=new Date(a);d<=b;d.setDate(d.getDate()+1))out.push(d.toLocaleDateString('en-CA'));return out;}
+function calEntries(from,to){
+  const out=[],add=(day,e)=>{if(day&&day>=from&&day<=to)out.push(Object.assign({day},e));};
+  calProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
+    d.todos.forEach(t=>{if(isArch(t))return;
+      const tHit=hit(t.text,t.notes,t.blockedBy,t.failedReason);
+      if(closedT(t)){if(tHit)add(localDay(t.completedAt||t.failedAt),{k:tSt(t),p,t});}
+      else if(tHit&&dueInfo(t))add(t.dueDate,{k:'due',p,t});
+      (t.subtasks||[]).forEach(x=>{if(isArch(x)||!hit(x.text,x.notes,x.failedReason,t.text))return;
+        if(sSt(x)==='failed')add(localDay(x.failedAt),{k:'failed',p,t,s:x});
+        else if(!closedS(x)&&!closedT(t)&&dueInfo(x))add(x.dueDate,{k:'due',p,t,s:x});});});
+    d.journal.forEach(e=>{if(jHit(e))add(e.date,{k:'journal',p,e});});
+    d.elements.forEach(el=>{if(isArch(el))return;const per={};(el.log||[]).forEach(l=>{if(!l||!l.time)return;if(qq()&&!hit(el.label,l.msg))return;const day=localDay(l.time);if(day)per[day]=(per[day]||0)+1;});
+      Object.keys(per).forEach(day=>add(day,{k:'act',p,el,n:per[day]}));});
+    d.ideas.forEach(i=>{if(!i.archived&&hit(i.title,i.desc))add(localDay(i.createdAt),{k:'idea',p,i});});});
+  return out;
+}
+function hitCounts(){const o={tasks:0,board:0,journal:0,calendar:0};{const dd=calDays(calMonth());o.calendar=calEntries(dd[0],dd[dd.length-1]).length;}visibleProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
   o.tasks+=d.todos.filter(todoHit).length+d.ideas.filter(i=>hit(i.title,i.desc)).length;
   o.board+=d.elements.filter(e=>!isArch(e)&&elHit(d,e)).length;o.journal+=d.journal.filter(jHit).length;});return o;}
 // Letzte Aktivitaet (juengster Log-Eintrag) und offene verknuepfte Tasks/Schritte eines Elements — fuer die Board-Zeile
@@ -980,7 +1043,8 @@ function elMeta(d,e){let last='';(e.log||[]).forEach(l=>{if(l&&l.time&&String(l.
 // 8. ANSICHTSZUSTAND (nur dieses Geraet, rg3_-Keys, nie im Gist)
 // ════════════════════════════════════════════════════════════════════════════
 const ui={
-  page:['tasks','board','journal'].includes(localStorage.getItem('rg3_page'))?localStorage.getItem('rg3_page'):'tasks',
+  page:['tasks','board','journal','calendar'].includes(localStorage.getItem('rg3_page'))?localStorage.getItem('rg3_page'):'tasks',
+  cal:null, // gezeigter Monat der Kalender-Seite (YYYY-MM), null = aktueller Monat; nicht gespeichert
   q:'',showFrozen:false,menu:null,dialog:null,stack:[],toast:null,drawer:null,edit:null,adding:null,
   hideDone:localStorage.getItem('rg_hideDoneSubtasks')==='1',
   zoom:+(localStorage.getItem('rg3_zoom')||100),
@@ -1047,12 +1111,12 @@ function renderTop(){
   else if(_inflight||PENDING.length)sync=`<button class="sync" data-act="openSync"><i class="sd busy"></i>Saving…</button>`;
   else if(SY.state==='offline')sync=`<button class="sync err" data-act="openSync" title="${esc(SY.msg)} — you see the data from the last successful check"><i class="sd off"></i>Not live${SY.okAt?' · last check OK '+esc(_hm(SY.okAt)):''}</button>`;
   else sync=`<button class="sync" data-act="openSync" title="Checks GitHub every ${Math.round(T.poll/1000)} s. The time is when the data last changed."><i class="sd ok"></i>Live${SY.at?' · '+esc(fmtDT(SY.at).split(' ').pop()):''}</button>`;
-  const pages=[['tasks','Tasks'],['board','Board'],['journal','Journal']];
+  const pages=[['tasks','Tasks'],['board','Board'],['journal','Journal'],['calendar','Calendar']];
   const vis=visibleProjects();
   const hc=qq()?hitCounts():null; // Suche aktiv: Trefferzahl an jeder Seite, damit man sieht, wo etwas liegt
   return `<header class="top" data-k="top">
     <span class="brand">ResearchGraph</span>
-    <nav class="pages" aria-label="Pages">${pages.map(([k,l])=>`<button class="${ui.page===k?'on':''}" data-act="page" data-v="${k}"${ui.page===k?' aria-current="page"':''}${hc?` title="${plural(hc[k],'match')} on ${l}"`:''}>${l}${hc?`<span class="hc${hc[k]?'':' zero'}">${hc[k]}</span>`:''}</button>`).join('')}</nav>
+    <nav class="pages" aria-label="Pages">${pages.map(([k,l])=>`<button class="${ui.page===k?'on':''}" data-act="page" data-v="${k}"${ui.page===k?' aria-current="page"':''}${hc?` title="${plural(hc[k],'match')} on ${l}${k==='calendar'?' in the month shown':''}"`:''}>${l}${hc?`<span class="hc${hc[k]?'':' zero'}">${hc[k]}</span>`:''}</button>`).join('')}</nav>
     <span class="vr"></span>
     <div class="seg" role="group" aria-label="Layout"><button class="${ui.mode==='all'?'on':''}" data-act="mode" data-v="all" aria-pressed="${ui.mode==='all'}">All projects</button><button class="${ui.mode==='one'?'on':''}" data-act="mode" data-v="one" aria-pressed="${ui.mode==='one'}">One project</button></div>
     ${ui.mode==='one'?`<nav class="tabs" aria-label="Projects">${vis.map(p=>`<button class="${p.id===onePid()?'on':''}" style="--c:${esc(p.color||'#505050')}" data-act="pickOne" data-pid="${esc(p.id)}"><span class="dot"></span>${esc(p.name)}</button>`).join('')}</nav>`
@@ -1072,7 +1136,36 @@ function renderTop(){
 // Spaltenbreiten als Anteile (flex-grow), nicht als feste Pixel: Ziehen verschiebt Breite nur zwischen den zwei Nachbarn, alle anderen bleiben stehen (Dominik 06.11.2026)
 function colStyle(pid,def){const w=ui.colw[pid]||def||1;return `flex:${w} 1 0`;}
 function onePid(){const v=visibleProjects();return (v.find(p=>p.id===ui.one)||v[0]||{}).id;}
+const CAL_RANK={due:0,journal:1,act:2,done:3,failed:3,idea:4};
+function calEntry(e){
+  const pid=e.p.id,ab=`<b class="ab" style="${projVars(e.p)}">${esc(projAbbr(e.p))}</b>`,pn=esc(e.p.name);
+  const o=(type,id,sid)=>`data-act="open" data-type="${type}" data-pid="${esc(pid)}" data-id="${esc(id)}"${sid?` data-sid="${esc(sid)}"`:''}`;
+  if(e.k==='journal'){const n=(e.e.sections||[]).length;return `<button class="ce jr" ${o('entry',e.e.id)} title="${pn} · journal · ${esc((e.e.sections||[]).map(x=>snip(x.title,60)).join(' · '))}">${ab}<span>Journal · ${plural(n,'section')}</span></button>`;}
+  if(e.k==='act')return `<button class="ce ac" ${o('element',e.el.id)} title="${pn} · ${esc(e.el.label)} · ${plural(e.n,'log entry').replace('entrys','entries')} that day">${ab}<i class="eb" style="--c:${esc(elColor(pid,e.el))}"></i><span>${esc(e.el.label)} · ${e.n}</span></button>`;
+  if(e.k==='idea')return `<button class="ce id" ${o('idea',e.i.id)} title="${pn} · new idea">${ab}<span>✦ ${esc(e.i.title||'Untitled idea')}</span></button>`;
+  const x=e.s||e.t,type=e.s?'step':'todo',par=e.s?' · step of “'+esc(snip(e.t.text,60))+'”':'';
+  if(e.k==='due'){const i=dueInfo(x);return `<button class="ce du ${i.cls}" ${o(type,e.t.id,e.s&&e.s.id)} title="${pn}${par} · due — ${esc(i.label)}">${ab}<span>${i.cls==='late'?'! ':''}${e.s?'↳ ':''}${esc(x.text||'Untitled')}</span></button>`;}
+  return `<button class="ce cl" ${o(type,e.t.id,e.s&&e.s.id)} title="${pn}${par} · ${e.k}${x.failedReason?': '+esc(x.failedReason):''}">${ab}<span>${mark(e.k)} ${e.s?'↳ ':''}${esc(x.text||'Untitled')}</span></button>`;
+}
+function renderCalendar(){
+  const ym=calMonth(),days=calDays(ym),today=todayStr(),by={};
+  calEntries(days[0],days[days.length-1]).forEach(e=>{(by[e.day]=by[e.day]||[]).push(e);});
+  const cells=days.map((day,ix)=>{
+    const list=(by[day]||[]).sort((a,b)=>CAL_RANK[a.k]-CAL_RANK[b.k]);
+    return `<div class="cd${day.slice(0,7)!==ym?' out':''}${day===today?' now':''}${ix%7>4?' we':''}" data-k="cd-${day}" data-day="${day}"><div class="cdn"><b>${+day.slice(8)}</b>${day===today?'<span>today</span>':(+day.slice(8)===1?`<span>${esc(fmtDate(day,{month:'short'}))}</span>`:'')}</div>${(()=>{
+      // Element-Aktivitaet als fliessende Reihe kleiner Marken statt einer Zeile pro Element — sonst erschlaegt sie den Tag
+      const act=list.filter(e=>e.k==='act'),pre=list.filter(e=>CAL_RANK[e.k]<CAL_RANK.act),post=list.filter(e=>CAL_RANK[e.k]>CAL_RANK.act);
+      return pre.map(calEntry).join('')+(act.length?`<div class="cea">${act.map(calEntry).join('')}</div>`:'')+post.map(calEntry).join('');})()}</div>`;}).join('');
+  const projs=calProjects();
+  return `<main class="board" data-k="main-calendar"><div class="zoomer" style="zoom:${ui.zoom/100}"><section class="calw" data-k="calw">
+    <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(fmtDate(ym+'-01',{month:'long',year:'numeric'}))}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button>
+      <span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span>✦ idea</span><span>element · log entries</span></span>
+      <span class="grow"></span><span class="cal-l">${projs.map(p=>`<span><b class="ab" style="${projVars(p)}">${esc(projAbbr(p))}</b>${esc(p.name)}</span>`).join('')}</span></div>
+    <div class="cal-g">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(w=>`<div class="cwd">${w}</div>`).join('')}${cells}</div>
+  </section></div></main>`;
+}
 function renderMain(){
+  if(ui.page==='calendar'&&visibleProjects().length)return renderCalendar();
   const projs=visibleProjects();
   if(!projs.length)return `<main class="board" data-k="main"><div class="nodata">${ghToken?'No active project. Use ⋯ → New project.':'Connect GitHub (top right) to load your ResearchGraph data.'}</div></main>`;
   if(ui.mode==='one'){const p=projById(onePid());return `<main class="board" data-k="main-one-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${renderOne(p)}</div></main>`;}
@@ -1468,6 +1561,7 @@ function renderDialog(){
       <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
       <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
+      <li><b>Calendar</b> shows everything that has a date on one month sheet: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Click any entry to open it.</li>
       <li>Board shows what your agent keeps — read-only here. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to your agent’s.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with your agent’s, so nothing is overwritten.</li></ul>
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
@@ -1522,6 +1616,7 @@ const ACT={
   // Tasks
   // Kaestchen: klappt die Status-Auswahl dieser Zeile auf/zu (kein Klick-Zyklus mehr — der fuehrte nur vorwaerts und liess Tasks spurlos verschwinden)
   pickSt:el=>{ui.pick=ui.pick===A(el).v?null:A(el).v;ui.menu=null;render();},
+  calNav:el=>{const v=+A(el).v;if(!v)ui.cal=null;else{const [Y,M]=calMonth().split('-').map(Number),d=new Date(Y,M-1+v,1,12);ui.cal=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}render();},
   toggleClosed:el=>{const pid=A(el).pid;if(qq())return;if(ui.closedOpen.has(pid))ui.closedOpen.delete(pid);else ui.closedOpen.add(pid);lsSet('rg3_closed',[...ui.closedOpen]);render();},
   open:el=>{const a=A(el);if(ui.dialog&&ui.dialog.type==='parch'){ui.dialog=null;ui.stack=[];}openDrawer({type:a.type,pid:a.pid,id:a.id,sid:a.sid});},
   closeDrawer:()=>{commitDraft();ui.drawer=null;render();},

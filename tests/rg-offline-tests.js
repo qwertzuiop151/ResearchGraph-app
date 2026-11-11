@@ -498,7 +498,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     click(env,'[data-act="page"][data-v="journal"]');await tick();
     const jrow=env.doc.querySelector(col+` .jd[data-k="j-${jd.id}"]`);
     ok(jrow&&jrow.querySelectorAll('.x div').length===jd.sections.length,'a journal day lists every section title ('+jd.sections.length+', it used to stop at 3)');
-    const hc=()=>[...env.doc.querySelectorAll('.pages .hc')].map(x=>x.textContent).join('/');
+    const hc=()=>[...env.doc.querySelectorAll('.pages .hc')].slice(0,3).map(x=>x.textContent).join('/'); // Tasks / Board / Journal (der Kalender hat Abschnitt 20)
     const search=async v=>{typeIn(env,env.doc.querySelector('.search input'),v);await tick();};
     await search('zzdoneword');
     ok(hc()==='1/0/0','match counts next to Tasks / Board / Journal: '+hc());
@@ -658,6 +658,54 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     // Abgeschlossenes traegt keine Marke
     await setSt(env,tToday.id,'done');await tick();click(env,col+' .cl-h');await tick();
     const crow=env.doc.querySelector(`${col} .t.cl [data-v$="|${tToday.id}"]`);ok(crow&&!crow.closest('.t').querySelector('.due'),'a closed task carries no due mark');
+    ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+    env.w.close();}
+  }
+
+  // ── 20. Kalender: alles mit Datum auf einem Monatsblatt, reine Ansicht (11.11.2026) ──
+  console.log('20. calendar');
+  {
+   const lday=iso=>new Date(iso).toLocaleDateString('en-CA'),today=new Date().toLocaleDateString('en-CA');
+   const doc0=JSON.parse(snapText);
+   const PK=doc0.projects.find(pr=>(pr.todos||[]).some(t=>liveX(t)&&t.status==='done'&&t.completedAt)&&(pr.journal||[]).length&&(pr.elements||[]).some(e=>liveX(e)&&(e.log||[]).some(l=>l&&l.time))&&(pr.todos||[]).some(t=>liveX(t)&&t.status!=='done'&&(t.subtasks||[]).some(x=>liveX(x)&&x.status!=='done')));
+   ok(PK,'found a project with a closed task, a journal day, an element log and an open step');
+   if(PK){const KI=doc0.projects.indexOf(PK);
+    const tD=PK.todos.find(t=>liveX(t)&&t.status!=='done'&&(t.subtasks||[]).some(x=>liveX(x)&&x.status!=='done')),sD=tD.subtasks.find(x=>liveX(x)&&x.status!=='done');
+    PK.todos.forEach(t=>{if(t.status!=='done'){t.dueDate=null;(t.subtasks||[]).forEach(x=>{x.dueDate=null;});}});
+    tD.dueDate=today;sD.dueDate=today;
+    const tC=PK.todos.find(t=>liveX(t)&&t.status==='done'&&t.completedAt),jE=PK.journal.find(e=>/^\d{4}-\d{2}-\d{2}$/.test(e.date||'')),eL=PK.elements.find(e=>liveX(e)&&(e.log||[]).some(l=>l&&l.time)),lT=eL.log.find(l=>l&&l.time).time;
+    gh=makeGitHub(JSON.stringify(doc0,null,2));
+    env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,{projects:[]},{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+    ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+    const revs=gh.revs.length;
+    click(env,'[data-act="page"][data-v="calendar"]');await tick();
+    const cells=()=>env.doc.querySelectorAll('.cal-g .cd');
+    ok(cells().length>=28&&cells().length%7===0,'a month sheet of whole weeks ('+cells().length+' days)');
+    const now=env.doc.querySelector('.cd.now');ok(now&&now.dataset.day===today,'today is marked');
+    ok(now&&[...now.querySelectorAll('.ce.du.today')].some(b=>b.textContent.includes(String(tD.text).slice(0,20)))&&[...now.querySelectorAll('.ce.du.today')].some(b=>b.textContent.includes('↳')),'a task and a step due today stand in today, marked as due today');
+    ok(env.doc.querySelectorAll('.cal-l .ab').length===NC,'every project is named with its short code in the header');
+    const goto=async ym=>{env.w.eval(`ui.cal=${J(ym)};render()`);await tick();};
+    const cell=d=>env.doc.querySelector(`.cd[data-day="${d}"]`);
+    await goto(lday(tC.completedAt).slice(0,7));
+    ok(cell(lday(tC.completedAt))&&[...cell(lday(tC.completedAt)).querySelectorAll('.ce.cl')].some(b=>b.textContent.includes('✓')&&b.textContent.includes(String(tC.text).slice(0,20))),'a closed task stands on the day it was done');
+    await goto(jE.date.slice(0,7));
+    const jb=cell(jE.date)&&[...cell(jE.date).querySelectorAll('.ce.jr')].find(b=>b.dataset.id===jE.id);
+    ok(jb&&jb.textContent.includes((jE.sections||[]).length+' section'),'a journal day stands on its date with its number of sections');
+    if(jb){jb.dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();ok(env.doc.querySelector('.drawer')&&env.doc.querySelector('.drawer .k').textContent.includes('Journal'),'a click opens the entry');env.w.eval('ui.drawer=null;render()');await tick();}
+    await goto(lday(lT).slice(0,7));
+    ok(cell(lday(lT))&&[...cell(lday(lT)).querySelectorAll('.cea .ce.ac')].some(b=>b.dataset.id===eL.id),'element activity stands on the day of its log entry');
+    const h=()=>env.doc.querySelector('.cal-h h2').textContent;const h0=h();
+    click(env,'[data-act="calNav"][data-v="1"]');await tick();ok(h()!==h0,'› moves to the next month');
+    click(env,'[data-act="calNav"][data-v="0"]');await tick();ok(env.doc.querySelector('.cd.now'),'Today comes back to the current month');
+    const all=env.doc.querySelectorAll('.cal-g .ce').length;
+    click(env,`[data-act="mode"][data-v="one"]`);await tick();click(env,`[data-act="pickOne"][data-pid="${PK.id}"]`);await tick();
+    const one=env.doc.querySelectorAll('.cal-g .ce').length;
+    ok(one>0&&one<=all&&[...env.doc.querySelectorAll('.cal-g .ce')].every(b=>b.dataset.pid===PK.id),'"One project" shows only that project ('+one+' of '+all+' entries)');
+    click(env,`[data-act="mode"][data-v="all"]`);await tick();
+    typeIn(env,env.doc.querySelector('.search input'),'zz-nothing-matches-zz');await tick();
+    ok(env.doc.querySelectorAll('.cal-g .ce').length===0&&[...env.doc.querySelectorAll('.pages .hc')].pop().textContent==='0','search filters the calendar and its count');
+    click(env,'[data-act="clearQ"]');await tick();
+    await sleep(300);ok(gh.revs.length===revs,'looking at the calendar writes nothing to the gist');
     ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
     env.w.close();}
   }
