@@ -102,7 +102,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   const t0=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.archived&&(t.subtasks||[]).some(s=>s.status!=='done'&&!s.archived));
   const s0=t0.subtasks.find(s=>s.status!=='done'&&!s.archived);
   click(env,box(s0.id));await tick();
-  ok(env.doc.querySelectorAll('.stpick').length===1&&env.doc.querySelectorAll('.stpick [data-act="setStepStatus"]').length===3,'clicking the box opens the status choice right under the step (open / in progress / done)');
+  ok(env.doc.querySelectorAll('.stpick').length===1&&env.doc.querySelectorAll('.stpick [data-act="setStepStatus"]').length===4,'clicking the box opens the status choice right under the step (open / in progress / done / failed)');
   click(env,`.stpick [data-v="${NEXT[s0.status||'open']}"]`);await tick();
   ok(env.doc.querySelector(box(s0.id)).className.includes('s-'+NEXT[s0.status||'open']),'step takes the picked status at once on screen');
   ok(!env.doc.querySelector('.stpick'),'the choice closes after picking');
@@ -446,7 +446,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     await setSt(env,ti.id,'open');await tick();
     ok(!env.doc.querySelector('.drawer'),'no drawer needed');
     ok(await until(()=>gh.doc().projects[pi].todos.find(t=>t.id===ti.id).status==='open'),'in progress -> open in two clicks, uploaded');
-    click(env,box(ti.id));await tick();ok(env.doc.querySelectorAll('.stpick [data-act="setStatus"]').length===4,'task choice offers open / in progress / blocked / done');
+    click(env,box(ti.id));await tick();ok(env.doc.querySelectorAll('.stpick [data-act="setStatus"]').length===5,'task choice offers open / in progress / blocked / done / failed');
     key(env,env.doc.body,'Escape');await tick();ok(!env.doc.querySelector('.stpick'),'Esc closes the choice');
     click(env,box(ti.id));await tick();click(env,'.search input');await tick();ok(!env.doc.querySelector('.stpick'),'a click elsewhere closes the choice');
     await setSt(env,ti.id,'blocked');await tick();
@@ -454,11 +454,11 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     env.w.eval('ui.drawer=null;render()');await tick();}
    // unbekannter Status vom Agenten: die Seite bleibt stehen und nennt ihn
    const P=snap.projects.find(pr=>(pr.todos||[]).some(t=>liveX(t)&&t.status==='open')),PI=snap.projects.indexOf(P),tu=P.todos.find(t=>liveX(t)&&t.status==='open');
-   gh.agentWrite(doc=>{doc.projects[PI].todos.find(t=>t.id===tu.id).status='failed';});
-   ok(await until(()=>env.w.eval(`findT(${J(P.id)},${J(tu.id)}).status`)==='failed'),'agent wrote a status the app does not know');
+   gh.agentWrite(doc=>{doc.projects[PI].todos.find(t=>t.id===tu.id).status='on_hold';});
+   ok(await until(()=>env.w.eval(`findT(${J(P.id)},${J(tu.id)}).status`)==='on_hold'),'agent wrote a status the app does not know');
    await tick();
    ok(env.doc.querySelectorAll('.col').length===NC,'all columns still there (the Tasks page used to go blank)');
-   const urow=env.doc.querySelector(box(tu.id));ok(urow&&urow.closest('.t').textContent.includes('failed'),'the row names the unknown status');
+   const urow=env.doc.querySelector(box(tu.id));ok(urow&&urow.closest('.t').textContent.includes('on_hold'),'the row names the unknown status');
    ok(env.errors.length===0,'no errors with an unknown status: '+env.errors.slice(0,2).join('\n'));
    await setSt(env,tu.id,'in_progress');
    ok(await until(()=>gh.doc().projects[PI].todos.find(t=>t.id===tu.id).status==='in_progress'),'choosing a status replaces the unknown one');
@@ -560,6 +560,59 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    listFails=false;click(env,'[data-act="connect"]');
    ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'the next try finds the existing gist and loads it');
    ok(!gh.log.some(l=>l.startsWith('POST')),'still no new gist');}
+  ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+  env.w.close();
+
+  // ── 18. Status "failed" (Issue #7): Tasks und Schritte gleich, mit Grund, Task landet unter Closed ──
+  console.log('18. status failed (#7)');
+  gh=makeGitHub(snapText);
+  env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+  ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+  {
+   const PF=snap.projects.find(pr=>(pr.todos||[]).filter(t=>liveX(t)&&t.status!=='done'&&!t.focus).length>=2&&(pr.todos||[]).some(t=>liveX(t)&&t.status!=='done'&&(t.subtasks||[]).some(x=>liveX(x)&&(x.status||'open')==='open')));
+   ok(PF,'found a project with open tasks and an open step');
+   if(PF){const FI=snap.projects.indexOf(PF),col=`.col[data-col="${PF.id}"]`;
+    const tS=PF.todos.find(t=>liveX(t)&&t.status!=='done'&&(t.subtasks||[]).some(x=>liveX(x)&&(x.status||'open')==='open')),sF=tS.subtasks.find(x=>liveX(x)&&(x.status||'open')==='open');
+    const tF=PF.todos.find(t=>liveX(t)&&t.status!=='done'&&!t.focus&&t.id!==tS.id);
+    const nClosed=PF.todos.filter(t=>liveX(t)&&t.status==='done').length,nOpen=PF.todos.filter(t=>liveX(t)&&t.status!=='done').length;
+    // Schritt: Auswahl -> Failed -> Dialog fragt nach dem Grund
+    await setSt(env,sF.id,'failed');await tick();
+    ok(env.doc.querySelector('.dlg #flr')&&env.doc.activeElement===env.doc.querySelector('#flr'),'picking failed asks for the reason, cursor in the field');
+    ok((gh.doc().projects[FI].todos.find(t=>t.id===tS.id).subtasks.find(x=>x.id===sF.id).status||'open')==='open','nothing is written before the dialog is confirmed');
+    typeIn(env,env.doc.querySelector('#flr'),'no band on the gel');key(env,env.doc.querySelector('#flr'),'Enter');await tick();
+    ok(await until(()=>{const x=gh.doc().projects[FI].todos.find(t=>t.id===tS.id).subtasks.find(x=>x.id===sF.id);return x.status==='failed'&&x.failedReason==='no band on the gel'&&!!x.failedAt;}),'step stored as failed with its reason and time');
+    const srow=env.doc.querySelector(box(sF.id));
+    ok(srow&&srow.className.includes('s-failed')&&srow.closest('.s').textContent.includes('no band on the gel'),'the step stays in its task, marked failed, reason shown in the row');
+    // Task: Failed -> verlaesst die offenen Listen, steht unter Closed mit Grund
+    await setSt(env,tF.id,'failed');await tick();
+    typeIn(env,env.doc.querySelector('#flr'),'no colonies twice');click(env,'[data-act="doFail"]');await tick();
+    ok(await until(()=>{const t=gh.doc().projects[FI].todos.find(t=>t.id===tF.id);return t.status==='failed'&&t.failedReason==='no colonies twice'&&!!t.failedAt&&t.completedAt===null;}),'task stored as failed with reason; completedAt stays empty');
+    ok(!env.doc.querySelector(`${col} .t:not(.cl) [data-v$="|${tF.id}"]`),'the failed task left the open lists');
+    ok(env.doc.querySelector(col+' .col-h .n').textContent.includes((nOpen-1)+' open'),'the open count went down by one');
+    ok(env.doc.querySelector('.toast')&&env.doc.querySelector('.toast').textContent.includes('Failed')&&env.doc.querySelector('.toast').textContent.includes('Closed'),'toast says where it went');
+    ok(env.doc.querySelector(col+' .cl-h .c').textContent===String(nClosed+1),'Closed counts done and failed tasks together');
+    click(env,col+' .cl-h');await tick();
+    const frow=env.doc.querySelector(`${col} .t.cl [data-v$="|${tF.id}"]`);
+    ok(frow&&frow.className.includes('s-failed')&&frow.closest('.t').textContent.includes('no colonies twice'),'the Closed row shows the cross and the reason');
+    ok(env.doc.querySelector(`${col} .t.cl`)===frow.closest('.t'),'it is the newest entry of Closed');
+    // Grund suchbar; Schublade zeigt und aendert ihn
+    typeIn(env,env.doc.querySelector('.search input'),'colonies twice');await tick();
+    ok([...env.doc.querySelectorAll(`${col} .t.cl`)].some(r=>r.querySelector(`[data-v$="|${tF.id}"]`)),'the reason is searchable');
+    click(env,'[data-act="clearQ"]');await tick();
+    env.w.eval(`openDrawer({type:'todo',pid:${J(PF.id)},id:${J(tF.id)}})`);await tick();
+    const fr=env.doc.querySelector('.drawer textarea[data-key^="todo.failedReason"]');ok(fr&&fr.value==='no colonies twice','the details show the reason next to the status');
+    // zurueck auf open: Grund und Zeit verschwinden wieder
+    click(env,'.drawer [data-act="setStatus"][data-v="open"]');await tick();
+    ok(await until(()=>{const t=gh.doc().projects[FI].todos.find(t=>t.id===tF.id);return t.status==='open'&&!('failedReason' in t)&&!('failedAt' in t);}),'another status clears reason and time');
+    env.w.eval('ui.drawer=null;render()');await tick();
+    // Strg+Z holt den Fehlschlag samt Grund zurueck
+    key(env,env.doc.body,'z',{ctrlKey:true});await tick();
+    ok(await until(()=>{const t=gh.doc().projects[FI].todos.find(t=>t.id===tF.id);return t.status==='failed'&&t.failedReason==='no colonies twice';}),'Ctrl+Z brings the failed state back with its reason');
+    // Dialog abbrechen aendert nichts
+    const revs=gh.revs.length;const tC=PF.todos.find(t=>liveX(t)&&t.status!=='done'&&t.id!==tF.id&&t.id!==tS.id)||tS;
+    await setSt(env,tC.id,'failed');await tick();key(env,env.doc.querySelector('#flr'),'Escape');await tick();await sleep(300);
+    ok(!env.doc.querySelector('.dlg')&&gh.revs.length===revs,'Esc in the dialog changes nothing');}
+  }
   ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
   env.w.close();
 

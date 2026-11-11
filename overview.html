@@ -377,6 +377,8 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 /* Status nur ueber die Form: offen = leer, in progress = Rand + Punkt, erledigt = gefuellt + Haken */
 .cb.s-in_progress{background:var(--paper);border:2px solid var(--cm,var(--prog));color:var(--cm,var(--prog))}
 .cb.s-done{background:var(--cm,var(--done));border-color:var(--cm,var(--done));color:var(--cmon,#fff)}
+.cb.s-failed{background:var(--cm,var(--ink-2));border-color:var(--cm,var(--ink-2));color:var(--cmon,#fff)}
+.sl.fail{color:var(--ink-2)}
 /* 11.11.2026: Status-Auswahl unter der Zeile, Closed-Liste, Suchtreffer je Seite, Board-Meta. Nur vorhandene Farb-Tokens. */
 .stpick{margin:3px 0 5px 23px}
 .stpick.sub{margin-left:20px}
@@ -450,9 +452,12 @@ const PROJ_COLORS=Object.keys(PROJ_COLOR_NAMES);
 const SI={open:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
   in_progress:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="6" cy="6" r="2" fill="currentColor"/></svg>',
   blocked:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 8.5l5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
-  done:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.6 6.2l1.6 1.6 3.3-3.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
-const TODO_ST=[['open','open','Open'],['in_progress','in_progress','In progress'],['blocked','blocked','Blocked'],['done','done','Done']];
-const STEP_ST=[['open','open','Open'],['in_progress','in_progress','In progress'],['done','done','Done']];
+  done:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.6 6.2l1.6 1.6 3.3-3.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  failed:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4 4l4 4M8 4l-4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'};
+// "failed" (Issue #7, Dominik 11.11.2026): zweiter Abschluss neben done, fuer Tasks und Schritte gleich ("ein und dieselbe Sache, nur mit Hierarchie"),
+// immer mit Grund (failedReason, failedAt) wie beim Archivieren. Abgeschlossen = done oder failed.
+const TODO_ST=[['open','open','Open'],['in_progress','in_progress','In progress'],['blocked','blocked','Blocked'],['done','done','Done'],['failed','failed','Failed']];
+const STEP_ST=[['open','open','Open'],['in_progress','in_progress','In progress'],['done','done','Done'],['failed','failed','Failed']];
 // Bekannte Status. Der MCP nimmt jeden Text als Status an: Unbekanntes wird wie "open" gezeichnet und in der Zeile benannt, nie verschluckt (11.11.2026: ein unbekannter Status liess die Tasks-Seite leer).
 const TODO_KNOWN=new Set(TODO_ST.map(x=>x[0])),STEP_KNOWN=new Set(STEP_ST.map(x=>x[0]));
 const PRIOS=[['low','Low'],['medium','Medium'],['high','High']];
@@ -461,7 +466,8 @@ const PRANK={high:0,medium:1,low:2};
 const CB_ICON={open:'',
   in_progress:'<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2.7" fill="currentColor"/></svg>',
   blocked:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 9.4l6.8-6.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-  done:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.3 6.4l2.4 2.4 5-5.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
+  done:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.3 6.4l2.4 2.4 5-5.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  failed:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'};
 const IC_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 3.5L5 7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 3v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const IC_SOLO='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M5.5 11.5h-3v-3M11.5 2.5L8 6M2.5 11.5L6 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const IC_MORE='<svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="3" cy="7" r="1.3" fill="currentColor"/><circle cx="7" cy="7" r="1.3" fill="currentColor"/><circle cx="11" cy="7" r="1.3" fill="currentColor"/></svg>';
@@ -898,9 +904,14 @@ function projLists(p,d){
   return out;
 }
 // Angezeigte Listen: die gespeicherten plus jede, in der noch ein offenes Todo liegt — nie etwas verstecken
-function projCats(p){const d=S.data[p.id]||{todos:[]},out=projLists(p,d);d.todos.forEach(t=>{if(!isArch(t)&&tSt(t)!=='done'&&!out.some(x=>sameCat(x,tCat(t))))out.push(tCat(t));});return out;}
+function projCats(p){const d=S.data[p.id]||{todos:[]},out=projLists(p,d);d.todos.forEach(t=>{if(!isArch(t)&&!closedT(t)&&!out.some(x=>sameCat(x,tCat(t))))out.push(tCat(t));});return out;}
 function catLabel(c){return c==='labor'?'Lab':String(c).charAt(0).toUpperCase()+String(c).slice(1);}
 function sSt(s){const v=s.status||'open';return STEP_KNOWN.has(v)?v:'open';}
+const isEnd=st=>st==='done'||st==='failed'; // abgeschlossen
+function closedT(t){return isEnd(tSt(t));}
+function closedS(s){return isEnd(sSt(s));}
+function mark(st){return st==='done'?'✓':st==='failed'?'✕':'○';}
+function failNote(x){return x.failedReason?`<div class="sl fail">failed: ${esc(x.failedReason)}</div>`:'';} // der Grund steht immer bei der Zeile
 function focusOf(d){return d.todos.find(t=>(t.focus||t.northStar)&&!isArch(t))||null;}
 function focusStepOf(d,t){const f=focusOf(d);return f&&f.id===t.id?(t.subtasks||[]).find(s=>s.focus)||null:null;}
 function findT(pid,id){const d=S.data[pid];return d&&d.todos.find(t=>t.id===id)||null;}
@@ -915,7 +926,7 @@ function stInfo(pid,k){
 function byPrio(a,b){return (PRANK[tPr(a)]??2)-(PRANK[tPr(b)]??2)||(a.order||0)-(b.order||0);}
 function qq(){return (ui.q||'').trim().toLowerCase();}
 function hit(...p){const s=qq();return !s||p.some(x=>String(x||'').toLowerCase().includes(s));}
-function todoHit(t){return hit(t.text,t.notes,t.blockedBy,...(t.subtasks||[]).map(s=>s.text+' '+(s.notes||'')));}
+function todoHit(t){return hit(t.text,t.notes,t.blockedBy,t.failedReason,...(t.subtasks||[]).map(s=>s.text+' '+(s.notes||'')+' '+(s.failedReason||'')));}
 // Suche ueber alles (Dominik 11.11.2026): Elemente auch ueber Log und eigene Abschnitte, Journal ueber jeden Abschnitt
 function elRest(d,e){return [e.desc,(d.nodes.find(n=>n.id===e.nodeId)||{}).label,...(e.custom||[]).flatMap(c=>c?[c.title,c.content]:[]),...(e.log||[]).slice().reverse().map(l=>l&&l.msg)];}
 function elHead(d,e){return [e.label,...(e.tags||[]).map(t=>d.tags[t]?.label),stInfo0(d,e.status).label];}
@@ -932,7 +943,7 @@ function hitCounts(){const o={tasks:0,board:0,journal:0};visibleProjects().forEa
   o.board+=d.elements.filter(e=>!isArch(e)&&elHit(d,e)).length;o.journal+=d.journal.filter(jHit).length;});return o;}
 // Letzte Aktivitaet (juengster Log-Eintrag) und offene verknuepfte Tasks/Schritte eines Elements — fuer die Board-Zeile
 function elMeta(d,e){let last='';(e.log||[]).forEach(l=>{if(l&&l.time&&String(l.time)>last)last=String(l.time);});let n=0;
-  d.todos.forEach(t=>{if(isArch(t)||tSt(t)==='done')return;if(t.elementId===e.id)n++;(t.subtasks||[]).forEach(s=>{if(s.elementId===e.id&&!isArch(s)&&sSt(s)!=='done')n++;});});return {last,n};}
+  d.todos.forEach(t=>{if(isArch(t)||closedT(t))return;if(t.elementId===e.id)n++;(t.subtasks||[]).forEach(s=>{if(s.elementId===e.id&&!isArch(s)&&!closedS(s))n++;});});return {last,n};}
 
 // ════════════════════════════════════════════════════════════════════════════
 // 8. ANSICHTSZUSTAND (nur dieses Geraet, rg3_-Keys, nie im Gist)
@@ -1047,7 +1058,7 @@ function renderMain(){
   });
   return `<main class="board" data-k="main-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${html}</div></main>`;
 }
-function countLabel(p,d){return ui.page==='board'?plural(d.elements.filter(e=>e.status!=='abandoned'&&!isArch(e)).length,'element'):ui.page==='journal'?plural(d.journal.length,'day'):d.todos.filter(t=>tSt(t)!=='done'&&!isArch(t)).length+' open';}
+function countLabel(p,d){return ui.page==='board'?plural(d.elements.filter(e=>e.status!=='abandoned'&&!isArch(e)).length,'element'):ui.page==='journal'?plural(d.journal.length,'day'):d.todos.filter(t=>!closedT(t)&&!isArch(t)).length+' open';}
 function renderStrip(p){const d=S.data[p.id];return `<button class="strip" data-k="strip-${esc(p.id)}" data-act="expand" data-pid="${esc(p.id)}" style="--c:${esc(p.color||'#505050')}" title="Expand ${esc(p.name)}"><span class="dot"></span><b>${p.frozen?'❄ ':''}${esc(p.name)}</b><small>${esc(countLabel(p,d))}</small></button>`;}
 function colHead(p,count,inOne){
   return `<div class="col-h" style="${projVars(p)}"><span class="dot"></span><h2 title="${esc(p.name)}">${p.frozen?'❄ ':''}${esc(p.name)}</h2><span class="n">${esc(count)}</span>
@@ -1058,9 +1069,9 @@ function colHead(p,count,inOne){
 // Bausteine der Task-Seite: Focus, je Kategorie ein Abschnitt, dazu der Ideen-Abschnitt
 function taskParts(p){
   const d=S.data[p.id],pid=p.id,f=focusOf(d);
-  const open=d.todos.filter(t=>tSt(t)!=='done'&&!isArch(t));
+  const open=d.todos.filter(t=>!closedT(t)&&!isArch(t));
   const cats=projCats(p);
-  const parts={focus:(f&&tSt(f)!=='done'&&todoHit(f))?renderTodo(p,f,true):'',cats:{}};
+  const parts={focus:(f&&!closedT(f)&&todoHit(f))?renderTodo(p,f,true):'',cats:{}};
   cats.forEach(c=>{
     const list=open.filter(t=>sameCat(tCat(t),c)&&!(f&&t.id===f.id)&&todoHit(t)).sort(byPrio);
     const label=catLabel(c);
@@ -1078,8 +1089,8 @@ function taskParts(p){
     +ideas.map(i=>`<div class="idea${isOpen('idea',pid,i.id)?' sel':''}" data-k="i-${esc(i.id)}"><span class="ic">${IC_IDEA}</span><div class="tm"><button class="tt" data-act="open" data-type="idea" data-pid="${esc(pid)}" data-id="${esc(i.id)}">${esc(i.title||'Untitled idea')}</button>${i.archived?'<div class="sl">archived</div>':''}</div></div>`).join('');
   // Closed (Dominik 11.11.2026): abgeschlossene Tasks auf Abruf, juengste zuerst. Zugeklappt eine Zeile mit der Zahl.
   // Unter der Suche immer offen und um archivierte Treffer ergaenzt, damit nichts unauffindbar bleibt.
-  const closedAll=d.todos.filter(t=>tSt(t)==='done'&&!isArch(t));
-  const when=t=>String((isArch(t)?t.archivedAt:t.completedAt)||t.modifiedAt||'');
+  const closedAll=d.todos.filter(t=>closedT(t)&&!isArch(t));
+  const when=t=>String((isArch(t)?t.archivedAt:(t.completedAt||t.failedAt))||t.modifiedAt||'');
   const rows=[...closedAll.filter(todoHit),...(q?d.todos.filter(t=>isArch(t)&&todoHit(t)):[])].sort((a,b)=>when(b).localeCompare(when(a)));
   const openC=!!q||ui.closedOpen.has(pid);
   parts.closed=(closedAll.length||rows.length)?`<div class="sec-h cl-h" data-k="sh-closed" data-act="toggleClosed" data-pid="${esc(pid)}" title="${openC?'Hide':'Show'} the closed tasks"><i class="sec-ic">${CB_ICON.done}</i><span>Closed</span><span class="c">${q?rows.length:closedAll.length}</span><button class="add" data-act="toggleClosed" data-pid="${esc(pid)}" aria-expanded="${openC}" aria-label="${openC?'Hide':'Show'} closed tasks">${openC?'▾':'▸'}</button></div>`
@@ -1091,8 +1102,8 @@ function closedRow(p,t,when){
   const pid=p.id,st=tSt(t),arch=isArch(t);
   return `<div class="t cl${isOpen('todo',pid,t.id)?' sel':''}" style="--c:${esc(p.color||'#505050')}" data-k="c-${esc(t.id)}">
     ${arch?`<span class="cb s-${st}" aria-hidden="true">${CB_ICON[st]||''}</span>`:stBox('c',pid,t.id,null,st)}
-    <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${esc(t.text||'Untitled task')}</button>${arch?'<div class="sl">archived</div>':''}</div>
-    <div class="rc"><span class="when" title="${arch?'Archived':'Closed'} ${esc(fmtDT(when))}">${esc(fmtDate(when,{day:'numeric',month:'short'}))}</span></div>
+    <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${esc(t.text||'Untitled task')}</button>${arch?'<div class="sl">archived</div>':''}${failNote(t)}</div>
+    <div class="rc"><span class="when" title="${arch?'Archived':st==='failed'?'Failed':'Done'} ${esc(fmtDT(when))}">${esc(fmtDate(when,{day:'numeric',month:'short'}))}</span></div>
   </div>${arch?'':stPick('c',pid,t.id,null,st)}`;
 }
 // Status-Auswahl statt Klick-Zyklus (Dominik 11.11.2026: "in Arbeit" liess sich in der Zeile nicht zuruecknehmen).
@@ -1151,8 +1162,8 @@ function renderSubs(p,t){
   const inp=ui.adding===pid+'|step|'+t.id?`<input class="add-in sub-in" data-k="ai-st-${esc(t.id)}" data-add="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" placeholder="New step — Enter adds, Esc stops">`:'';
   if(!subs.length)return inp;
   if(ui.folded.has(pid+'|'+t.id)&&!qq()&&!subs.some(s=>isOpen('step',pid,t.id,s.id))){ // eingeklappt: nur Zaehler, Klick klappt auf
-    const dn=subs.filter(s=>sSt(s)==='done').length;
-    return `<div class="subs" data-k="ss-${esc(t.id)}"><div class="s folded-n" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="Show steps">▸ ${plural(subs.length,'step')}${dn?` · ${dn} done`:''}</div></div>${inp}`;
+    const dn=subs.filter(s=>sSt(s)==='done').length,fl=subs.filter(s=>sSt(s)==='failed').length;
+    return `<div class="subs" data-k="ss-${esc(t.id)}"><div class="s folded-n" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="Show steps">▸ ${plural(subs.length,'step')}${dn?` · ${dn} done`:''}${fl?` · ${fl} failed`:''}</div></div>${inp}`;
   }
   const d=S.data[pid],fs=focusStepOf(d,t);
   const list=fs?[fs,...subs.filter(s=>s!==fs)]:subs;
@@ -1160,11 +1171,11 @@ function renderSubs(p,t){
   const rows=list.map(s=>{
     const st=sSt(s);
     if(ui.hideDone&&st==='done'&&s!==fs&&!isOpen('step',pid,t.id,s.id)&&!qq()){hidden++;return '';}
-    const cls=['s',st==='done'?'done':'',s===fs?'fstep':'',isOpen('step',pid,t.id,s.id)?'sel':''].filter(Boolean).join(' ');
+    const cls=['s',st==='done'?'done':st==='failed'?'failed':'',s===fs?'fstep':'',isOpen('step',pid,t.id,s.id)?'sel':''].filter(Boolean).join(' ');
     const chip=s.elementId&&s.elementId!==rowElement(t)?elChip(pid,s.elementId):''; // gleicher Chip wie die Task-Zeile = Wiederholung, weglassen
     const odd=oddSt(s,STEP_KNOWN);
     return `<div class="${cls}" data-k="s-${esc(s.id)}">${stBox('c',pid,t.id,s.id,st)}
-      <div class="tm"><button class="tt" data-act="open" data-type="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s===fs?IC_STAR:''}${esc(s.text||'Untitled step')}</button>${odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:''}</div>
+      <div class="tm"><button class="tt" data-act="open" data-type="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s===fs?IC_STAR:''}${esc(s.text||'Untitled step')}</button>${odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:''}${failNote(s)}</div>
       <div class="rc">${chip}</div></div>${stPick('c',pid,t.id,s.id,odd?'':st)}`;
   }).join('');
   return `<div class="subs" data-k="ss-${esc(t.id)}">${rows}${hidden?`<div class="s hidden-n">${plural(hidden,'done step')} hidden</div>`:''}</div>${inp}`;
@@ -1203,6 +1214,8 @@ const FIELDS={
   'todo.text':{req:true,get:([p,i])=>findT(p,i)?.text,set:([p,i],v,d)=>{const t=d.todos.find(x=>x.id===i);t.text=v;t.modifiedAt=nowIso();}},
   'todo.notes':{get:([p,i])=>findT(p,i)?.notes,set:([p,i],v,d)=>{const t=d.todos.find(x=>x.id===i);t.notes=v;t.modifiedAt=nowIso();}},
   'todo.blockedBy':{get:([p,i])=>findT(p,i)?.blockedBy,set:([p,i],v,d)=>{const t=d.todos.find(x=>x.id===i);t.blockedBy=v||null;t.modifiedAt=nowIso();}},
+  'todo.failedReason':{get:([p,i])=>findT(p,i)?.failedReason,set:([p,i],v,d)=>{const t=d.todos.find(x=>x.id===i);t.failedReason=v||null;t.modifiedAt=nowIso();}},
+  'step.failedReason':{get:([p,t,s])=>findS(p,t,s)?.failedReason,set:([p,t,s],v,d)=>{const tt=d.todos.find(x=>x.id===t);tt.subtasks.find(x=>x.id===s).failedReason=v||null;tt.modifiedAt=nowIso();}},
   'step.text':{req:true,get:([p,t,s])=>findS(p,t,s)?.text,set:([p,t,s],v,d)=>{const tt=d.todos.find(x=>x.id===t);tt.subtasks.find(x=>x.id===s).text=v;tt.modifiedAt=nowIso();}},
   'step.notes':{get:([p,t,s])=>findS(p,t,s)?.notes,set:([p,t,s],v,d)=>{const tt=d.todos.find(x=>x.id===t);tt.subtasks.find(x=>x.id===s).notes=v;tt.modifiedAt=nowIso();}},
   'idea.title':{req:true,get:([p,i])=>S.data[p]?.ideas.find(x=>x.id===i)?.title,set:([p,i],v,d)=>{const x=d.ideas.find(y=>y.id===i);x.title=v;x.modifiedAt=nowIso();}},
@@ -1251,6 +1264,7 @@ function renderDrawer(){
     body=`${archNote(t)}<div class="kv">
       <span>Status</span><div>${seg(TODO_ST,oddSt(t,TODO_KNOWN)?'':st,'setStatus',ia)}${oddSt(t,TODO_KNOWN)?`<span class="ro">stored as “${esc(oddSt(t,TODO_KNOWN))}” — unknown to this app, shown as open</span>`:''}</div>
       ${st==='blocked'?`<span>Waiting for</span><div style="display:block">${titleIn('todo.blockedBy|'+k,t.blockedBy||'','e.g. primers, sequencing')}</div>`:''}
+      ${st==='failed'?`<span>Why it failed</span><div style="display:block">${titleIn('todo.failedReason|'+k,t.failedReason||'','e.g. no colonies after two attempts')}</div>`:''}
       <span>Priority</span><div>${seg(PRIOS.map(([v,l])=>[v,'',l]),pr,'setPrio',ia)}</div>
       <span>Focus</span><div><button class="btn${isF?' primary':''}" data-act="toggleFocus"${ia}>${isF?'★ Focus task':'☆ Make focus task'}</button></div>
       <span>List</span><div>${seg(cats,curCat,'setCat',ia)}</div>
@@ -1262,7 +1276,7 @@ function renderDrawer(){
       ${(()=>{let hid=0;const rows=subs.map(s=>{const ss=sSt(s);if(ui.hideDone&&ss==='done'&&!(s.focus&&isF)){hid++;return '';}return `<div class="s${ss==='done'?' done':''}" style="margin-left:12px" data-k="ds-${esc(s.id)}">${stBox('d',dr.pid,t.id,s.id,ss)}<div class="tm"><button class="tt" data-act="open" data-type="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s.focus&&isF?IC_STAR:''}${esc(s.text)}</button></div></div>${stPick('d',dr.pid,t.id,s.id,oddSt(s,STEP_KNOWN)?'':ss)}`;}).join('');return rows+(hid?`<div class="s hidden-n" style="margin-left:12px">${plural(hid,'done step')} hidden</div>`:'');})()}
       <input class="inl" style="margin-top:6px" data-add="step"${ia} placeholder="Add a step — Enter adds">
     </div>
-    ${asubs.length?`<div class="dsec"><h3>Archived steps <span class="ro">${asubs.length}</span></h3>${asubs.map(s=>`<div class="arow" data-k="das-${esc(s.id)}"><button class="x lbtn" data-act="open" data-type="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${sSt(s)==='done'?'✓':'○'} ${esc(s.text)}<small>${esc(fmtDT(s.archivedAt))}${s.archivedReason?' — '+esc(s.archivedReason):''}</small></button><button class="lbtn" data-act="restore" data-kind="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">Restore</button></div>`).join('')}</div>`:''}
+    ${asubs.length?`<div class="dsec"><h3>Archived steps <span class="ro">${asubs.length}</span></h3>${asubs.map(s=>`<div class="arow" data-k="das-${esc(s.id)}"><button class="x lbtn" data-act="open" data-type="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${mark(sSt(s))} ${esc(s.text)}<small>${esc(fmtDT(s.archivedAt))}${s.archivedReason?' — '+esc(s.archivedReason):''}</small></button><button class="lbtn" data-act="restore" data-kind="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">Restore</button></div>`).join('')}</div>`:''}
     <div class="stamp">${[t.createdAt&&'Created '+fmtDT(t.createdAt),t.modifiedAt&&'Changed '+fmtDT(t.modifiedAt)].filter(Boolean).join(' · ')}</div>
     <div class="dz">${isArch(t)?`<button class="btn" data-act="restore" data-kind="todo"${ia}>Restore task</button>`:`<button class="btn" data-act="archiveAsk" data-kind="todo"${ia}>Archive task…</button>`}</div>`;
   }else if(dr.type==='step'){
@@ -1271,6 +1285,7 @@ function renderDrawer(){
     head=`<div style="flex:1;min-width:0"><div class="k"><button class="lbtn" style="margin-left:-6px" data-act="open" data-type="todo"${pa} data-id="${esc(t.id)}">↰ ${esc(snip(t.text,70))}</button></div>${titleIn('step.text|'+k,s.text,'Step')}</div>`;
     body=`${archNote(s)}<div class="kv">
       <span>Status</span><div>${seg(STEP_ST,oddSt(s,STEP_KNOWN)?'':st,'setStepStatus',sa)}${oddSt(s,STEP_KNOWN)?`<span class="ro">stored as “${esc(oddSt(s,STEP_KNOWN))}” — unknown to this app, shown as open</span>`:''}</div>
+      ${st==='failed'?`<span>Why it failed</span><div style="display:block">${titleIn('step.failedReason|'+k,s.failedReason||'','e.g. no band on the gel')}</div>`:''}
       <span>Focus step</span><div>${isF?`<button class="btn${s.focus?' primary':''}" data-act="toggleStepFocus"${sa}>${s.focus?'★ Focus step':'☆ Make focus step'}</button>`:'<span class="ro">Only the focus task has a focus step.</span>'}</div>
       <span>Element</span><div>${s.elementId?elChip(dr.pid,s.elementId)+`<button class="lbtn" data-act="unlinkStep"${sa}>Remove</button>`:''}<button class="lbtn" data-act="pickElStep"${sa}>${s.elementId?'Change':'＋ Link element'}</button></div>
       <span>Due</span><div><input type="date" class="inl" style="width:auto" data-in="dueStep"${sa} value="${esc(s.dueDate||'')}">${s.dueDate?`<button class="lbtn" data-act="clearDueStep"${sa}>Clear</button>`:''}</div>
@@ -1294,7 +1309,7 @@ function renderDrawer(){
     body=`<div class="kv"><span>Status</span><div><span class="pill" style="background:${esc(s.bg)};color:${esc(s.fg)}">${esc(s.icon)} ${esc(s.label)}</span></div><span>Tags</span><div>${esc((e.tags||[]).map(t=>d.tags[t]?.label).filter(Boolean).join(', ')||'—')}</div></div>
     ${archNote(e)}<div class="ro">Maintained by your agent — read-only here.</div>
     ${(e.desc||'').trim()?`<div class="dsec"><h3>Description</h3><div class="md">${md(e.desc)}</div></div>`:''}
-    ${linked.length?`<div class="dsec"><h3>Linked tasks</h3>${linked.map(({t,s:x})=>`<div><button class="lbtn" data-act="open" data-type="${x?'step':'todo'}"${pa} data-id="${esc(t.id)}"${x?` data-sid="${esc(x.id)}"`:''}>${(x?sSt(x):tSt(t))==='done'?'✓':'○'} ${esc(snip(x?x.text:t.text,80))}</button></div>`).join('')}</div>`:''}
+    ${linked.length?`<div class="dsec"><h3>Linked tasks</h3>${linked.map(({t,s:x})=>`<div><button class="lbtn" data-act="open" data-type="${x?'step':'todo'}"${pa} data-id="${esc(t.id)}"${x?` data-sid="${esc(x.id)}"`:''}>${mark(x?sSt(x):tSt(t))} ${esc(snip(x?x.text:t.text,80))}</button></div>`).join('')}</div>`:''}
     ${(e.custom||[]).map(c=>c.type==='link'?`<div class="dsec"><h3>${esc(c.title)}</h3>${(c.links||[]).map(l=>l.type==='element'?elChip(dr.pid,l.id):esc(d.nodes.find(n=>n.id===l.id)?.label||'')).join(' ')}</div>`:`<div class="dsec"><h3>${esc(c.title)}</h3>${(c.content||'').trim()?`<div class="md">${md(c.content)}</div>`:'<div class="ro">—</div>'}</div>`).join('')}
     ${log.length?`<div class="dsec"><h3>Activity (${log.length})</h3>${shown.map(l=>`<div class="logi"><small>${esc(fmtDT(l.time))}</small><div class="md">${md(l.msg)}</div></div>`).join('')}${log.length>shown.length?`<button class="lbtn" data-act="logAll">Show all ${log.length}</button>`:''}</div>`:''}`;
   }else if(dr.type==='entry'){
@@ -1384,6 +1399,11 @@ function renderDialog(){
     inner=`<h2>Archive this ${what}?</h2><p>“${esc(snip(d.label,90))}” leaves the lists but is kept exactly as it is${d.kind==='todo'?', with all its steps and which of them are done':''}. ⋯ → Archived items brings it back.</p>
       <div class="fld"><label for="arr">Why? (optional)</label><input id="arr" type="text" data-in="dlg" data-name="reason" value="${esc(d.reason||'')}" placeholder="e.g. replaced by the Gibson route" autocomplete="off"></div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="doArchive">Archive ${what}</button></div>`;
+  }else if(d.type==='fail'){
+    const what=d.kind==='todo'?'task':'step';
+    inner=`<h2>Mark this ${what} as failed?</h2><p>“${esc(snip(d.label,90))}” ${d.kind==='todo'?'moves to Closed, marked ✕ instead of ✓, with all its steps exactly as they are':'stays in its task, marked ✕ instead of ✓'}. Any other status can be set again later.</p>
+      <div class="fld"><label for="flr">Why did it fail?</label><input id="flr" type="text" data-in="dlg" data-name="reason" value="${esc(d.reason||'')}" placeholder="${d.kind==='todo'?'e.g. no colonies after two attempts':'e.g. no band on the gel'}" autocomplete="off"></div>
+      <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="doFail">Mark as failed</button></div>`;
   }else if(d.type==='parch'){
     wide=true;const p=projById(d.pid),dd=S.data[d.pid];
     const meta=x=>`<small>${esc(fmtDT(x.archivedAt))}${x.archivedReason?' — '+esc(x.archivedReason):''}</small>`;
@@ -1395,7 +1415,7 @@ function renderDialog(){
     const grp=(title,rows)=>rows.length?`<div class="agrp">${title} (${rows.length})</div><div class="alist">${rows.join('')}</div>`:'';
     inner=`<h2>Archived in ${esc(p?p.name:'')}</h2><p>Nothing is ever deleted. Click an entry to read it; Restore puts it back into the lists.</p>
       ${grp('Tasks',T.map(t=>{const n=(t.subtasks||[]).length,dn=(t.subtasks||[]).filter(s=>sSt(s)==='done').length;return row(`data-act="open" data-type="todo" ${pa} data-id="${esc(t.id)}"`,esc(t.text||'Untitled task')+` <span class="ro">· ${esc(tSt(t).replace('_',' '))}${n?` · ${dn}/${n} steps done`:''}</span>`,t,`data-act="restore" data-kind="todo" ${pa} data-id="${esc(t.id)}"`);}))}
-      ${grp('Steps',St.map(({t,s})=>row(`data-act="open" data-type="step" ${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}"`,(sSt(s)==='done'?'✓ ':'○ ')+esc(s.text)+` <span class="ro">· in “${esc(snip(t.text,50))}”</span>`,s,`data-act="restore" data-kind="step" ${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}"`)))}
+      ${grp('Steps',St.map(({t,s})=>row(`data-act="open" data-type="step" ${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}"`,mark(sSt(s))+' '+esc(s.text)+` <span class="ro">· in “${esc(snip(t.text,50))}”</span>`,s,`data-act="restore" data-kind="step" ${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}"`)))}
       ${grp('Ideas',I.map(i=>row(`data-act="open" data-type="idea" ${pa} data-id="${esc(i.id)}"`,esc(i.title||'Untitled idea'),i,`data-act="restore" data-kind="idea" ${pa} data-id="${esc(i.id)}"`)))}
       ${grp('Elements (archived by your agent)',E.map(e=>row(`data-act="open" data-type="element" ${pa} data-id="${esc(e.id)}"`,esc(e.label),e,'')))}
       ${T.length+St.length+I.length+E.length?'':'<p class="ro" style="margin-top:10px">Nothing archived yet.</p>'}
@@ -1404,8 +1424,9 @@ function renderDialog(){
     wide=true;
     inner=`<h2>How ResearchGraph works</h2><ul class="hl">
       <li>Every active project is a column. Drag the thin line between two columns to change their width.</li>
-      <li>The box in front of a task or step shows its status: empty = open, dot = in progress, stroke = blocked, tick = done. Click it and pick the new status right below — in any direction. Blocked tasks show what they wait for.</li>
-      <li>A task you set to done moves to <b>Closed</b> at the bottom of its project. Click “Closed” to see them, newest first; the box brings one back.</li>
+      <li>The box in front of a task or step shows its status: empty = open, dot = in progress, stroke = blocked, tick = done, cross = failed. Click it and pick the new status right below — in any direction. Blocked tasks show what they wait for.</li>
+      <li>Something that did not work is set to <b>failed</b>; the app asks why, and the reason stays with it. Steps and tasks work the same way.</li>
+      <li>A task you set to done or failed moves to <b>Closed</b> at the bottom of its project. Click “Closed” to see them, newest first; the box brings one back.</li>
       <li>Search looks through everything — tasks (also closed and archived ones), ideas, elements with their activity, every journal section. The numbers next to Tasks / Board / Journal show where the matches are.</li>
       <li>The bars after a title show the priority: one bar low, two medium, three high. Click the first, second or third bar to set it. ★ marks the focus task and the focus step.</li>
       <li>Hover a task and click ＋ to add a step right there.</li>
@@ -1423,10 +1444,12 @@ function renderDialog(){
 // ════════════════════════════════════════════════════════════════════════════
 // 11. AKTIONEN — Datenaenderungen nur ueber change()/changeProject()/addProject()
 // ════════════════════════════════════════════════════════════════════════════
-function setTodoStatus(t,st){
+function setStepSt(s,st,reason){s.status=st;if(st==='failed'){s.failedAt=nowIso();s.failedReason=String(reason||'').trim()||null;}else{delete s.failedAt;delete s.failedReason;}}
+function setTodoStatus(t,st,reason){
   const now=nowIso(),was=tSt(t);t.status=st;
   if(st==='done'&&was!=='done')t.completedAt=now;
   if(st!=='done')t.completedAt=null;
+  if(st==='failed'){t.failedAt=now;t.failedReason=String(reason||'').trim()||null;}else{delete t.failedAt;delete t.failedReason;}
   if(st!=='blocked')t.blockedBy=null;
   t.modifiedAt=now;
 }
@@ -1465,14 +1488,22 @@ const ACT={
   setStatus:el=>{
     const a=A(el),t=findT(a.pid,a.id),v=a.v,inRow=!!el.closest('.stpick');ui.pick=null;
     if(!t||rawSt(t)===v){render();return;}
+    if(v==='failed'){openDialog({type:'fail',kind:'todo',pid:a.pid,id:a.id,label:t.text,reason:''});ui.focusSel='#flr';return;} // erst nach dem Grund fragen
     change(a.pid,()=>setTodoStatus(t,v));
     if(v==='blocked'){if(inRow&&!isOpen('todo',a.pid,a.id))openDrawer({type:'todo',pid:a.pid,id:a.id});ui.focusSel='textarea[data-key^="todo.blockedBy"]';render();} // der Wartegrund steht in der Schublade
-    else if(v==='done')toast('Closed: “'+snip(t.text,60)+'” — now under Closed in '+(projById(a.pid)?.name||'its project')+'. Ctrl+Z undoes.');
+    else if(v==='done')toast('Done: “'+snip(t.text,60)+'” — now under Closed in '+(projById(a.pid)?.name||'its project')+'. Ctrl+Z undoes.');
   },
   setPrio:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tPr(t)===A(el).v)return;change(A(el).pid,()=>{t.priority=A(el).v;t.modifiedAt=nowIso();});},
   setCat:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tCat(t)===A(el).v)return;/* exakt: altes 'general' -> 'General' darf umschreiben */change(A(el).pid,()=>{t.category=A(el).v;t.modifiedAt=nowIso();});},
   toggleFocus:el=>{const pid=A(el).pid,t=findT(pid,A(el).id);if(!t)return;const on=focusOf(S.data[pid])?.id!==t.id;change(pid,d=>setFocus(d,t,on));},
-  setStepStatus:el=>{const s=findS(A(el).pid,A(el).id,A(el).sid);ui.pick=null;if(!s||(s.status||'open')===A(el).v){render();return;}change(A(el).pid,d=>{s.status=A(el).v;d.todos.find(x=>x.id===A(el).id).modifiedAt=nowIso();});},
+  setStepStatus:el=>{const s=findS(A(el).pid,A(el).id,A(el).sid);ui.pick=null;if(!s||(s.status||'open')===A(el).v){render();return;}
+    if(A(el).v==='failed'){openDialog({type:'fail',kind:'step',pid:A(el).pid,id:A(el).id,sid:A(el).sid,label:s.text,reason:''});ui.focusSel='#flr';return;}
+    change(A(el).pid,d=>{setStepSt(s,A(el).v);d.todos.find(x=>x.id===A(el).id).modifiedAt=nowIso();});},
+  doFail:()=>{
+    const g=ui.dialog;if(!g||g.type!=='fail')return;ui.dialog=null;
+    if(g.kind==='todo'){const t=findT(g.pid,g.id);if(!t){render();return;}change(g.pid,()=>setTodoStatus(t,'failed',g.reason));toast('Failed: “'+snip(t.text,60)+'” — now under Closed in '+(projById(g.pid)?.name||'its project')+'. Ctrl+Z undoes.');}
+    else{const s=findS(g.pid,g.id,g.sid);if(!s){render();return;}change(g.pid,d=>{setStepSt(s,'failed',g.reason);d.todos.find(x=>x.id===g.id).modifiedAt=nowIso();});}
+  },
   toggleStepFocus:el=>{const a=A(el),t=findT(a.pid,a.id),s=findS(a.pid,a.id,a.sid);if(!t||!s)return;const was=!!s.focus;change(a.pid,()=>{(t.subtasks||[]).forEach(x=>{if(x.focus)x.focus=false;});s.focus=!was;t.modifiedAt=nowIso();});},
   clearDue:el=>{const t=findT(A(el).pid,A(el).id);if(t)change(A(el).pid,()=>{t.dueDate=null;t.modifiedAt=nowIso();});},
   clearDueStep:el=>{const a=A(el),s=findS(a.pid,a.id,a.sid);if(s)change(a.pid,d=>{s.dueDate=null;d.todos.find(x=>x.id===a.id).modifiedAt=nowIso();});},
@@ -1509,7 +1540,7 @@ const ACT={
   removeList:async el=>{
     ui.menu=null;const p=projById(A(el).pid);if(!p)return;const d=S.data[p.id],cur=projLists(p,d);
     if(!cur.length){toast(p.name+' has no lists.');return;}
-    const openIn=c=>d.todos.filter(t=>!isArch(t)&&tSt(t)!=='done'&&sameCat(tCat(t),c)).length;
+    const openIn=c=>d.todos.filter(t=>!isArch(t)&&!closedT(t)&&sameCat(tCat(t),c)).length;
     const v=await ask('Remove a list from '+p.name,'Done and archived tasks keep their list name and stay findable in the archive. A list that still has open tasks cannot be removed — move them first (open the task → List).',
       [...cur.map(c=>{const n=openIn(c);return {label:catLabel(c),sub:n?plural(n,'open task')+' — move them first':'no open tasks',value:c};}),{label:'Cancel',value:null}]);
     if(v==null)return;
@@ -1621,7 +1652,7 @@ document.addEventListener('keydown',ev=>{
     if(ev.key==='Escape'){ev.preventDefault();closeDialog();return;}
     if(mod&&ev.key==='Enter'&&ui.dialog.type==='jwrite'){ev.preventDefault();ACT.jsave();return;}
     if(ev.key==='Enter'&&ui.dialog.type==='jwrite'&&t.tagName==='INPUT'){ev.preventDefault();return;} // Enter im Titel speichert nicht halbfertig
-    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='list')ACT.saveList();else if(d.type==='archive')ACT.doArchive();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
+    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='list')ACT.saveList();else if(d.type==='archive')ACT.doArchive();else if(d.type==='fail')ACT.doFail();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
     return;
   }
   // Strg+Z / Strg+Y (Strg+Umschalt+Z) ueberall — nur in Textfeldern bleibt es das Rueckgaengig des Browsers fuer den Text
