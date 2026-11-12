@@ -583,6 +583,17 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     ok(await until(()=>{const x=gh.doc().projects[FI].todos.find(t=>t.id===tS.id).subtasks.find(x=>x.id===sF.id);return x.status==='failed'&&x.failedReason==='no band on the gel'&&!!x.failedAt;}),'step stored as failed with its reason and time');
     const srow=env.doc.querySelector(box(sF.id));
     ok(srow&&srow.className.includes('s-failed')&&srow.closest('.s').textContent.includes('no band on the gel'),'the step stays in its task, marked failed, reason shown in the row');
+    // Issue #8 (12.11.2026): done und failed gleich — "Closed steps hidden" blendet den fehlgeschlagenen Schritt aus wie einen erledigten
+    {const tb=()=>env.doc.querySelector('[data-act="toggleDone"]'),isFs=!!(tS.focus&&sF.focus),hn=()=>env.doc.querySelector(`.subs[data-k="ss-${tS.id}"] .hidden-n`);
+     ok(tb()&&tb().textContent==='Closed steps shown','the toggle names closed steps, not only done ones (#8)');
+     click(env,'[data-act="toggleDone"]');await tick();
+     ok(tb().textContent==='Closed steps hidden'&&(isFs||!env.doc.querySelector(box(sF.id))),'with closed steps hidden, a failed step disappears like a done one (#8)');
+     ok(isFs||(hn()&&/closed steps? hidden/.test(hn().textContent)),'and the task says how many closed steps it hides');
+     click(env,`${col} .t [data-act="open"][data-type="todo"][data-id="${tS.id}"]`);await tick();
+     ok(isFs||!env.doc.querySelector(`.drawer [data-k="ds-${sF.id}"]`),'the details hide it too');
+     click(env,'[data-act="closeDrawer"]');await tick();
+     click(env,'[data-act="toggleDone"]');await tick();
+     ok(!!env.doc.querySelector(box(sF.id)),'shown again when closed steps are shown');}
     // Task: Failed -> verlaesst die offenen Listen, steht unter Closed mit Grund
     await setSt(env,tF.id,'failed');await tick();
     typeIn(env,env.doc.querySelector('#flr'),'no colonies twice');click(env,'[data-act="doFail"]');await tick();
@@ -744,7 +755,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    click(env,'[data-act="page"][data-v="calendar"]');await tick();
    ok(!env.doc.querySelector('.ce.gc')&&!env.doc.querySelector('.cal-l .gc-l'),'without a copy in the gist: no Google entries, no legend');
    const cal={google:{checkedAt:new Date().toISOString(),changedAt:new Date().toISOString(),from:dayN(-31),to:dayN(90),events:[
-     {id:'a',title:'ZZ Group meeting',allDay:false,start:at(10,0),end:at(11,0),location:'Seminar room 2'},
+     {id:'a',title:'ZZ Group meeting',allDay:false,start:at(10,0),end:at(11,0),location:'Seminar room 2',description:'Agenda:\n\n- **ZZ-progress** report\n- budget',link:'https://calendar.example.org/event?eid=a_b',attendees:['ZZ Person One','ZZ Person Two']},
      {id:'b',title:'ZZ Thesis committee',allDay:true,start:today,end:today},
      {id:'c',title:'ZZ Early call',allDay:false,start:at(8,30),end:at(9,0)}]}};
    gh.agentWrite(doc=>{doc.calendar=cal;});
@@ -754,8 +765,31 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    ok(tx.length===3&&tx[0].includes('ZZ Thesis committee')&&tx[1].includes('08:30')&&tx[1].includes('ZZ Early call')&&tx[2].includes('10:00')&&tx[2].includes('Seminar room 2'),'all-day first, then by time, with time and place: '+tx.join(' | '));
    ok(env.doc.querySelector('.cd.now .cdn').nextElementSibling.classList.contains('gc'),'appointments stand at the top of the day');
    ok(env.doc.querySelector('.cal-l .gc-l')&&!env.doc.querySelector('.cal-l .gc-old'),'the legend names Google Calendar; no warning while the copy is fresh');
-   ok(gc().every(x=>!x.dataset.act),'the entries are read-only (nothing to click)');
-   click(env,'[data-act="mode"][data-v="one"]');await tick();ok(gc().length===3,'"One project" still shows them (they belong to no project)');click(env,'[data-act="mode"][data-v="all"]');await tick();
+   // Detailfeld (Dominik 12.11.2026): jeder Kalendereintrag oeffnet wie alles andere seine Details, mit Beschreibung
+   ok(gc().every(x=>x.tagName==='BUTTON'&&x.dataset.act==='open'&&x.dataset.type==='cal'),'every appointment opens its details on a click');
+   ok(gc().filter(x=>x.querySelector('.gcn')).length===1&&gc()[2].querySelector('.gcn'),'the row marks the one that carries a description');
+   gc()[2].dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();
+   {const dw=env.doc.querySelector('.drawer'),tx=dw?dw.textContent:'';
+    ok(dw&&tx.includes('Google Calendar')&&tx.includes('ZZ Group meeting')&&tx.includes('10:00–11:00')&&tx.includes('Seminar room 2'),'the details show title, time and place');
+    ok(dw&&dw.querySelector('.md strong')&&dw.querySelector('.md strong').textContent==='ZZ-progress'&&dw.querySelectorAll('.md li').length===2,'and the description, rendered as Markdown');
+    ok(dw&&tx.includes('ZZ Person One, ZZ Person Two')&&dw.querySelector('a[href="https://calendar.example.org/event?eid=a_b"]'),'and who is there and the link');
+    ok(dw&&!dw.querySelector('textarea,input,[data-act="archiveAsk"]'),'read-only: nothing to edit, nothing to archive');}
+   key(env,env.doc.body,'Escape');await tick();ok(!env.doc.querySelector('.drawer'),'Esc closes the details');
+   // eigene Eintraege des Agenten (calendar.events): gleiche Zeile, gleiches Detailfeld; archivierte ausgeblendet
+   cal.events=[{id:'o1',title:'ZZ Order primers',allDay:false,start:at(14,0),end:at(14,30),description:'Stock of **ZZ-primer** is empty.',createdAt:new Date().toISOString()},
+     {id:'o2',title:'ZZ Dropped entry',allDay:true,start:today,end:today,archived:true,archivedAt:new Date().toISOString(),archivedReason:'moved'}];
+   gh.agentWrite(doc=>{doc.calendar=cal;});
+   ok(await until(()=>gc().length===4),'an entry the agent added itself appears next to the Google ones; the archived one stays hidden');
+   {const own=gc()[3];
+    ok(own.textContent.includes('14:00')&&own.textContent.includes('ZZ Order primers')&&own.className===gc()[2].className&&own.querySelector('.ab').textContent==='C'&&gc()[2].querySelector('.ab').textContent==='G','same row as a Google appointment, sorted by time, origin as a letter (G / C)');
+    ok(!!env.doc.querySelector('.cal-l .gc-o'),'the legend names the calendar entries');
+    own.dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();
+    const dw=env.doc.querySelector('.drawer'),tx=dw?dw.textContent:'';
+    ok(dw&&tx.includes('Calendar entry')&&tx.includes('ZZ Order primers')&&tx.includes('14:00–14:30')&&dw.querySelector('.md strong')&&dw.querySelector('.md strong').textContent==='ZZ-primer','its details show the same fields, description included');
+    click(env,'[data-act="closeDrawer"]');await tick();
+    typeIn(env,env.doc.querySelector('.search input'),'zz-primer');await tick();ok(env.doc.querySelectorAll('.cal-g .ce.gc').length===1,'search reaches into descriptions');
+    click(env,'[data-act="clearQ"]');await tick();}
+   click(env,'[data-act="mode"][data-v="one"]');await tick();ok(gc().length===4,'"One project" still shows them (they belong to no project)');click(env,'[data-act="mode"][data-v="all"]');await tick();
    // ein eigener Upload der App laesst den Block unangetastet
    click(env,'[data-act="page"][data-v="tasks"]');await tick();
    const tg=snap.projects[0].todos.find(t=>t.status!=='done'&&!t.archived&&!t.focus),pg=(tg.priority==='high')?'low':'high';

@@ -221,7 +221,7 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .md table{border-collapse:collapse;font:12.5px/1.4 var(--ui);width:100%}
 .md th,.md td{border-bottom:1px solid var(--rule);padding:4px 8px;text-align:left;vertical-align:top}
 .md th{background:#F5F6F8;font-weight:600}
-.md a{color:#0B4F8A}
+.md a,.kv a{color:#0B4F8A}
 
 /* Dialoge + Toast */
 .dscrim{position:fixed;inset:0;background:rgba(15,22,36,.4);display:flex;align-items:flex-start;justify-content:center;padding:10vh 16px;z-index:60;overflow-y:auto}
@@ -421,7 +421,9 @@ button.ce.du.today:hover,button.ce.du.late:hover{background:#8F1010}
 .ce .eb{width:3px;align-self:stretch;background:var(--c);flex-shrink:0;border-radius:2px}
 .ab.gcab{background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink-2)}
 [data-theme="dark"] .ab.gcab{box-shadow:inset 0 0 0 1.5px var(--ink-2)}
-.ce.gc{cursor:default}
+div.ce.gc{cursor:default}
+.ce.gc .gcn{display:inline-block;width:11px;height:11px;margin-left:5px;vertical-align:-1px;color:var(--ink-2)}
+.ce.gc .gcn svg{display:block;width:100%;height:100%}
 .ce.gc span b{font-variant-numeric:tabular-nums}
 .ce.gc small{color:var(--ink-2);font-size:11.5px}
 .cal-l .gc-old{color:var(--danger);font-weight:600}
@@ -470,7 +472,7 @@ button.ce.du.today:hover,button.ce.du.late:hover{background:#8F1010}
 [data-theme="dark"] .md{color:var(--ink)}
 [data-theme="dark"] .md code{background:var(--hover);border-color:var(--rule)}
 [data-theme="dark"] .md pre,[data-theme="dark"] .md th,[data-theme="dark"] .archb{background:#1C222A}
-[data-theme="dark"] .md a{color:#7FB8F0}
+[data-theme="dark"] .md a,[data-theme="dark"] .kv a{color:#7FB8F0}
 [data-theme="dark"] .s .tt{color:var(--ink)}
 [data-theme="dark"] .s.done .tt{color:#9AA3AF;text-decoration-color:#5A636F}
 [data-theme="dark"] .scrim,[data-theme="dark"] .dscrim{background:rgba(0,0,0,.5)}
@@ -1076,18 +1078,34 @@ function calEntries(from,to){
     d.elements.forEach(el=>{if(isArch(el))return;const per={};(el.log||[]).forEach(l=>{if(!l||!l.time)return;if(qq()&&!hit(el.label,l.msg))return;const day=localDay(l.time);if(day)per[day]=(per[day]||0)+1;});
       Object.keys(per).forEach(day=>add(day,{k:'act',p,el,n:per[day]}));});
     d.ideas.forEach(i=>{if(!i.archived&&hit(i.title,i.desc))add(localDay(i.createdAt),{k:'idea',p,i});});});
-  // Google-Kalender (Dominik 11.11.2026): nur EINE Richtung. Der Agent legt die Termine unter calendar.google.events in den Gist,
-  // die App zeigt sie an — fuer jeden Zeitraum, der dort liegt — und spricht selbst nie mit Google. Projektunabhaengig, also auch im Ein-Projekt-Modus.
-  const g=S.calendar&&S.calendar.google;
-  ((g&&Array.isArray(g.events)&&g.events)||[]).forEach(ev=>{
-    if(!ev||!ev.start||!hit(ev.title,ev.location))return;
+  // Kalendereintraege (calEvents): Google-Kopie und eigene Eintraege des Agenten, gleich behandelt. Die App zeigt sie an — fuer jeden Zeitraum,
+  // der im Gist liegt — und spricht selbst nie mit Google. Projektunabhaengig, also auch im Ein-Projekt-Modus.
+  calEvents().forEach(({src,ev})=>{
+    if(!ev.start||!hit(ev.title,ev.location,ev.description,...(Array.isArray(ev.attendees)?ev.attendees:[])))return;
     let a,b;
     if(ev.allDay){a=String(ev.start).slice(0,10);b=String(ev.end||ev.start).slice(0,10);}
     else{a=localDay(ev.start);const s0=new Date(ev.start),e0=new Date(ev.end||ev.start);b=localDay(new Date(e0.getTime()-(e0>s0?1:0)));} // endet ein Termin genau um Mitternacht, zaehlt der neue Tag nicht mehr
     if(!a)return;if(!b||b<a)b=a;
-    let n=0;for(const d=new Date(a+'T12:00:00');n<62&&!isNaN(d);d.setDate(d.getDate()+1),n++){const day=d.toLocaleDateString('en-CA');if(day>b)break;add(day,{k:'gcal',ev,first:day===a});}
+    let n=0;for(const d=new Date(a+'T12:00:00');n<62&&!isNaN(d);d.setDate(d.getDate()+1),n++){const day=d.toLocaleDateString('en-CA');if(day>b)break;add(day,{k:'gcal',ev,src,first:day===a});}
   });
   return out;
+}
+// Kalendereintraege (Dominik 12.11.2026: "die sollen nicht unterschiedlich behandelt werden"): die Kopie aus Google (calendar.google.events) und die
+// eigenen Eintraege, die der Agent anlegt (calendar.events), sind EINE Sache — gleiche Felder (id, title, start, end, allDay, location, description,
+// link, attendees), gleiche Zeile, gleiches Detailfeld. src ('google' | 'own') haelt nur die Herkunft fest. Archivierte eigene Eintraege sind ausgeblendet.
+function calEvents(all){
+  const c=S.calendar||{},out=[];
+  ((c.google&&Array.isArray(c.google.events)&&c.google.events)||[]).forEach(ev=>{if(ev)out.push({src:'google',ev});});
+  (Array.isArray(c.events)?c.events:[]).forEach(ev=>{if(ev&&(all||!isArch(ev)))out.push({src:'own',ev});});
+  return out;
+}
+function findCalEv(src,id){const x=calEvents(true).find(x=>x.src===src&&x.ev.id!=null&&String(x.ev.id)===String(id));return x?x.ev:null;}
+const _calTm=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});};
+function calWhen(ev){ // ausgeschrieben fuer das Detailfeld: ein Tag mit Uhrzeit, ganztaegig, oder mehrtaegig mit beiden Enden
+  const D={weekday:'short',day:'numeric',month:'short',year:'numeric'};
+  if(ev.allDay){const a=String(ev.start).slice(0,10),b=String(ev.end||ev.start).slice(0,10);return (b>a?fmtDate(a,D)+' – '+fmtDate(b,D):fmtDate(a,D))+', all day';}
+  const a=localDay(ev.start),b=localDay(ev.end||ev.start),te=ev.end&&ev.end!==ev.start?_calTm(ev.end):'';
+  return b>a?fmtDate(a,D)+' '+_calTm(ev.start)+' – '+fmtDate(b,D)+' '+te:fmtDate(a,D)+', '+_calTm(ev.start)+(te?'–'+te:'');
 }
 function hitCounts(){const o={tasks:0,board:0,journal:0,calendar:0};o.calendar=calEntries('0000-01-01','9999-12-31').length;visibleProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
   o.tasks+=d.todos.filter(todoHit).length+d.ideas.filter(i=>hit(i.title,i.desc)).length;
@@ -1117,7 +1135,7 @@ const ui={
 function visibleProjects(){return liveProjects().filter(p=>ui.showFrozen||!p.frozen);}
 function validateSel(){
   const d=ui.drawer;if(!d)return;
-  const ok=(d.type==='todo'&&findT(d.pid,d.id))||(d.type==='step'&&findS(d.pid,d.id,d.sid))||(d.type==='idea'&&S.data[d.pid]&&S.data[d.pid].ideas.some(i=>i.id===d.id))||(d.type==='element'&&findEl(d.pid,d.id))||(d.type==='entry'&&S.data[d.pid]&&S.data[d.pid].journal.some(e=>e.id===d.id));
+  const ok=(d.type==='todo'&&findT(d.pid,d.id))||(d.type==='step'&&findS(d.pid,d.id,d.sid))||(d.type==='idea'&&S.data[d.pid]&&S.data[d.pid].ideas.some(i=>i.id===d.id))||(d.type==='element'&&findEl(d.pid,d.id))||(d.type==='entry'&&S.data[d.pid]&&S.data[d.pid].journal.some(e=>e.id===d.id))||(d.type==='cal'&&findCalEv(d.pid,d.id));
   if(!ok){ui.drawer=null;ui.edit=null;}
 }
 
@@ -1184,7 +1202,7 @@ function renderTop(){
       :(ui.collapsed.size?`<button class="tbtn" data-act="expandAll">Expand all columns</button>`:'')}
     <span class="grow"></span>
     <span class="search"><input type="text" data-in="q" value="${esc(ui.q)}" placeholder="Search" aria-label="Search">${ui.q?'<button data-act="clearQ" aria-label="Clear search">✕</button>':''}</span>
-    ${ui.page==='tasks'?`<button class="tbtn${ui.hideDone?' on':''}" data-act="toggleDone" aria-pressed="${ui.hideDone}" title="Show or hide steps that are already done">${ui.hideDone?'Done steps hidden':'Done steps shown'}</button>`:''}
+    ${ui.page==='tasks'?`<button class="tbtn${ui.hideDone?' on':''}" data-act="toggleDone" aria-pressed="${ui.hideDone}" title="Show or hide steps that are closed — done or failed">${ui.hideDone?'Closed steps hidden':'Closed steps shown'}</button>`:''}
     ${frozen?`<button class="tbtn${ui.showFrozen?' on':''}" data-act="toggleFrozen" aria-pressed="${ui.showFrozen}">❄ ${ui.showFrozen?'Hide':'Show'} frozen (${frozen})</button>`:''}
     <button class="tbtn" data-act="theme" title="Switch between light and dark">${isDark()?'☀ Light':'☾ Dark'}</button>
     <span class="zoom" title="Size"><button data-act="zoom" data-v="-10" aria-label="Smaller">−</button><span>${ui.zoom}%</span><button data-act="zoom" data-v="10" aria-label="Larger">+</button></span>
@@ -1201,9 +1219,11 @@ const CAL_RANK={gcal:-1,due:0,journal:1,act:2,done:3,failed:3,idea:4};
 const _gcKey=e=>(e.ev.allDay?'0':'1')+String(e.ev.start); // ganztaegig zuerst, dann nach Uhrzeit
 function calEntry(e){
   if(e.k==='gcal'){
-    const ev=e.ev,tm=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});};
+    const ev=e.ev,tm=_calTm,g=e.src==='google',has=String(ev.description||'').trim();
     const when=ev.allDay?'all day':tm(ev.start)+'–'+tm(ev.end||ev.start);
-    return `<div class="ce gc" title="Google Calendar · ${esc(when)}${ev.location?' · '+esc(ev.location):''}"><b class="ab gcab">G</b><span>${ev.allDay?'':`<b>${esc(e.first?tm(ev.start):'…')}</b> `}${esc(ev.title||'(no title)')}${ev.location?`<small> · ${esc(ev.location)}</small>`:''}</span></div>`;
+    // Klick oeffnet das Detailfeld wie bei allem anderen; ohne id (fremde Daten) bleibt es eine reine Zeile
+    const tag=ev.id!=null?'button':'div',open=ev.id!=null?` data-act="open" data-type="cal" data-pid="${e.src}" data-id="${esc(ev.id)}"`:'';
+    return `<${tag} class="ce gc"${open} title="${g?'Google Calendar':'Calendar entry'} · ${esc(when)}${ev.location?' · '+esc(ev.location):''}${has?' · has a description':''}"><b class="ab gcab">${g?'G':'C'}</b><span>${ev.allDay?'':`<b>${esc(e.first?tm(ev.start):'…')}</b> `}${esc(ev.title||'(no title)')}${ev.location?`<small> · ${esc(ev.location)}</small>`:''}${has?`<i class="gcn" aria-label="has a description">${IC_NOTES}</i>`:''}</span></${tag}>`;
   }
   const pid=e.p.id,ab=`<b class="ab" style="${projVars(e.p)}">${esc(projAbbr(e.p))}</b>`,pn=esc(e.p.name);
   const o=(type,id,sid)=>`data-act="open" data-type="${type}" data-pid="${esc(pid)}" data-id="${esc(id)}"${sid?` data-sid="${esc(sid)}"`:''}`;
@@ -1233,7 +1253,7 @@ function renderCalendar(){
         // Legende des Google-Kalenders, mit ehrlichem Alter: aelter als 36 h heisst, der Abgleich des Agenten laeuft nicht mehr
         const g=S.calendar&&S.calendar.google;if(!g)return '';
         const old=!g.checkedAt||Date.now()-Date.parse(g.checkedAt)>36*3600*1000;
-        return `<span class="gc-l${old?' gc-old':''}" title="Copied from Google Calendar by your agent — read-only here, nothing goes back to Google.${g.from&&g.to?' Covers '+esc(fmtDate(g.from))+' to '+esc(fmtDate(g.to))+'.':''}${g.checkedAt?' Last refreshed '+esc(fmtDT(g.checkedAt))+'.':''}"><b class="ab gcab">G</b>Google Calendar${old?' — not refreshed since '+esc(g.checkedAt?fmtDT(g.checkedAt):'?'):''}</span>`;})()}</span></div>
+        return `<span class="gc-l${old?' gc-old':''}" title="Copied from Google Calendar by your agent — read-only here, nothing goes back to Google.${g.from&&g.to?' Covers '+esc(fmtDate(g.from))+' to '+esc(fmtDate(g.to))+'.':''}${g.checkedAt?' Last refreshed '+esc(fmtDT(g.checkedAt))+'.':''}"><b class="ab gcab">G</b>Google Calendar${old?' — not refreshed since '+esc(g.checkedAt?fmtDT(g.checkedAt):'?'):''}</span>`;})()}${calEvents().some(x=>x.src==='own')?'<span class="gc-o" title="Entries your agent added to this calendar — click one for its details."><b class="ab gcab">C</b>Calendar entries</span>':''}</span></div>
     <div class="cal-g">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(w=>`<div class="cwd">${w}</div>`).join('')}${cells}</div>
   </section></div></main>`;
 }
@@ -1367,7 +1387,7 @@ function renderSubs(p,t){
   let hidden=0;
   const rows=list.map(s=>{
     const st=sSt(s);
-    if(ui.hideDone&&st==='done'&&s!==fs&&!isOpen('step',pid,t.id,s.id)&&!qq()){hidden++;return '';}
+    if(ui.hideDone&&isEnd(st)&&s!==fs&&!isOpen('step',pid,t.id,s.id)&&!qq()){hidden++;return '';} // done und failed gleich (Issue #8)
     const cls=['s',st==='done'?'done':st==='failed'?'failed':'',s===fs?'fstep':'',isOpen('step',pid,t.id,s.id)?'sel':''].filter(Boolean).join(' ');
     const chip=s.elementId&&s.elementId!==rowElement(t)?elChip(pid,s.elementId):''; // gleicher Chip wie die Task-Zeile = Wiederholung, weglassen
     const odd=oddSt(s,STEP_KNOWN);
@@ -1375,7 +1395,7 @@ function renderSubs(p,t){
       <div class="tm"><button class="tt" data-act="open" data-type="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s===fs?IC_STAR:''}${esc(s.text||'Untitled step')}</button>${odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:''}${failNote(s)}</div>
       <div class="rc">${dueChip(pid,t,s)}${chip}</div></div>${stPick('c',pid,t.id,s.id,odd?'':st)}`;
   }).join('');
-  return `<div class="subs" data-k="ss-${esc(t.id)}">${rows}${hidden?`<div class="s hidden-n">${plural(hidden,'done step')} hidden</div>`:''}</div>${inp}`;
+  return `<div class="subs" data-k="ss-${esc(t.id)}">${rows}${hidden?`<div class="s hidden-n">${plural(hidden,'closed step')} hidden</div>`:''}</div>${inp}`;
 }
 function boardGroups(p,d){
   const pid=p.id;
@@ -1448,6 +1468,20 @@ function seg(items,cur,act,extra){return `<div class="seg">${items.map(([v,ic,l]
 // ── Schublade ──
 function renderDrawer(){
   const dr=ui.drawer;if(!dr)return '';
+  if(dr.type==='cal'){ // Kalendereintrag: gehoert zu keinem Projekt (dr.pid = Herkunft 'google' | 'own'); der Agent pflegt ihn, hier nur lesbar — wie Elemente
+    const ev=findCalEv(dr.pid,dr.id);if(!ev)return '';
+    const g=dr.pid==='google',att=(Array.isArray(ev.attendees)?ev.attendees:[]).map(a=>String(a||'').trim()).filter(Boolean),link=/^https?:\/\//i.test(String(ev.link||''))?String(ev.link):'';
+    const head=`<div style="flex:1;min-width:0"><div class="k">${g?'Google Calendar':'Calendar entry'}${isArch(ev)?' · archived':''}</div><div class="ttl" style="border:0">${esc(ev.title||'(no title)')}</div></div>`;
+    const body=`${archNote(ev)}<div class="kv"><span>When</span><div>${esc(calWhen(ev))}</div>
+      ${ev.location?`<span>Where</span><div>${esc(ev.location)}</div>`:''}
+      ${att.length?`<span>With</span><div>${esc(att.join(', '))}</div>`:''}
+      ${link?`<span>Link</span><div><a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc((x=>x.length>60?x.slice(0,59)+'…':x)(link.replace(/^https?:\/\//i,'')))}</a></div>`:''}
+    </div>
+    <div class="ro">${g?'Copied from Google Calendar by your agent':'Added by your agent'} — read-only here.</div>
+    <div class="dsec"><h3>Description</h3>${String(ev.description||'').trim()?`<div class="md">${md(ev.description)}</div>`:'<div class="ro">—</div>'}</div>
+    <div class="stamp">${[ev.createdAt&&'Created '+fmtDT(ev.createdAt),ev.modifiedAt&&'Changed '+fmtDT(ev.modifiedAt)].filter(Boolean).join(' · ')}</div>`;
+    return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" data-k="dr-cal${esc(dr.pid+dr.id)}" role="dialog" aria-label="Details"><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
+  }
   const p=projById(dr.pid),d=S.data[dr.pid];if(!p||!d)return '';
   let head='',body='';
   const pa=` data-pid="${esc(dr.pid)}"`;
@@ -1470,8 +1504,8 @@ function renderDrawer(){
       ${t.dueDate?`<span>Turns orange</span><div>${seg(WARN_PRESETS,String(warnOf(t)),'setWarn',ia)}<input type="number" min="0" max="365" class="inl warn-n" data-in="warn"${ia} value="${warnOf(t)}" aria-label="Days before the due date"><span class="ro">days before</span></div>`:''}
     </div>
     <div class="dsec"><h3>Notes ${editLink('todo.notes|'+k,t.notes)}</h3>${mdBox('todo.notes|'+k,t.notes,'Add notes')}</div>
-    <div class="dsec"><h3>Steps ${subs.length?`<span class="ro">${subs.filter(s=>sSt(s)==='done').length}/${subs.length} done</span>`:''}</h3>
-      ${(()=>{let hid=0;const rows=subs.map(s=>{const ss=sSt(s);if(ui.hideDone&&ss==='done'&&!(s.focus&&isF)){hid++;return '';}return `<div class="s${ss==='done'?' done':''}" style="margin-left:12px" data-k="ds-${esc(s.id)}">${stBox('d',dr.pid,t.id,s.id,ss)}<div class="tm"><button class="tt" data-act="open" data-type="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s.focus&&isF?IC_STAR:''}${esc(s.text)}</button></div></div>${stPick('d',dr.pid,t.id,s.id,oddSt(s,STEP_KNOWN)?'':ss)}`;}).join('');return rows+(hid?`<div class="s hidden-n" style="margin-left:12px">${plural(hid,'done step')} hidden</div>`:'');})()}
+    <div class="dsec"><h3>Steps ${subs.length?`<span class="ro">${subs.filter(s=>sSt(s)==='done').length}/${subs.length} done${subs.some(s=>sSt(s)==='failed')?' · '+subs.filter(s=>sSt(s)==='failed').length+' failed':''}</span>`:''}</h3>
+      ${(()=>{let hid=0;const rows=subs.map(s=>{const ss=sSt(s);if(ui.hideDone&&isEnd(ss)&&!(s.focus&&isF)){hid++;return '';}return `<div class="s${ss==='done'?' done':ss==='failed'?' failed':''}" style="margin-left:12px" data-k="ds-${esc(s.id)}">${stBox('d',dr.pid,t.id,s.id,ss)}<div class="tm"><button class="tt" data-act="open" data-type="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s.focus&&isF?IC_STAR:''}${esc(s.text)}</button></div></div>${stPick('d',dr.pid,t.id,s.id,oddSt(s,STEP_KNOWN)?'':ss)}`;}).join('');return rows+(hid?`<div class="s hidden-n" style="margin-left:12px">${plural(hid,'closed step')} hidden</div>`:'');})()}
       <input class="inl" style="margin-top:6px" data-add="step"${ia} placeholder="Add a step — Enter adds">
     </div>
     ${asubs.length?`<div class="dsec"><h3>Archived steps <span class="ro">${asubs.length}</span></h3>${asubs.map(s=>`<div class="arow" data-k="das-${esc(s.id)}"><button class="x lbtn" data-act="open" data-type="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${mark(sSt(s))} ${esc(s.text)}<small>${esc(fmtDT(s.archivedAt))}${s.archivedReason?' — '+esc(s.archivedReason):''}</small></button><button class="lbtn" data-act="restore" data-kind="step"${pa} data-id="${esc(t.id)}" data-sid="${esc(s.id)}">Restore</button></div>`).join('')}</div>`:''}
@@ -1535,7 +1569,7 @@ const FB_REPO='qwertzuiop151/ResearchGraph-app',FB_TOKEN_KEY='rg_fb_token';
 function fbContext(){
   const L=['App: v3','Page: '+ui.page,'Layout: '+(ui.mode==='one'?'one project ('+(projById(onePid())?.name||'—')+')':'all projects')];
   const dr=ui.drawer;
-  if(dr){const lab=dr.type==='todo'?findT(dr.pid,dr.id)?.text:dr.type==='step'?findS(dr.pid,dr.id,dr.sid)?.text:dr.type==='idea'?S.data[dr.pid]?.ideas.find(x=>x.id===dr.id)?.title:dr.type==='element'?findEl(dr.pid,dr.id)?.label:dr.type==='entry'?S.data[dr.pid]?.journal.find(x=>x.id===dr.id)?.date:'';
+  if(dr){const lab=dr.type==='todo'?findT(dr.pid,dr.id)?.text:dr.type==='step'?findS(dr.pid,dr.id,dr.sid)?.text:dr.type==='idea'?S.data[dr.pid]?.ideas.find(x=>x.id===dr.id)?.title:dr.type==='element'?findEl(dr.pid,dr.id)?.label:dr.type==='entry'?S.data[dr.pid]?.journal.find(x=>x.id===dr.id)?.date:dr.type==='cal'?findCalEv(dr.pid,dr.id)?.title:'';
     L.push('Open: '+dr.type+(lab?' "'+snip(lab,60)+'"':'')+(projById(dr.pid)?' in '+projById(dr.pid).name:''));}
   L.push('Browser: '+navigator.userAgent);
   return L;
@@ -1634,7 +1668,7 @@ function renderDialog(){
       <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
       <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
-      <li><b>Calendar</b> shows everything that has a date, week under week without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar appear there too (marked G) once your agent copies them; that goes one way only, nothing is sent to Google.</li>
+      <li><b>Calendar</b> shows everything that has a date, week under week without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar (marked G) and entries your agent adds (marked C) appear there too; click one for its details — time, place, description. Google goes one way only, nothing is sent back.</li>
       <li>Board shows what your agent keeps — read-only here. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to your agent’s.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with your agent’s, so nothing is overwritten.</li></ul>
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
