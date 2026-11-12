@@ -337,7 +337,10 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .prio.pe:hover button b{background:var(--rule-2)}
 .prio.pe:hover button:hover b,.prio.pe:hover button:has(~ button:hover) b{background:var(--ink-2)}
 .addst{width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--ink-3);font-size:14px;line-height:1;padding:0;visibility:hidden}
-.t:hover .addst,.addst:focus-visible,.addst.on{visibility:visible}
+.t:hover .addst,.cd:hover .addst,.addst:focus-visible,.addst.on{visibility:visible}
+.cdn .cadd{margin-left:auto;align-self:center}
+.cal-in{height:24px;margin:0 0 3px;padding:2px 6px;font-size:12px}
+.ttl.ln{font:400 13px/1.4 var(--ui);border-color:var(--rule-2);margin:0;width:100%}
 .addst:hover{background:var(--rule);color:var(--ink)}
 .fold{width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--ink-3);font-size:11px;line-height:1;padding:0;visibility:hidden}
 .t:hover .fold,.fold:focus-visible,.fold.on{visibility:visible}
@@ -621,7 +624,7 @@ function writeLocal(doc){
   doc.projects.forEach(p=>{S.data[p.id]={nodes:p.nodes||[],elements:p.elements||[],tags:p.tags||{},statuses:p.statuses||clone(DEF_ST),todos:p.todos||[],journal:p.journal||[],ideas:p.ideas||[]};});
   return ok;
 }
-function localDoc(){return {projects:S.projects.map(p=>({id:p.id,name:p.name,color:p.color,..._arch(p),...S.data[p.id]}))};}
+function localDoc(){return {projects:S.projects.map(p=>({id:p.id,name:p.name,color:p.color,..._arch(p),...S.data[p.id]})),...(S.calendar&&typeof S.calendar==='object'?{calendar:clone(S.calendar)}:{})};} // mit dem Kalenderblock, sonst gingen hier angelegte Eintraege beim ersten Anlegen der Datei verloren
 
 // ════════════════════════════════════════════════════════════════════════════
 // 5. AENDERUNGEN ALS OPERATIONEN — die App schickt nie ihre Gesamtkopie, sondern spielt ihre
@@ -632,6 +635,16 @@ function savePending(){lsSet('rg3_pending',PENDING);}
 function _pj(doc,pid){return doc.projects.find(p=>p.id===pid);}
 function applyOp(doc,op){
   if(op.t==='proj.add'){if(!_pj(doc,op.meta.id))doc.projects.push({...op.meta,nodes:[],elements:[],tags:{},statuses:clone(DEF_ST),todos:[],journal:[],ideas:[]});return;}
+  // Eigene Kalendereintraege (calendar.events) gehoeren zu keinem Projekt. Nur anlegen und Felder setzen — nie entfernen (Archiv statt Loeschen).
+  // calendar.google (die Kopie des Agenten) fasst keine Operation an.
+  if(op.t==='cal.add'||op.t==='cal.set'){
+    if(!doc.calendar||typeof doc.calendar!=='object')doc.calendar={};
+    if(!Array.isArray(doc.calendar.events))doc.calendar.events=[];
+    const L=doc.calendar.events;
+    if(op.t==='cal.add'){if(!L.some(x=>x.id===op.obj.id))L.push(clone(op.obj));}
+    else{const e=L.find(x=>x.id===op.id);if(e)Object.entries(op.f).forEach(([k,v])=>{if(v==='\u0000del')delete e[k];else e[k]=v;});}
+    return;
+  }
   const p=_pj(doc,op.pid);if(!p)return;
   if(op.t==='proj.set'){Object.entries(op.f).forEach(([k,v])=>{if(v===null)delete p[k];else p[k]=v;});return;}
   if(!Array.isArray(p.todos))p.todos=[];if(!Array.isArray(p.ideas))p.ideas=[];
@@ -703,6 +716,27 @@ function change(pid,fn){
   render();schedulePush();
   return ops.length;
 }
+// Dasselbe fuer die eigenen Kalendereintraege: lokal anwenden, als Ops merken, Upload planen. fn bekommt die Liste calendar.events.
+function diffCal(before,after){
+  const ops=[],b=new Map(before.map(e=>[e.id,e]));
+  after.forEach(a=>{const o=b.get(a.id);if(!o){ops.push({t:'cal.add',obj:a});return;}const f={};new Set([...Object.keys(a),...Object.keys(o)]).forEach(k=>{if(_J(a[k])!==_J(o[k]))f[k]=(k in a)?a[k]:'\u0000del';});if(Object.keys(f).length)ops.push({t:'cal.set',id:a.id,f});});
+  return ops; // ein Eintrag verschwindet nie aus der Liste
+}
+function changeCal(fn){
+  if(!S.calendar||typeof S.calendar!=='object')S.calendar={};
+  if(!Array.isArray(S.calendar.events))S.calendar.events=[];
+  const L=S.calendar.events,before=clone(L);
+  fn(L);
+  const ops=clone(diffCal(before,L));
+  if(!ops.length){render();return 0;}
+  const inv=clone(diffCal(L,before));
+  // Eintraege werden nie geloescht: einen neu angelegten nimmt Strg+Z per Archivieren zurueck
+  ops.forEach(o=>{if(o.t==='cal.add')inv.push({t:'cal.set',id:o.obj.id,f:{archived:true,archivedAt:nowIso()}});});
+  _record({cal:true,ops:inv});
+  PENDING.push(...ops);savePending();lsSet('rg_calendar',S.calendar);
+  render();schedulePush();
+  return ops.length;
+}
 function changeProject(pid,f){
   const p=projById(pid);if(!p)return;
   const old={};Object.keys(f).forEach(k=>{old[k]=k in p?clone(p[k]):null;});
@@ -716,6 +750,7 @@ function addProject(meta){
   PENDING.push({t:'proj.add',meta});savePending();lsSet('rg_projects',S.projects);render();schedulePush();
 }
 function _undoLabel(e){
+  if(e.cal){const o=e.ops[0];return o?(o.obj||findCalEv('own',o.id)||{}).title||'':'';}
   if(e.proj)return projById(e.pid)?.name||'';
   const o=e.ops.find(x=>x.t.startsWith('sub'))||e.ops[0];if(!o)return '';
   if(o.t.startsWith('sub'))return (o.obj||findS(e.pid,o.tid,o.sid)||{}).text||'';
@@ -725,11 +760,12 @@ function _undoLabel(e){
 function undoRedo(mode){
   const e=(mode==='undo'?UNDO:REDO).pop();
   if(!e){toast(mode==='undo'?'Nothing to undo.':'Nothing to redo.');return;}
-  if(!projById(e.pid)){toast('Could not '+mode+' — the project is gone.');return;}
+  if(!e.cal&&!projById(e.pid)){toast('Could not '+mode+' — the project is gone.');return;}
   const label=snip(_undoLabel(e),60);
   _undoMode=mode;let n=1;
   try{
     if(e.proj)changeProject(e.pid,e.proj);
+    else if(e.cal)n=changeCal(L=>{const doc={projects:[],calendar:{events:L}};e.ops.forEach(o=>applyOp(doc,clone(o)));});
     else n=change(e.pid,d=>{const doc={projects:[{id:e.pid,todos:d.todos,ideas:d.ideas,journal:d.journal}]};e.ops.forEach(o=>applyOp(doc,clone(o)));d.todos=doc.projects[0].todos;d.ideas=doc.projects[0].ideas;d.journal=doc.projects[0].journal;});
   }finally{_undoMode=null;}
   validateSel();render();
@@ -1107,6 +1143,39 @@ function calWhen(ev){ // ausgeschrieben fuer das Detailfeld: ein Tag mit Uhrzeit
   const a=localDay(ev.start),b=localDay(ev.end||ev.start),te=ev.end&&ev.end!==ev.start?_calTm(ev.end):'';
   return b>a?fmtDate(a,D)+' '+_calTm(ev.start)+' – '+fmtDate(b,D)+' '+te:fmtDate(a,D)+', '+_calTm(ev.start)+(te?'–'+te:'');
 }
+// Tage und Uhrzeiten eines Eintrags in Ortszeit, so wie die Eingabefelder sie brauchen
+function calParts(ev){
+  if(ev.allDay)return {sd:String(ev.start).slice(0,10),ed:String(ev.end||ev.start).slice(0,10),st:'',et:''};
+  return {sd:localDay(ev.start),ed:localDay(ev.end||ev.start),st:_calTm(ev.start),et:_calTm(ev.end||ev.start)};
+}
+const _calAt=(d,t)=>new Date(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10),+String(t||'00:00').slice(0,2),+String(t||'00:00').slice(3,5),0,0);
+// Ein Feld von Beginn/Ende aendern (f = sd | st | ed | et). Wandert der Beginn, wandert das Ende mit (Dauer bleibt); ein Ende vor dem Beginn wird auf den Beginn gesetzt.
+function calSetWhen(id,f,v){
+  const ev=findCalEv('own',id);if(!ev||!v){render();return;} // leeres Feld: nichts aendern
+  const old=calParts(ev),p={...old,[f]:v};let start,end;
+  if(ev.allDay){
+    if(f==='sd')p.ed=dAdd(p.sd,Math.round((_calAt(old.ed)-_calAt(old.sd))/86400000));
+    if(p.ed<p.sd)p.ed=p.sd;
+    start=p.sd;end=p.ed;
+  }else{
+    const a=_calAt(p.sd,p.st);let b=_calAt(p.ed,p.et);
+    if(f==='sd'||f==='st')b=new Date(a.getTime()+Math.max(0,_calAt(old.ed,old.et)-_calAt(old.sd,old.st)));
+    if(isNaN(a)||isNaN(b)){render();return;}
+    if(b<a)b=a;
+    start=a.toISOString();end=b.toISOString();
+  }
+  if(start===ev.start&&end===ev.end){render();return;}
+  changeCal(()=>{ev.start=start;ev.end=end;ev.modifiedAt=nowIso();});
+}
+// Neuer Eintrag aus einer Zeile: "14:00 Seminar" oder "14:00-15:30 Seminar" bekommt die Uhrzeit (ohne Ende: eine Stunde), alles andere ist ganztaegig
+function calNewFromText(day,text){
+  const now=nowIso(),m=text.match(/^(\d{1,2})[:.](\d{2})(?:\s*[-–]\s*(\d{1,2})[:.](\d{2}))?\s+(\S.*)$/);
+  const ok=m&&+m[1]<24&&+m[2]<60&&(m[3]===undefined||(+m[3]<24&&+m[4]<60));
+  if(!ok)return {id:_uid('cal'),title:text,allDay:true,start:day,end:day,createdAt:now};
+  const a=_calAt(day,m[1].padStart(2,'0')+':'+m[2]);let b=m[3]!==undefined?_calAt(day,m[3].padStart(2,'0')+':'+m[4]):new Date(a.getTime()+3600000);
+  if(b<a)b=a;
+  return {id:_uid('cal'),title:m[5].trim(),allDay:false,start:a.toISOString(),end:b.toISOString(),createdAt:now};
+}
 function hitCounts(){const o={tasks:0,board:0,journal:0,calendar:0};o.calendar=calEntries('0000-01-01','9999-12-31').length;visibleProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
   o.tasks+=d.todos.filter(todoHit).length+d.ideas.filter(i=>hit(i.title,i.desc)).length;
   o.board+=d.elements.filter(e=>!isArch(e)&&elHit(d,e)).length;o.journal+=d.journal.filter(jHit).length;});return o;}
@@ -1241,19 +1310,19 @@ function renderCalendar(){
   const cells=days.map((day,ix)=>{
     const list=(by[day]||[]).sort((a,b)=>CAL_RANK[a.k]-CAL_RANK[b.k]||(a.k==='gcal'?_gcKey(a).localeCompare(_gcKey(b)):0));
     const dn=+day.slice(8); // Monatsgrenze: Linie ueber den Tagen 1–7 (mt) und links vom 1. (ml), der 1. traegt den Monat ausgeschrieben
-    return `<div class="cd${day===today?' now':''}${ix%7>4?' we':''}${dn<=7?' mt':''}${dn===1&&ix%7?' ml':''}" data-k="cd-${day}" data-day="${day}"><div class="cdn"><b>${dn}</b>${day===today?'<span>today</span>':''}${dn===1?`<span class="mn">${esc(fmtDate(day,{month:'long',year:'numeric'}))}</span>`:''}</div>${(()=>{
+    return `<div class="cd${day===today?' now':''}${ix%7>4?' we':''}${dn<=7?' mt':''}${dn===1&&ix%7?' ml':''}" data-k="cd-${day}" data-day="${day}"><div class="cdn"><b>${dn}</b>${day===today?'<span>today</span>':''}${dn===1?`<span class="mn">${esc(fmtDate(day,{month:'long',year:'numeric'}))}</span>`:''}<button class="addst cadd${ui.adding==='cal|'+day?' on':''}" data-act="startAdd" data-v="cal|${day}" title="Add a calendar entry on this day" aria-label="Add a calendar entry on ${day}">＋</button></div>${ui.adding==='cal|'+day?`<input class="add-in cal-in" data-k="ai-cal-${day}" data-add="cal" data-day="${day}" placeholder="New entry — e.g. 14:00 Seminar">`:''}${(()=>{
       // Element-Aktivitaet als fliessende Reihe kleiner Marken statt einer Zeile pro Element — sonst erschlaegt sie den Tag
       const act=list.filter(e=>e.k==='act'),pre=list.filter(e=>CAL_RANK[e.k]<CAL_RANK.act),post=list.filter(e=>CAL_RANK[e.k]>CAL_RANK.act);
       return pre.map(calEntry).join('')+(act.length?`<div class="cea">${act.map(calEntry).join('')}</div>`:'')+post.map(calEntry).join('');})()}</div>`;}).join('');
   const projs=calProjects();
   return `<main class="board" data-k="main-calendar"><div class="zoomer" style="zoom:${ui.zoom/100}"><section class="calw" data-k="calw">
-    <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(calTitle())}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button>
+    <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(calTitle())}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button><button class="tbtn" data-act="calAdd" title="Add a calendar entry for today — or use the ＋ that appears in a day">＋ New entry</button>
       <span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span>✦ idea</span><span>element · log entries</span></span>
       <span class="grow"></span><span class="cal-l">${projs.map(p=>`<span><b class="ab" style="${projVars(p)}">${esc(projAbbr(p))}</b>${esc(p.name)}</span>`).join('')}${(()=>{
         // Legende des Google-Kalenders, mit ehrlichem Alter: aelter als 36 h heisst, der Abgleich des Agenten laeuft nicht mehr
         const g=S.calendar&&S.calendar.google;if(!g)return '';
         const old=!g.checkedAt||Date.now()-Date.parse(g.checkedAt)>36*3600*1000;
-        return `<span class="gc-l${old?' gc-old':''}" title="Copied from Google Calendar by your agent — read-only here, nothing goes back to Google.${g.from&&g.to?' Covers '+esc(fmtDate(g.from))+' to '+esc(fmtDate(g.to))+'.':''}${g.checkedAt?' Last refreshed '+esc(fmtDT(g.checkedAt))+'.':''}"><b class="ab gcab">G</b>Google Calendar${old?' — not refreshed since '+esc(g.checkedAt?fmtDT(g.checkedAt):'?'):''}</span>`;})()}${calEvents().some(x=>x.src==='own')?'<span class="gc-o" title="Entries your agent added to this calendar — click one for its details."><b class="ab gcab">C</b>Calendar entries</span>':''}</span></div>
+        return `<span class="gc-l${old?' gc-old':''}" title="Copied from Google Calendar by your agent — read-only here, nothing goes back to Google.${g.from&&g.to?' Covers '+esc(fmtDate(g.from))+' to '+esc(fmtDate(g.to))+'.':''}${g.checkedAt?' Last refreshed '+esc(fmtDT(g.checkedAt))+'.':''}"><b class="ab gcab">G</b>Google Calendar${old?' — not refreshed since '+esc(g.checkedAt?fmtDT(g.checkedAt):'?'):''}</span>`;})()}${calEvents().some(x=>x.src==='own')?'<span class="gc-o" title="Calendar entries — added here or by your agent. Click one for its details."><b class="ab gcab">C</b>Calendar entries</span>':''}${(n=>n?`<button class="lbtn" data-act="calArchived" title="Archived calendar entries — nothing is deleted">${n} archived</button>`:'')(calEvents(true).filter(x=>x.src==='own'&&isArch(x.ev)).length)}</span></div>
     <div class="cal-g">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(w=>`<div class="cwd">${w}</div>`).join('')}${cells}</div>
   </section></div></main>`;
 }
@@ -1436,17 +1505,26 @@ const FIELDS={
   'step.text':{req:true,get:([p,t,s])=>findS(p,t,s)?.text,set:([p,t,s],v,d)=>{const tt=d.todos.find(x=>x.id===t);tt.subtasks.find(x=>x.id===s).text=v;tt.modifiedAt=nowIso();}},
   'step.notes':{get:([p,t,s])=>findS(p,t,s)?.notes,set:([p,t,s],v,d)=>{const tt=d.todos.find(x=>x.id===t);tt.subtasks.find(x=>x.id===s).notes=v;tt.modifiedAt=nowIso();}},
   'idea.title':{req:true,get:([p,i])=>S.data[p]?.ideas.find(x=>x.id===i)?.title,set:([p,i],v,d)=>{const x=d.ideas.find(y=>y.id===i);x.title=v;x.modifiedAt=nowIso();}},
-  'idea.desc':{get:([p,i])=>S.data[p]?.ideas.find(x=>x.id===i)?.desc,set:([p,i],v,d)=>{const x=d.ideas.find(y=>y.id===i);x.desc=v;x.modifiedAt=nowIso();}}
+  'idea.desc':{get:([p,i])=>S.data[p]?.ideas.find(x=>x.id===i)?.desc,set:([p,i],v,d)=>{const x=d.ideas.find(y=>y.id===i);x.desc=v;x.modifiedAt=nowIso();}},
+  // Eigene Kalendereintraege: Schluessel 'cal.<feld>|own|<id>'; set bekommt die Liste calendar.events (changeCal). Leere Felder werden nicht gespeichert.
+  'cal.title':{req:true,get:([,i])=>findCalEv('own',i)?.title,set:([,i],v,L)=>{const e=L.find(x=>x.id===i);e.title=v;e.modifiedAt=nowIso();}},
+  'cal.location':{get:([,i])=>findCalEv('own',i)?.location,set:([,i],v,L)=>{const e=L.find(x=>x.id===i);if(v)e.location=v;else delete e.location;e.modifiedAt=nowIso();}},
+  'cal.link':{chk:v=>!v||/^https?:\/\/\S+$/i.test(v)?'':'A link starts with http:// or https:// — kept the old one.',get:([,i])=>findCalEv('own',i)?.link,set:([,i],v,L)=>{const e=L.find(x=>x.id===i);if(v)e.link=v;else delete e.link;e.modifiedAt=nowIso();}},
+  'cal.attendees':{get:([,i])=>(findCalEv('own',i)?.attendees||[]).join(', '),set:([,i],v,L)=>{const e=L.find(x=>x.id===i),a=String(v).split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);if(a.length)e.attendees=a;else delete e.attendees;e.modifiedAt=nowIso();}},
+  'cal.description':{get:([,i])=>findCalEv('own',i)?.description,set:([,i],v,L)=>{const e=L.find(x=>x.id===i);if(String(v).trim())e.description=v;else delete e.description;e.modifiedAt=nowIso();}}
 };
+// Eine Feldaenderung dorthin schicken, wo das Feld lebt: Kalendereintraege in changeCal, alles andere ins Projekt
+function _chg(key,x,v){return key.startsWith('cal.')?changeCal(L=>x.f.set(x.args,v,L)):change(x.args[0],d=>x.f.set(x.args,v,d));}
 function _f(key){const a=key.split('|');const f=FIELDS[a[0]];return f?{f,args:a.slice(1)}:null;}
-function exists(key){const a=key.split('|');if(a[0].startsWith('todo'))return !!findT(a[1],a[2]);if(a[0].startsWith('step'))return !!findS(a[1],a[2],a[3]);if(a[0].startsWith('idea'))return !!S.data[a[1]]?.ideas.some(x=>x.id===a[2]);return false;}
+function exists(key){const a=key.split('|');if(a[0].startsWith('todo'))return !!findT(a[1],a[2]);if(a[0].startsWith('step'))return !!findS(a[1],a[2],a[3]);if(a[0].startsWith('idea'))return !!S.data[a[1]]?.ideas.some(x=>x.id===a[2]);if(a[0].startsWith('cal'))return !!findCalEv('own',a[2]);return false;}
 function commitTitle(key,raw){
   const x=_f(key);if(!x||!exists(key))return;
   const v=String(raw).replace(/\s*\n\s*/g,' ').trim();
   const cur=String(x.f.get(x.args)||'').trim();
   if(x.f.req&&!v){toast('A title can’t be empty — kept the old one.');render();return;}
   if(v===cur)return;
-  change(x.args[0],d=>x.f.set(x.args,v,d));
+  if(x.f.chk){const m=x.f.chk(v);if(m){toast(m);render();return;}}
+  _chg(key,x,v);
 }
 function startEdit(key){commitDraft();const x=_f(key);if(!x)return;const v=String(x.f.get(x.args)||'');ui.edit={key,value:v,orig:v};ui.focusSel='textarea[data-in="draft"]';render();}
 function commitDraft(){
@@ -1454,9 +1532,10 @@ function commitDraft(){
   const x=_f(e.key);if(!x||!exists(e.key)){render();return;}
   const v=e.value.replace(/\s+$/,'');
   if(v===String(x.f.get(x.args)||'').replace(/\s+$/,'')){render();return;}
-  change(x.args[0],d=>x.f.set(x.args,v,d));
+  _chg(e.key,x,v);
 }
 function titleIn(key,val,ph){return `<textarea class="ttl" rows="1" data-auto data-in="title" data-key="${esc(key)}" placeholder="${esc(ph||'Title')}">${esc(val||'')}</textarea>`;}
+function lineIn(key,val,ph){return `<textarea class="ttl ln" rows="1" data-auto data-in="title" data-key="${esc(key)}" placeholder="${esc(ph||'')}">${esc(val||'')}</textarea>`;} // einzeiliges Feld in normaler Schrift
 function mdBox(key,text,ph,ro){
   if(!ro&&ui.edit&&ui.edit.key===key)return `<div class="edit" data-k="ed-${esc(key)}"><textarea data-in="draft" data-auto data-key="${esc(key)}">${esc(ui.edit.value)}</textarea><div class="bar"><button class="btn primary" data-act="saveEdit">Save</button><button class="btn" data-act="cancelEdit">Cancel</button><small>Ctrl+Enter saves · Markdown</small></div></div>`;
   if(!String(text||'').trim())return ro?'<div class="ro">—</div>':`<button class="md-empty" data-act="edit" data-key="${esc(key)}">${esc(ph||'Add text')}</button>`;
@@ -1470,6 +1549,23 @@ function renderDrawer(){
   const dr=ui.drawer;if(!dr)return '';
   if(dr.type==='cal'){ // Kalendereintrag: gehoert zu keinem Projekt (dr.pid = Herkunft 'google' | 'own'); der Agent pflegt ihn, hier nur lesbar — wie Elemente
     const ev=findCalEv(dr.pid,dr.id);if(!ev)return '';
+    if(dr.pid==='own'){ // eigener Eintrag: anlegen und bearbeiten wie Tasks (Dominik 12.11.2026) — Titel, Zeit, Ort, Teilnehmer, Link, Beschreibung, Archiv
+      const k='own|'+ev.id,ia=` data-id="${esc(ev.id)}"`,w=calParts(ev),lk=/^https?:\/\//i.test(String(ev.link||''))?String(ev.link):'';
+      const di=(f,type,val)=>`<input type="${type}" class="inl" style="width:auto" data-in="calf" data-f="${f}"${ia} value="${esc(val)}" aria-label="${{sd:'Start day',st:'Start time',ed:'End day',et:'End time'}[f]}">`;
+      const head=`<div style="flex:1;min-width:0"><div class="k">Calendar entry${isArch(ev)?' · archived':''}</div>${titleIn('cal.title|'+k,ev.title,'Entry')}</div>`;
+      const body=`${archNote(ev)}<div class="kv">
+        <span>When</span><div>${seg([['day','','All day'],['time','','With a time']],ev.allDay?'day':'time','calKind',ia)}</div>
+        <span>From</span><div>${di('sd','date',w.sd)}${ev.allDay?'':di('st','time',w.st)}</div>
+        <span>To</span><div>${di('ed','date',w.ed)}${ev.allDay?'':di('et','time',w.et)}</div>
+        <span>Where</span><div style="display:block">${lineIn('cal.location|'+k,ev.location||'','e.g. Seminar room 2')}</div>
+        <span>With</span><div style="display:block">${lineIn('cal.attendees|'+k,(Array.isArray(ev.attendees)?ev.attendees:[]).join(', '),'Names, separated by commas')}</div>
+        <span>Link</span><div style="display:block">${lineIn('cal.link|'+k,ev.link||'','https://…')}${lk?`<a href="${esc(lk)}" target="_blank" rel="noopener noreferrer">Open link ↗</a>`:''}</div>
+      </div>
+      <div class="dsec"><h3>Description ${editLink('cal.description|'+k,ev.description)}</h3>${mdBox('cal.description|'+k,ev.description,'Add a description')}</div>
+      <div class="stamp">${[ev.createdAt&&'Created '+fmtDT(ev.createdAt),ev.modifiedAt&&'Changed '+fmtDT(ev.modifiedAt)].filter(Boolean).join(' · ')}</div>
+      <div class="dz">${isArch(ev)?`<button class="btn" data-act="restore" data-kind="cal"${ia}>Restore entry</button>`:`<button class="btn" data-act="archiveAsk" data-kind="cal"${ia}>Archive entry…</button>`}</div>`;
+      return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" data-k="dr-cal${esc(dr.pid+dr.id)}" role="dialog" aria-label="Details"><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
+    }
     const g=dr.pid==='google',att=(Array.isArray(ev.attendees)?ev.attendees:[]).map(a=>String(a||'').trim()).filter(Boolean),link=/^https?:\/\//i.test(String(ev.link||''))?String(ev.link):'';
     const head=`<div style="flex:1;min-width:0"><div class="k">${g?'Google Calendar':'Calendar entry'}${isArch(ev)?' · archived':''}</div><div class="ttl" style="border:0">${esc(ev.title||'(no title)')}</div></div>`;
     const body=`${archNote(ev)}<div class="kv"><span>When</span><div>${esc(calWhen(ev))}</div>
@@ -1477,7 +1573,7 @@ function renderDrawer(){
       ${att.length?`<span>With</span><div>${esc(att.join(', '))}</div>`:''}
       ${link?`<span>Link</span><div><a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc((x=>x.length>60?x.slice(0,59)+'…':x)(link.replace(/^https?:\/\//i,'')))}</a></div>`:''}
     </div>
-    <div class="ro">${g?'Copied from Google Calendar by your agent':'Added by your agent'} — read-only here.</div>
+    <div class="ro">Copied from Google Calendar by your agent — read-only here; change it in Google.</div>
     <div class="dsec"><h3>Description</h3>${String(ev.description||'').trim()?`<div class="md">${md(ev.description)}</div>`:'<div class="ro">—</div>'}</div>
     <div class="stamp">${[ev.createdAt&&'Created '+fmtDT(ev.createdAt),ev.modifiedAt&&'Changed '+fmtDT(ev.modifiedAt)].filter(Boolean).join(' · ')}</div>`;
     return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" data-k="dr-cal${esc(dr.pid+dr.id)}" role="dialog" aria-label="Details"><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
@@ -1628,8 +1724,8 @@ function renderDialog(){
       <div class="fld"><label for="jwc">Text</label><textarea id="jwc" rows="9" data-in="dlg" data-name="content" style="font:13px/1.5 var(--mono)" placeholder="What happened, what you saw, what comes next">${esc(d.content||'')}</textarea><div class="help">Markdown works: **bold**, lists, tables. Ctrl+Enter saves.</div>${d.err?`<div class="err">${esc(d.err)}</div>`:''}</div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="jsave">Save to journal</button></div>`;
   }else if(d.type==='archive'){
-    const what={todo:'task',step:'step',idea:'idea'}[d.kind];
-    inner=`<h2>Archive this ${what}?</h2><p>“${esc(snip(d.label,90))}” leaves the lists but is kept exactly as it is${d.kind==='todo'?', with all its steps and which of them are done':''}. ⋯ → Archived items brings it back.</p>
+    const what={todo:'task',step:'step',idea:'idea',cal:'calendar entry'}[d.kind];
+    inner=`<h2>Archive this ${what}?</h2><p>“${esc(snip(d.label,90))}” ${d.kind==='cal'?'leaves the calendar':'leaves the lists'} but is kept exactly as it is${d.kind==='todo'?', with all its steps and which of them are done':''}. ${d.kind==='cal'?'“archived” at the top of the calendar':'⋯ → Archived items'} brings it back.</p>
       <div class="fld"><label for="arr">Why? (optional)</label><input id="arr" type="text" data-in="dlg" data-name="reason" value="${esc(d.reason||'')}" placeholder="e.g. replaced by the Gibson route" autocomplete="off"></div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="doArchive">Archive ${what}</button></div>`;
   }else if(d.type==='fail'){
@@ -1637,6 +1733,11 @@ function renderDialog(){
     inner=`<h2>Mark this ${what} as failed?</h2><p>“${esc(snip(d.label,90))}” ${d.kind==='todo'?'moves to Closed, marked ✕ instead of ✓, with all its steps exactly as they are':'stays in its task, marked ✕ instead of ✓'}. Any other status can be set again later.</p>
       <div class="fld"><label for="flr">Why did it fail?</label><input id="flr" type="text" data-in="dlg" data-name="reason" value="${esc(d.reason||'')}" placeholder="${d.kind==='todo'?'e.g. no colonies after two attempts':'e.g. no band on the gel'}" autocomplete="off"></div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="doFail">Mark as failed</button></div>`;
+  }else if(d.type==='carch'){
+    const L=calEvents(true).filter(x=>x.src==='own'&&isArch(x.ev)).map(x=>x.ev).sort((a,b)=>String(b.archivedAt||'').localeCompare(String(a.archivedAt||'')));
+    inner=`<h2>Archived calendar entries</h2><p>Nothing is ever deleted. Click an entry to read it; Restore puts it back into the calendar.</p>
+      ${L.length?`<div class="alist">${L.map(e=>`<div class="arow"><button class="x lbtn" data-act="open" data-type="cal" data-pid="own" data-id="${esc(e.id)}">${esc(e.title||'(no title)')} <span class="ro">· ${esc(calWhen(e))}</span><small>${esc(fmtDT(e.archivedAt))}${e.archivedReason?' — '+esc(e.archivedReason):''}</small></button><button class="lbtn" data-act="restore" data-kind="cal" data-id="${esc(e.id)}">Restore</button></div>`).join('')}</div>`:'<p class="ro" style="margin-top:10px">Nothing archived.</p>'}
+      <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
   }else if(d.type==='parch'){
     wide=true;const p=projById(d.pid),dd=S.data[d.pid];
     const meta=x=>`<small>${esc(fmtDT(x.archivedAt))}${x.archivedReason?' — '+esc(x.archivedReason):''}</small>`;
@@ -1668,7 +1769,7 @@ function renderDialog(){
       <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
       <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
-      <li><b>Calendar</b> shows everything that has a date, week under week without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar (marked G) and entries your agent adds (marked C) appear there too; click one for its details — time, place, description. Google goes one way only, nothing is sent back.</li>
+      <li><b>Calendar</b> shows everything that has a date, week under week without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar (marked G) and your own calendar entries (marked C) appear there too; click one for its details — time, place, description. Add an entry with “＋ New entry” or the ＋ in a day: “14:00 Seminar” gets the time, anything else lasts all day. Own entries can be changed and archived here or by your agent; Google goes one way only, nothing is sent back.</li>
       <li>Board shows what your agent keeps — read-only here. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to your agent’s.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with your agent’s, so nothing is overwritten.</li></ul>
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
@@ -1726,7 +1827,7 @@ const ACT={
   // ‹ › springen zum Anfang des Monats davor/danach (vom Monat im Kopf aus gerechnet), Today zur aktuellen Woche — das Band selbst laeuft durch
   calNav:el=>{const v=+A(el).v;if(!v)return calGoto(todayStr());const s=dAdd(calTop(),6),d=new Date(+s.slice(0,4),+s.slice(5,7)-1+v,1,12);calGoto(d.toLocaleDateString('en-CA'));},
   toggleClosed:el=>{const pid=A(el).pid;if(qq())return;if(ui.closedOpen.has(pid))ui.closedOpen.delete(pid);else ui.closedOpen.add(pid);lsSet('rg3_closed',[...ui.closedOpen]);render();},
-  open:el=>{const a=A(el);if(ui.dialog&&ui.dialog.type==='parch'){ui.dialog=null;ui.stack=[];}openDrawer({type:a.type,pid:a.pid,id:a.id,sid:a.sid});},
+  open:el=>{const a=A(el);if(ui.dialog&&(ui.dialog.type==='parch'||ui.dialog.type==='carch')){ui.dialog=null;ui.stack=[];}openDrawer({type:a.type,pid:a.pid,id:a.id,sid:a.sid});},
   closeDrawer:()=>{commitDraft();ui.drawer=null;render();},
   setStatus:el=>{
     const a=A(el),t=findT(a.pid,a.id),v=a.v,inRow=!!el.closest('.stpick');ui.pick=null;
@@ -1757,10 +1858,21 @@ const ACT={
   unlinkStep:el=>{const a=A(el),s=findS(a.pid,a.id,a.sid);if(s)change(a.pid,d=>{s.elementId=null;d.todos.find(x=>x.id===a.id).modifiedAt=nowIso();});},
   pickItem:el=>{const d=ui.dialog;ui.dialog=null;const tg=d.target;if(tg.sid){const s=findS(d.pid,tg.id,tg.sid);if(s)change(d.pid,dd=>{s.elementId=A(el).id;dd.todos.find(x=>x.id===tg.id).modifiedAt=nowIso();});}else{const t=findT(d.pid,tg.id);if(t)change(d.pid,()=>{t.elementId=A(el).id;t.modifiedAt=nowIso();});}},
   // Archivieren statt Loeschen: Task (mit allen Schritten, wie sie sind), Schritt, Idee
-  archiveAsk:el=>{const a=A(el);const x=a.kind==='todo'?findT(a.pid,a.id):a.kind==='step'?findS(a.pid,a.id,a.sid):S.data[a.pid]?.ideas.find(i=>i.id===a.id);if(!x)return;openDialog({type:'archive',kind:a.kind,pid:a.pid,id:a.id,sid:a.sid,label:a.kind==='idea'?x.title:x.text,reason:''});ui.focusSel='#arr';},
+  archiveAsk:el=>{const a=A(el);const x=a.kind==='cal'?findCalEv('own',a.id):a.kind==='todo'?findT(a.pid,a.id):a.kind==='step'?findS(a.pid,a.id,a.sid):S.data[a.pid]?.ideas.find(i=>i.id===a.id);if(!x)return;openDialog({type:'archive',kind:a.kind,pid:a.pid,id:a.id,sid:a.sid,label:a.kind==='idea'||a.kind==='cal'?x.title:x.text,reason:''});ui.focusSel='#arr';},
   doArchive:()=>{const g=ui.dialog;if(!g||g.type!=='archive')return;ui.dialog=null;ui.edit=null;archiveItem(g.kind,g.pid,g.id,g.sid,true,g.reason);},
   restore:el=>{const a=A(el);archiveItem(a.kind,a.pid,a.id,a.sid,false);},
   startAdd:el=>{ui.adding=ui.adding===A(el).v?null:A(el).v;ui.focusSel='.add-in';render();},
+  // Kalender: Eintrag fuer heute anlegen (Zeile im heutigen Tag), ganztaegig <-> mit Uhrzeit, archivierte Eintraege
+  calAdd:()=>{const t=todayStr();ui.adding='cal|'+t;ui.focusSel='.cal-in';calGoto(t);},
+  calKind:el=>{
+    const ev=findCalEv('own',A(el).id),toDay=A(el).v==='day';if(!ev||!!ev.allDay===toDay)return;
+    const w=calParts(ev);
+    changeCal(()=>{
+      if(toDay){ev.allDay=true;ev.start=w.sd;ev.end=w.ed<w.sd?w.sd:w.ed;}
+      else{ev.allDay=false;ev.start=_calAt(w.sd,'09:00').toISOString();ev.end=_calAt(w.ed,'10:00').toISOString();} // 9–10 Uhr als Ausgangspunkt, gleich daneben aenderbar
+      ev.modifiedAt=nowIso();});
+  },
+  calArchived:()=>openDialog({type:'carch'}),
   // Markdown-Entwuerfe
   edit:el=>startEdit(A(el).key),
   saveEdit:()=>commitDraft(),
@@ -1849,11 +1961,14 @@ function archiveItem(kind,pid,id,sid,on,reason){
   if(kind==='todo'){const t=findT(pid,id);if(!t||isArch(t)===on)return;change(pid,d=>{setArchived(t,on,reason);if(on&&(t.focus||t.northStar))setFocus(d,t,false);t.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.id===id)ui.drawer=null;}
   else if(kind==='step'){const t=findT(pid,id),s=findS(pid,id,sid);if(!t||!s||isArch(s)===on)return;change(pid,()=>{setArchived(s,on,reason);if(on)s.focus=false;t.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.sid===sid)ui.drawer={type:'todo',pid,id};}
   else if(kind==='idea'){const i=S.data[pid]?.ideas.find(x=>x.id===id);if(!i||isArch(i)===on)return;change(pid,()=>{setArchived(i,on,reason);i.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.id===id)ui.drawer=null;}
+  else if(kind==='cal'){const ev=findCalEv('own',id);if(!ev||isArch(ev)===on)return;changeCal(()=>{setArchived(ev,on,reason);ev.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.type==='cal'&&ui.drawer.id===id)ui.drawer=null;
+    render();toast(on?'Archived — “archived” at the top of the calendar keeps it. Ctrl+Z undoes.':'Restored. Ctrl+Z undoes.');return;}
   render();toast(on?'Archived — ⋯ → Archived items keeps it. Ctrl+Z undoes.':'Restored. Ctrl+Z undoes.');
 }
 function handleAdd(inp){
   const text=inp.value.trim();if(!text)return;
   const a=inp.dataset,now=nowIso();inp.value='';
+  if(a.add==='cal'){const ev=calNewFromText(a.day,text);changeCal(L=>{L.push(ev);});ui.adding=null;openDrawer({type:'cal',pid:'own',id:ev.id});return;} // gleich die Details: Zeit, Ort, Beschreibung
   if(a.add==='todo'){const d=S.data[a.pid];change(a.pid,dd=>{dd.todos.push({id:_uid('t'),text,notes:'',status:'open',category:a.cat,order:d.todos.length,subtasks:[],priority:'low',focus:false,dueDate:null,elementId:null,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});});}
   else if(a.add==='idea')change(a.pid,dd=>{dd.ideas.push({id:_uid('idea'),title:text,desc:'',elementId:null,createdAt:now});});
   else if(a.add==='step'){const t=findT(a.pid,a.id);if(t)change(a.pid,()=>{if(!Array.isArray(t.subtasks))t.subtasks=[];t.subtasks.push({id:_uid('st'),text,notes:'',status:'open',focus:false,dueDate:null,elementId:null});t.modifiedAt=now;});}
@@ -1888,6 +2003,7 @@ document.addEventListener('change',ev=>{
   if(k==='title')commitTitle(a.key,t.value);
   else if(k==='due'){const x=findT(a.pid,a.id);const v=t.value||null;if(x&&(x.dueDate||null)!==v)change(a.pid,()=>{x.dueDate=v;x.modifiedAt=nowIso();});}
   else if(k==='warn')setWarn(a,t.value);
+  else if(k==='calf')calSetWhen(a.id,a.f,t.value);
   else if(k==='dueStep'){const s=findS(a.pid,a.id,a.sid);const v=t.value||null;if(s&&(s.dueDate||null)!==v)change(a.pid,d=>{s.dueDate=v;d.todos.find(x=>x.id===a.id).modifiedAt=nowIso();});}
 });
 document.addEventListener('keydown',ev=>{

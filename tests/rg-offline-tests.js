@@ -785,7 +785,8 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     ok(!!env.doc.querySelector('.cal-l .gc-o'),'the legend names the calendar entries');
     own.dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();
     const dw=env.doc.querySelector('.drawer'),tx=dw?dw.textContent:'';
-    ok(dw&&tx.includes('Calendar entry')&&tx.includes('ZZ Order primers')&&tx.includes('14:00–14:30')&&dw.querySelector('.md strong')&&dw.querySelector('.md strong').textContent==='ZZ-primer','its details show the same fields, description included');
+    const fv=f=>(dw&&dw.querySelector(`input[data-f="${f}"]`)||{}).value;
+    ok(dw&&tx.includes('Calendar entry')&&tx.includes('ZZ Order primers')&&fv('st')==='14:00'&&fv('et')==='14:30'&&fv('sd')===today&&dw.querySelector('.md strong')&&dw.querySelector('.md strong').textContent==='ZZ-primer','its details show the same fields, description included');
     click(env,'[data-act="closeDrawer"]');await tick();
     typeIn(env,env.doc.querySelector('.search input'),'zz-primer');await tick();ok(env.doc.querySelectorAll('.cal-g .ce.gc').length===1,'search reaches into descriptions');
     click(env,'[data-act="clearQ"]');await tick();}
@@ -813,6 +814,128 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    ok(JSON.parse(env.w.localStorage.getItem('rg_calendar')).google.events[0].title==='ZZ Conference','the copy is kept in this browser for the next start');
    ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
    env.w.close();
+  }
+
+  // ── 22. Eigene Kalendereintraege in der App anlegen, bearbeiten, archivieren (Dominik 12.11.2026: "sollte moeglich sein sie manuell zu machen") ──
+  console.log('22. calendar entries made in the app');
+  {
+   const today=new Date().toLocaleDateString('en-CA'),at=(h,m,n)=>{const d=new Date();d.setDate(d.getDate()+(n||0));d.setHours(h,m,0,0);return d.toISOString();};
+   const dayN=n=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA');};
+   {const d22=JSON.parse(snapText);d22.calendar={google:{checkedAt:new Date().toISOString(),changedAt:new Date().toISOString(),from:dayN(-31),to:dayN(90),events:[{id:'a',title:'ZZ Group meeting',allDay:false,start:at(10,0),end:at(11,0),description:'ZZ agenda'}]}};gh=makeGitHub(JSON.stringify(d22,null,2));}
+   env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+   ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+   click(env,'[data-act="page"][data-v="calendar"]');await tick();
+   ok(await until(()=>env.doc.querySelectorAll('.cd.now .ce.gc').length===1),'the Google appointment is there');
+   const gBefore=JSON.stringify(gh.doc().calendar.google),pBefore=JSON.stringify(gh.doc().projects);
+   const own=()=>gh.doc().calendar.events||[],byT=t=>own().find(e=>e.title===t);
+   const chg=(sel,v)=>{const el=env.doc.querySelector(sel);if(!el)throw new Error('missing '+sel);el.value=v;el.dispatchEvent(new env.w.Event('change',{bubbles:true}));};
+   // anlegen ueber den Knopf im Kopf: Zeile im heutigen Tag, "15:00 Titel" bekommt die Uhrzeit
+   click(env,'[data-act="calAdd"]');await tick();
+   let inp=env.doc.querySelector('.cd.now .cal-in');
+   ok(!!inp&&env.doc.activeElement===inp,'"＋ New entry" opens an input in today, cursor in it');
+   typeIn(env,inp,'15:00 ZZ Lab tour');key(env,inp,'Enter');await tick();
+   ok(await until(()=>!!byT('ZZ Lab tour')),'the new entry reaches the gist');
+   let e1=byT('ZZ Lab tour');
+   ok(e1&&/^cal_/.test(e1.id)&&e1.allDay===false&&e1.start===at(15,0)&&e1.end===at(16,0)&&!!e1.createdAt,'"15:00 …" makes a timed entry of one hour, stored as UTC, with id and createdAt');
+   ok(JSON.stringify(gh.doc().calendar.google)===gBefore&&JSON.stringify(gh.doc().projects)===pBefore,'the Google copy and all projects are untouched by it');
+   const row=()=>[...env.doc.querySelectorAll('.cal-g .ce.gc')].find(x=>x.dataset.id===e1.id);
+   ok(row()&&row().closest('.cd').classList.contains('now')&&row().textContent.includes('15:00')&&row().querySelector('.ab').textContent==='C','it stands in today with its time, marked C');
+   const T=sel=>env.doc.querySelector('.drawer '+sel);
+   ok(T('textarea[data-key^="cal.title"]')&&T('textarea[data-key^="cal.title"]').value==='ZZ Lab tour','its details open right away, title editable');
+   // bearbeiten: Titel, Ort, Teilnehmer, Link
+   chg('.drawer textarea[data-key^="cal.title"]','ZZ Lab tour (new)');
+   chg('.drawer textarea[data-key^="cal.location"]','ZZ Room 1');
+   chg('.drawer textarea[data-key^="cal.attendees"]','ZZ One, ZZ Two ;  ');
+   chg('.drawer textarea[data-key^="cal.link"]','https://example.org/tour');
+   ok(await until(()=>{const e=own().find(x=>x.id===e1.id);return e.title==='ZZ Lab tour (new)'&&e.location==='ZZ Room 1'&&JSON.stringify(e.attendees)==='["ZZ One","ZZ Two"]'&&e.link==='https://example.org/tour'&&!!e.modifiedAt;}),'title, place, attendees and link are stored');
+   chg('.drawer textarea[data-key^="cal.link"]','not a link');await tick();await sleep(300);
+   ok(own().find(x=>x.id===e1.id).link==='https://example.org/tour'&&env.doc.querySelector('.toast'),'something that is not a link is refused with a message');
+   chg('.drawer textarea[data-key^="cal.location"]','');
+   ok(await until(()=>!('location' in own().find(x=>x.id===e1.id))),'emptying a field removes it');
+   // Zeiten: Ende aendern; Beginn verschieben nimmt die Dauer mit; Ende vor Beginn wird auf den Beginn gesetzt
+   chg('.drawer input[data-f="et"]','17:30');
+   ok(await until(()=>own().find(x=>x.id===e1.id).end===at(17,30)),'a new end time is stored');
+   chg('.drawer input[data-f="st"]','14:00');
+   ok(await until(()=>{const e=own().find(x=>x.id===e1.id);return e.start===at(14,0)&&e.end===at(16,30);}),'moving the start moves the end along (duration kept)');
+   chg('.drawer input[data-f="et"]','09:00');
+   ok(await until(()=>{const e=own().find(x=>x.id===e1.id);return e.end===e.start;}),'an end before the start is set to the start');
+   // Beschreibung (Markdown)
+   click(env,'.drawer [data-act="edit"][data-key^="cal.description"]');await tick();
+   {const ta=env.doc.querySelector('textarea[data-in="draft"]');typeIn(env,ta,'Bring a **ZZ-coat**.');key(env,ta,'Enter',{ctrlKey:true});await tick();}
+   ok(await until(()=>own().find(x=>x.id===e1.id).description==='Bring a **ZZ-coat**.'),'the description is stored');
+   ok(T('.md strong')&&T('.md strong').textContent==='ZZ-coat'&&row().querySelector('.gcn'),'shown as Markdown, and the row marks it');
+   // ganztaegig <-> mit Uhrzeit, Tag verschieben
+   click(env,'.drawer [data-act="calKind"][data-v="day"]');await tick();
+   ok(await until(()=>{const e=own().find(x=>x.id===e1.id);return e.allDay===true&&e.start===today&&e.end===today;}),'"All day" stores plain days');
+   ok(!T('input[type="time"]')&&T('input[data-f="sd"]').value===today,'the time fields are gone');
+   chg('.drawer input[data-f="ed"]',dayN(2));
+   ok(await until(()=>own().find(x=>x.id===e1.id).end===dayN(2)),'it can span several days');
+   chg('.drawer input[data-f="sd"]',dayN(1));
+   ok(await until(()=>{const e=own().find(x=>x.id===e1.id);return e.start===dayN(1)&&e.end===dayN(3);}),'moving the first day moves the last one along');
+   click(env,'.drawer [data-act="calKind"][data-v="time"]');await tick();
+   ok(await until(()=>{const e=own().find(x=>x.id===e1.id);return e.allDay===false&&e.start===at(9,0,1)&&e.end===at(10,0,3);}),'"With a time" starts from 9 to 10 on the same days');
+   click(env,'[data-act="closeDrawer"]');await tick();
+   // ＋ im Tag: ohne Uhrzeit ganztaegig
+   click(env,`.cd[data-day="${dayN(1)}"] [data-act="startAdd"]`);await tick();
+   inp=env.doc.querySelector(`.cd[data-day="${dayN(1)}"] .cal-in`);ok(!!inp,'the ＋ in a day opens the input there');
+   typeIn(env,inp,'ZZ Plain entry');key(env,inp,'Enter');await tick();
+   ok(await until(()=>{const e=byT('ZZ Plain entry');return !!e&&e.allDay===true&&e.start===dayN(1)&&e.end===dayN(1);}),'a line without a time makes an all-day entry on that day');
+   click(env,'[data-act="closeDrawer"]');await tick();
+   // der Agent schreibt gleichzeitig einen eigenen Eintrag: beide bleiben
+   gh.agentWrite(doc=>{doc.calendar.events.push({id:'cal_agent1',title:'ZZ From agent',allDay:true,start:today,end:today,createdAt:new Date().toISOString()});});
+   ok(await until(()=>[...env.doc.querySelectorAll('.cal-g .ce.gc')].some(x=>x.dataset.id==='cal_agent1')),'an entry the agent adds appears next to the ones made here');
+   // archivieren mit Grund, Liste, wiederherstellen, Strg+Z
+   [...env.doc.querySelectorAll('.cal-g .ce.gc')].find(x=>x.dataset.id==='cal_agent1').dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();
+   ok(T('textarea[data-key^="cal.title"]'),'the agent’s entry is editable here too (one kind of entry)');
+   click(env,'.drawer [data-act="archiveAsk"][data-kind="cal"]');await tick();
+   typeIn(env,env.doc.querySelector('#arr'),'cancelled');click(env,'[data-act="doArchive"]');await tick();
+   ok(await until(()=>{const e=own().find(x=>x.id==='cal_agent1');return e.archived===true&&e.archivedReason==='cancelled'&&!!e.archivedAt;}),'archiving stores date and reason; nothing is removed');
+   ok(own().length===3&&!env.doc.querySelector('.drawer')&&![...env.doc.querySelectorAll('.cal-g .ce.gc')].some(x=>x.dataset.id==='cal_agent1'),'the entry left the calendar, all three are still in the gist');
+   ok(env.doc.querySelector('[data-act="calArchived"]')&&env.doc.querySelector('[data-act="calArchived"]').textContent.includes('1 archived'),'the calendar head says that one entry is archived');
+   click(env,'[data-act="calArchived"]');await tick();
+   ok(env.doc.querySelector('.dlg')&&env.doc.querySelector('.dlg').textContent.includes('ZZ From agent')&&env.doc.querySelector('.dlg').textContent.includes('cancelled'),'the list shows it with its reason');
+   click(env,'.dlg [data-act="restore"][data-kind="cal"]');await tick();
+   ok(await until(()=>!('archived' in own().find(x=>x.id==='cal_agent1'))),'Restore brings it back');
+   click(env,'[data-act="closeDialog"]');await tick();
+   key(env,env.doc.body,'z',{ctrlKey:true});await tick();
+   ok(await until(()=>own().find(x=>x.id==='cal_agent1').archived===true),'Ctrl+Z takes the restore back');
+   key(env,env.doc.body,'y',{ctrlKey:true});await tick();
+   ok(await until(()=>!own().find(x=>x.id==='cal_agent1').archived),'Ctrl+Y redoes it');
+   // Strg+Z nach dem Anlegen archiviert (loescht nicht)
+   click(env,'[data-act="calAdd"]');await tick();
+   inp=env.doc.querySelector('.cd.now .cal-in');typeIn(env,inp,'ZZ Oops');key(env,inp,'Enter');await tick();
+   ok(await until(()=>!!byT('ZZ Oops')),'another entry added');
+   click(env,'[data-act="closeDrawer"]');await tick();
+   key(env,env.doc.body,'z',{ctrlKey:true});await tick();
+   ok(await until(()=>byT('ZZ Oops')&&byT('ZZ Oops').archived===true),'Ctrl+Z after adding archives the entry instead of deleting it');
+   ok(own().length===4,'four entries in the gist, none lost');
+   // Google bleibt nur lesbar; Kopie und Projekte unveraendert
+   [...env.doc.querySelectorAll('.cal-g .ce.gc')].find(x=>x.dataset.pid==='google').dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();
+   ok(env.doc.querySelector('.drawer')&&!env.doc.querySelector('.drawer textarea,.drawer input,.drawer [data-act="archiveAsk"]')&&env.doc.querySelector('.drawer').textContent.includes('change it in Google'),'a Google appointment stays read-only');
+   click(env,'[data-act="closeDrawer"]');await tick();
+   ok(JSON.stringify(gh.doc().calendar.google)===gBefore&&JSON.stringify(gh.doc().projects)===pBefore,'after all of it the Google copy and all projects are byte-identical');
+   ok(env.w.eval('PENDING.length')===0,'nothing left waiting to upload');
+   ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+   env.w.close();
+   // noch keine Datei auf GitHub: ein vor dem Verbinden angelegter Eintrag geht beim ersten Anlegen der Datei mit (localDoc traegt den Kalenderblock)
+   {const gh2=makeGitHub(snapText),real=gh2.fetch;let posted=null;const R=(st,b)=>({ok:st<300,status:st,headers:{get:()=>null},json:async()=>b,text:async()=>''});
+    gh2.fetch=async(u,i)=>{const m=(i&&i.method)||'GET';
+      if(u.includes('/gists?per_page=100'))return R(200,[]);
+      if(u==='https://api.github.com/gists'&&m==='POST'){posted=JSON.parse(JSON.parse(i.body).files['researchgraph_data.json'].content);return R(201,{id:'G',history:[{version:'r0'}]});}
+      return real(u,i);};
+    env=boot(gh2,{seed:ls=>seed(ls,{projects:snap.projects.filter(p=>!p.archived&&!p.frozen).slice(0,1)})});await sleep(100);
+    click(env,'[data-act="page"][data-v="calendar"]');await tick();
+    click(env,'[data-act="calAdd"]');await tick();
+    inp=env.doc.querySelector('.cd.now .cal-in');typeIn(env,inp,'ZZ Offline entry');key(env,inp,'Enter');await tick();
+    click(env,'[data-act="closeDrawer"]');await tick();
+    ok([...env.doc.querySelectorAll('.cal-g .ce.gc')].some(x=>x.textContent.includes('ZZ Offline entry')),'without GitHub an entry is kept in this browser');
+    click(env,'[data-act="openSync"]');await tick();typeIn(env,env.doc.querySelector('#tok'),'tok');click(env,'[data-act="connect"]');
+    ok(await until(()=>!!posted),'connecting for the first time creates the GitHub file');
+    ok(!!posted&&!!posted.calendar&&(posted.calendar.events||[]).some(e=>e.title==='ZZ Offline entry'),'and the entry made before connecting is in it');
+    await sleep(200);
+    ok([...env.doc.querySelectorAll('.cal-g .ce.gc')].some(x=>x.textContent.includes('ZZ Offline entry')),'and it is still on the calendar afterwards');
+    ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+    env.w.close();}
   }
 
   console.log(`\nTOTAL: ${pass} passed, ${fail} failed`);
