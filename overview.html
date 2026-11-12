@@ -339,7 +339,9 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .addst{width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--ink-3);font-size:14px;line-height:1;padding:0;visibility:hidden}
 .t:hover .addst,.cd:hover .addst,.addst:focus-visible,.addst.on{visibility:visible}
 .cdn .cadd{margin-left:auto;align-self:center}
-.cal-in{height:24px;margin:0 0 3px;padding:2px 6px;font-size:12px}
+.cn-when{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:6px 8px;align-items:center}
+.cn-when label{margin:0;min-width:36px}
+.cn-when .help{grid-column:1/-1;margin-top:0}
 .ttl.ln{font:400 13px/1.4 var(--ui);border-color:var(--rule-2);margin:0;width:100%}
 .addst:hover{background:var(--rule);color:var(--ink)}
 .fold{width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--ink-3);font-size:11px;line-height:1;padding:0;visibility:hidden}
@@ -1167,15 +1169,6 @@ function calSetWhen(id,f,v){
   if(start===ev.start&&end===ev.end){render();return;}
   changeCal(()=>{ev.start=start;ev.end=end;ev.modifiedAt=nowIso();});
 }
-// Neuer Eintrag aus einer Zeile: "14:00 Seminar" oder "14:00-15:30 Seminar" bekommt die Uhrzeit (ohne Ende: eine Stunde), alles andere ist ganztaegig
-function calNewFromText(day,text){
-  const now=nowIso(),m=text.match(/^(\d{1,2})[:.](\d{2})(?:\s*[-–]\s*(\d{1,2})[:.](\d{2}))?\s+(\S.*)$/);
-  const ok=m&&+m[1]<24&&+m[2]<60&&(m[3]===undefined||(+m[3]<24&&+m[4]<60));
-  if(!ok)return {id:_uid('cal'),title:text,allDay:true,start:day,end:day,createdAt:now};
-  const a=_calAt(day,m[1].padStart(2,'0')+':'+m[2]);let b=m[3]!==undefined?_calAt(day,m[3].padStart(2,'0')+':'+m[4]):new Date(a.getTime()+3600000);
-  if(b<a)b=a;
-  return {id:_uid('cal'),title:m[5].trim(),allDay:false,start:a.toISOString(),end:b.toISOString(),createdAt:now};
-}
 function hitCounts(){const o={tasks:0,board:0,journal:0,calendar:0};o.calendar=calEntries('0000-01-01','9999-12-31').length;visibleProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
   o.tasks+=d.todos.filter(todoHit).length+d.ideas.filter(i=>hit(i.title,i.desc)).length;
   o.board+=d.elements.filter(e=>!isArch(e)&&elHit(d,e)).length;o.journal+=d.journal.filter(jHit).length;});return o;}
@@ -1310,13 +1303,13 @@ function renderCalendar(){
   const cells=days.map((day,ix)=>{
     const list=(by[day]||[]).sort((a,b)=>CAL_RANK[a.k]-CAL_RANK[b.k]||(a.k==='gcal'?_gcKey(a).localeCompare(_gcKey(b)):0));
     const dn=+day.slice(8); // Monatsgrenze: Linie ueber den Tagen 1–7 (mt) und links vom 1. (ml), der 1. traegt den Monat ausgeschrieben
-    return `<div class="cd${day===today?' now':''}${ix%7>4?' we':''}${dn<=7?' mt':''}${dn===1&&ix%7?' ml':''}" data-k="cd-${day}" data-day="${day}"><div class="cdn"><b>${dn}</b>${day===today?'<span>today</span>':''}${dn===1?`<span class="mn">${esc(fmtDate(day,{month:'long',year:'numeric'}))}</span>`:''}<button class="addst cadd${ui.adding==='cal|'+day?' on':''}" data-act="startAdd" data-v="cal|${day}" title="Add a calendar entry on this day" aria-label="Add a calendar entry on ${day}">＋</button></div>${ui.adding==='cal|'+day?`<input class="add-in cal-in" data-k="ai-cal-${day}" data-add="cal" data-day="${day}" placeholder="New entry — e.g. 14:00 Seminar">`:''}${(()=>{
+    return `<div class="cd${day===today?' now':''}${ix%7>4?' we':''}${dn<=7?' mt':''}${dn===1&&ix%7?' ml':''}" data-k="cd-${day}" data-day="${day}"><div class="cdn"><b>${dn}</b>${day===today?'<span>today</span>':''}${dn===1?`<span class="mn">${esc(fmtDate(day,{month:'long',year:'numeric'}))}</span>`:''}<button class="addst cadd" data-act="calNew" data-day="${day}" title="Add a calendar entry on this day" aria-label="Add a calendar entry on ${day}">＋</button></div>${(()=>{
       // Element-Aktivitaet als fliessende Reihe kleiner Marken statt einer Zeile pro Element — sonst erschlaegt sie den Tag
       const act=list.filter(e=>e.k==='act'),pre=list.filter(e=>CAL_RANK[e.k]<CAL_RANK.act),post=list.filter(e=>CAL_RANK[e.k]>CAL_RANK.act);
       return pre.map(calEntry).join('')+(act.length?`<div class="cea">${act.map(calEntry).join('')}</div>`:'')+post.map(calEntry).join('');})()}</div>`;}).join('');
   const projs=calProjects();
   return `<main class="board" data-k="main-calendar"><div class="zoomer" style="zoom:${ui.zoom/100}"><section class="calw" data-k="calw">
-    <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(calTitle())}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button><button class="tbtn" data-act="calAdd" title="Add a calendar entry for today — or use the ＋ that appears in a day">＋ New entry</button>
+    <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(calTitle())}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button><button class="tbtn" data-act="calNew" title="Add a calendar entry — or use the ＋ that appears in a day">＋ New entry</button>
       <span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span>✦ idea</span><span>element · log entries</span></span>
       <span class="grow"></span><span class="cal-l">${projs.map(p=>`<span><b class="ab" style="${projVars(p)}">${esc(projAbbr(p))}</b>${esc(p.name)}</span>`).join('')}${(()=>{
         // Legende des Google-Kalenders, mit ehrlichem Alter: aelter als 36 h heisst, der Abgleich des Agenten laeuft nicht mehr
@@ -1733,6 +1726,16 @@ function renderDialog(){
     inner=`<h2>Mark this ${what} as failed?</h2><p>“${esc(snip(d.label,90))}” ${d.kind==='todo'?'moves to Closed, marked ✕ instead of ✓, with all its steps exactly as they are':'stays in its task, marked ✕ instead of ✓'}. Any other status can be set again later.</p>
       <div class="fld"><label for="flr">Why did it fail?</label><input id="flr" type="text" data-in="dlg" data-name="reason" value="${esc(d.reason||'')}" placeholder="${d.kind==='todo'?'e.g. no colonies after two attempts':'e.g. no band on the gel'}" autocomplete="off"></div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="doFail">Mark as failed</button></div>`;
+  }else if(d.type==='calnew'){
+    // Ein Fenster, alles drin: Titel, von/bis (Tag + Uhrzeit), Ort, Beschreibung. Enter legt an, Esc bricht ab.
+    inner=`<h2>New calendar entry</h2>
+      <div class="fld"><label for="cnt">Title</label><input id="cnt" type="text" data-in="dlg" data-name="title" value="${esc(d.title||'')}" placeholder="e.g. Seminar" autocomplete="off"></div>
+      <div class="fld cn-when"><label for="cnsd">From</label><input id="cnsd" type="date" data-in="dlg" data-name="sd" value="${esc(d.sd||'')}" aria-label="First day"><input id="cnst" type="time" data-in="dlg" data-name="st" value="${esc(d.st||'')}" aria-label="Start time">
+        <label for="cned">To</label><input id="cned" type="date" data-in="dlg" data-name="ed" value="${esc(d.ed||'')}" aria-label="Last day"><input id="cnet" type="time" data-in="dlg" data-name="et" value="${esc(d.et||'')}" aria-label="End time">
+        <div class="help">Leave the times empty for an all-day entry. A start time without an end lasts one hour.</div></div>
+      <div class="fld"><label for="cnl">Where</label><input id="cnl" type="text" data-in="dlg" data-name="location" value="${esc(d.location||'')}" placeholder="e.g. Seminar room 2" autocomplete="off"></div>
+      <div class="fld"><label for="cnd">Description</label><textarea id="cnd" rows="3" data-in="dlg" data-name="description" placeholder="Optional — Markdown works">${esc(d.description||'')}</textarea>${d.err?`<div class="err">${esc(d.err)}</div>`:''}</div>
+      <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="calSave">Add entry</button></div>`;
   }else if(d.type==='carch'){
     const L=calEvents(true).filter(x=>x.src==='own'&&isArch(x.ev)).map(x=>x.ev).sort((a,b)=>String(b.archivedAt||'').localeCompare(String(a.archivedAt||'')));
     inner=`<h2>Archived calendar entries</h2><p>Nothing is ever deleted. Click an entry to read it; Restore puts it back into the calendar.</p>
@@ -1769,7 +1772,7 @@ function renderDialog(){
       <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
       <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
-      <li><b>Calendar</b> shows everything that has a date, week under week without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar (marked G) and your own calendar entries (marked C) appear there too; click one for its details — time, place, description. Add an entry with “＋ New entry” or the ＋ in a day: “14:00 Seminar” gets the time, anything else lasts all day. Own entries can be changed and archived here or by your agent; Google goes one way only, nothing is sent back.</li>
+      <li><b>Calendar</b> shows everything that has a date, week under week without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar (marked G) and your own calendar entries (marked C) appear there too; click one for its details — time, place, description. Add an entry with “＋ New entry” or the ＋ in a day: one small window takes title, day, time, place and description; without a time it lasts all day. Own entries can be changed and archived here or by your agent; Google goes one way only, nothing is sent back.</li>
       <li>Board shows what your agent keeps — read-only here. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to your agent’s.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with your agent’s, so nothing is overwritten.</li></ul>
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
@@ -1863,7 +1866,31 @@ const ACT={
   restore:el=>{const a=A(el);archiveItem(a.kind,a.pid,a.id,a.sid,false);},
   startAdd:el=>{ui.adding=ui.adding===A(el).v?null:A(el).v;ui.focusSel='.add-in';render();},
   // Kalender: Eintrag fuer heute anlegen (Zeile im heutigen Tag), ganztaegig <-> mit Uhrzeit, archivierte Eintraege
-  calAdd:()=>{const t=todayStr();ui.adding='cal|'+t;ui.focusSel='.cal-in';calGoto(t);},
+  // ＋ (im Kopf: heute, im Tag: dieser Tag) oeffnet EIN kleines Fenster, in dem alles Wichtige steht — Titel, Tag, Uhrzeit, Ort, Beschreibung.
+  // Kein Anlegen-und-danach-in-den-Details-nachstellen (Dominik 12.11.2026: "Das ist Quatsch. Das soll alles moeglichst barrierefrei sein.").
+  calNew:el=>{const day=(el&&A(el).day)||todayStr();openDialog({type:'calnew',title:'',sd:day,ed:day,st:'',et:'',location:'',description:''});ui.focusSel='#cnt';},
+  calSave:()=>{
+    const g=ui.dialog;if(!g||g.type!=='calnew')return;
+    const bad=(msg,sel)=>{g.err=msg;ui.focusSel=sel;render();};
+    let title=String(g.title||'').trim(),st=String(g.st||''),et=String(g.et||'');
+    const sd=String(g.sd||''),loc=String(g.location||'').trim(),desc=String(g.description||'').replace(/\s+$/,'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(sd))return bad('Pick a day.','#cnsd');
+    let ed=/^\d{4}-\d{2}-\d{2}$/.test(String(g.ed||''))?g.ed:sd;if(ed<sd)ed=sd;
+    // Wer die Uhrzeit lieber in den Titel tippt ("14:00 Seminar", "14:00-15:30 Seminar"), bekommt sie auch — nur wenn die Zeitfelder leer sind
+    if(!st&&!et){const m=title.match(/^(\d{1,2})[:.](\d{2})(?:\s*[-–]\s*(\d{1,2})[:.](\d{2}))?\s+(\S.*)$/);
+      if(m&&+m[1]<24&&+m[2]<60&&(m[3]===undefined||(+m[3]<24&&+m[4]<60))){st=m[1].padStart(2,'0')+':'+m[2];if(m[3]!==undefined)et=m[3].padStart(2,'0')+':'+m[4];title=m[5].trim();}}
+    if(!title)return bad('Give the entry a title.','#cnt');
+    if(!st&&et)return bad('Set a start time too — or clear the end time for an all-day entry.','#cnst');
+    const now=nowIso();let ev;
+    if(!st)ev={id:_uid('cal'),title,allDay:true,start:sd,end:ed,createdAt:now};
+    else{const a=_calAt(sd,st),b=et?_calAt(ed,et):new Date(_calAt(ed,st).getTime()+3600000); // ohne Ende: eine Stunde
+      if(isNaN(a)||isNaN(b))return bad('That time is not valid.','#cnst');
+      if(b<a)return bad('The end is before the start.','#cnet');
+      ev={id:_uid('cal'),title,allDay:false,start:a.toISOString(),end:b.toISOString(),createdAt:now};}
+    if(loc)ev.location=loc;if(desc.trim())ev.description=desc;
+    ui.dialog=null;changeCal(L=>{L.push(ev);});
+    toast('Added “'+snip(title,50)+'” on '+fmtDate(sd,{weekday:'short',day:'numeric',month:'short'})+(ev.allDay?'':' at '+st)+'. Ctrl+Z undoes.');
+  },
   calKind:el=>{
     const ev=findCalEv('own',A(el).id),toDay=A(el).v==='day';if(!ev||!!ev.allDay===toDay)return;
     const w=calParts(ev);
@@ -1953,7 +1980,7 @@ const ACT={
     if(eid)openDrawer({type:'entry',pid:g.pid,id:eid});
     toast('Saved to the journal. Ctrl+Z undoes.');
   },
-  dscrim:(el,ev)=>{if(ev.target!==el)return;const d=ui.dialog;if(d&&d.type==='feedback'&&String((d.title||'')+(d.desc||'')).trim())return;if(d&&d.type==='jwrite'&&String((d.title||'')+(d.content||'')).trim())return;closeDialog();}, // angefangenes Feedback nicht per Fehlklick verlieren
+  dscrim:(el,ev)=>{if(ev.target!==el)return;const d=ui.dialog;if(d&&d.type==='feedback'&&String((d.title||'')+(d.desc||'')).trim())return;if(d&&d.type==='jwrite'&&String((d.title||'')+(d.content||'')).trim())return;if(d&&d.type==='calnew'&&String((d.title||'')+(d.location||'')+(d.description||'')).trim())return;closeDialog();}, // angefangenes Feedback nicht per Fehlklick verlieren
   choose:el=>{const d=ui.dialog;if(d&&d.type==='choice')resolveChoice(d.options[+A(el).i]?.value??null);}
 };
 function archiveItem(kind,pid,id,sid,on,reason){
@@ -1968,7 +1995,6 @@ function archiveItem(kind,pid,id,sid,on,reason){
 function handleAdd(inp){
   const text=inp.value.trim();if(!text)return;
   const a=inp.dataset,now=nowIso();inp.value='';
-  if(a.add==='cal'){const ev=calNewFromText(a.day,text);changeCal(L=>{L.push(ev);});ui.adding=null;openDrawer({type:'cal',pid:'own',id:ev.id});return;} // gleich die Details: Zeit, Ort, Beschreibung
   if(a.add==='todo'){const d=S.data[a.pid];change(a.pid,dd=>{dd.todos.push({id:_uid('t'),text,notes:'',status:'open',category:a.cat,order:d.todos.length,subtasks:[],priority:'low',focus:false,dueDate:null,elementId:null,blockedBy:null,completedAt:null,createdAt:now,modifiedAt:now});});}
   else if(a.add==='idea')change(a.pid,dd=>{dd.ideas.push({id:_uid('idea'),title:text,desc:'',elementId:null,createdAt:now});});
   else if(a.add==='step'){const t=findT(a.pid,a.id);if(t)change(a.pid,()=>{if(!Array.isArray(t.subtasks))t.subtasks=[];t.subtasks.push({id:_uid('st'),text,notes:'',status:'open',focus:false,dueDate:null,elementId:null});t.modifiedAt=now;});}
@@ -1996,7 +2022,11 @@ document.addEventListener('input',ev=>{
   if(t.hasAttribute&&t.hasAttribute('data-auto'))autosize(t);
   if(k==='q'){ui.q=t.value;render();}
   else if(k==='draft'){if(ui.edit)ui.edit.value=t.value;}
-  else if(k==='dlg'&&ui.dialog){ui.dialog[t.dataset.name]=t.value;if(t.dataset.name==='q')render();}
+  else if(k==='dlg'&&ui.dialog){
+    const d=ui.dialog,n=t.dataset.name;
+    // Neuer Kalendereintrag: der letzte Tag laeuft mit dem ersten mit, solange er ihm gleicht oder davor laege
+    if(d.type==='calnew'&&n==='sd'&&t.value&&(d.ed===d.sd||!d.ed||d.ed<t.value)){d.ed=t.value;const e=document.getElementById('cned');if(e)e.value=t.value;}
+    d[n]=t.value;if(n==='q')render();}
 });
 document.addEventListener('change',ev=>{
   const t=ev.target,k=t.dataset&&t.dataset.in,a=t.dataset||{};
@@ -2014,8 +2044,9 @@ document.addEventListener('keydown',ev=>{
   if(ui.dialog){
     if(ev.key==='Escape'){ev.preventDefault();closeDialog();return;}
     if(mod&&ev.key==='Enter'&&ui.dialog.type==='jwrite'){ev.preventDefault();ACT.jsave();return;}
+    if(mod&&ev.key==='Enter'&&ui.dialog.type==='calnew'){ev.preventDefault();ACT.calSave();return;}
     if(ev.key==='Enter'&&ui.dialog.type==='jwrite'&&t.tagName==='INPUT'){ev.preventDefault();return;} // Enter im Titel speichert nicht halbfertig
-    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='list')ACT.saveList();else if(d.type==='archive')ACT.doArchive();else if(d.type==='fail')ACT.doFail();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
+    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='list')ACT.saveList();else if(d.type==='archive')ACT.doArchive();else if(d.type==='calnew')ACT.calSave();else if(d.type==='fail')ACT.doFail();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
     return;
   }
   // Strg+Z / Strg+Y (Strg+Umschalt+Z) ueberall — nur in Textfeldern bleibt es das Rueckgaengig des Browsers fuer den Text
