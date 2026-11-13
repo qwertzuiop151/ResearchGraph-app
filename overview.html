@@ -234,6 +234,8 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .fld label,.fld .k{display:block;font-weight:600;margin-bottom:5px}
 .fld input{width:100%;padding:6px 9px;border:1px solid var(--rule-2);border-radius:6px}
 .fld input:focus{outline:none;border-color:var(--ink)}
+.fld select{width:100%;padding:6px 9px;border:1px solid var(--rule-2);border-radius:6px;background:var(--paper)}
+.fld select:focus{outline:none;border-color:var(--ink)}
 .fld .err{color:var(--danger);font-size:12px;margin-top:4px}
 .fld .help{color:var(--ink-3);font-size:12px;margin-top:5px;line-height:1.45}
 .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
@@ -307,7 +309,7 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .idea .tt{font-size:13px}
 .empty{padding:8px 4px}
 /* Abschnittskoepfe (Lab / General / Ideas): groesser als die Eintraege, als Band ueber die volle Spaltenbreite,
-   bleiben beim Scrollen oben stehen — man sieht immer, in welchem Abschnitt man ist (Dominik 19.10.2026) */
+   bleiben beim Scrollen oben stehen — man sieht immer, in welchem Abschnitt man ist */
 .sec-h{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;margin:14px -8px 4px;padding:7px 10px 7px 12px;background:#EDF0F4;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:14.5px;font-weight:700;color:var(--ink);letter-spacing:0}
 .col-b>.sec-h:first-child,.one-b>div>.sec-h:first-child{margin-top:0;border-top:0}
 .sec-h .c{font-size:12px;font-weight:600;color:var(--ink-2);background:var(--paper);border:1px solid var(--rule-2);border-radius:999px;padding:0 7px;line-height:17px;font-variant-numeric:tabular-nums}
@@ -363,7 +365,7 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .arow small{display:block;color:var(--ink-3);font-size:11.5px}
 .agrp{font-size:12px;font-weight:700;color:var(--ink-2);margin:12px 0 4px}
 
-/* Farbe = Projekt, Art = Form (Dominik 06.11.2026: "instantly erkennbar, was was ist", ohne Kopfschmerz-Farben).
+/* Farbe = Projekt, Art = Form — auf einen Blick erkennbar, was was ist, ohne zweites Farbsystem.
    Farbe nur auf kleinen Flaechen (Kopf, Kanten, Icons, Statusmarken), Lesebereich bleibt weiss. Kein zweites Farbsystem
    fuer Arten/Status: unter Rot-Gruen-Simulation kollidierte es mit den Projektfarben (gemessen dE 1-3). */
 .col-h{background:var(--c);box-shadow:none;border-bottom:0}
@@ -396,7 +398,7 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 [data-theme="dark"] .ab{box-shadow:0 0 0 1px rgba(255,255,255,.25)}
 .cal-g{position:relative;flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:max-content;align-content:start}
 /* position:relative ist tragend: damit ist das Band der offsetParent seiner Zellen und offsetTop liegt im selben Mass wie scrollTop (calPlace/calTopCell). Ohne es zaehlt offsetTop ab Seitenanfang — jeder Sprung landete um Kopfzeile + Kalenderkopf zu tief. */
-/* Zeilenhoehe = Inhalt, erzwungen ueber max-content. NICHT minmax(104px,auto) und NICHT auto: beide wachsen ueber ihr Minimum nur, solange im Blatt Platz frei ist — und das Minimum einer Zelle mit fester min-height ist diese min-height, nicht ihr Inhalt. War der Monat hoeher als das Fenster, blieben die Zeilen bei 104 px und die Eintraege liefen in die naechste Woche (Dominik 11.11.2026; nachgemessen: 11 Zellen, bis 216 px). */
+/* Zeilenhoehe = Inhalt, erzwungen ueber max-content. NICHT minmax(104px,auto) und NICHT auto: beide wachsen ueber ihr Minimum nur, solange im Blatt Platz frei ist — und das Minimum einer Zelle mit fester min-height ist diese min-height, nicht ihr Inhalt. War der Monat hoeher als das Fenster, blieben die Zeilen bei 104 px und die Eintraege liefen in die naechste Woche (nachgemessen: 11 Zellen, bis 216 px). */
 .cd{min-height:104px}
 .cwd{position:sticky;top:0;z-index:1;background:var(--paper);padding:5px 8px;font-size:12px;font-weight:700;color:var(--ink-2);border-bottom:1px solid var(--rule);grid-row:1;height:28px}
 .cal-g{grid-template-rows:28px}
@@ -462,7 +464,7 @@ div.ce.gc{cursor:default}
 .jd .x div.sn{padding-left:8px}
 .idea .ic{color:var(--cm)}
 
-/* Dark Mode (Dominik 06.11.2026): eigener Block, der helle Modus bleibt unberuehrt. Ruhige, nicht schwarze Flaechen,
+/* Dark Mode: eigener Block, der helle Modus bleibt unberuehrt. Ruhige, nicht schwarze Flaechen,
    keine Pastelle; Projektfarben bleiben, ihre Marken werden in projVars() fuer dunkles Papier aufgehellt. */
 :root[data-theme="dark"]{color-scheme:dark;
   --ink:#ECEFF3;--ink-2:#DCE1E7;--ink-3:#BCC4CE;--ink-4:#949DA9;
@@ -518,7 +520,7 @@ const SI={open:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="
   blocked:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 8.5l5-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
   done:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.6 6.2l1.6 1.6 3.3-3.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   failed:'<svg class="si" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M4 4l4 4M8 4l-4 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'};
-// "failed" (Issue #7, Dominik 11.11.2026): zweiter Abschluss neben done, fuer Tasks und Schritte gleich ("ein und dieselbe Sache, nur mit Hierarchie"),
+// "failed": zweiter Abschluss neben done, fuer Tasks und Schritte gleich (dieselbe Sache, nur eine Ebene tiefer),
 // immer mit Grund (failedReason, failedAt) wie beim Archivieren. Abgeschlossen = done oder failed.
 const TODO_ST=[['open','open','Open'],['in_progress','in_progress','In progress'],['blocked','blocked','Blocked'],['done','done','Done'],['failed','failed','Failed']];
 const STEP_ST=[['open','open','Open'],['in_progress','in_progress','In progress'],['done','done','Done'],['failed','failed','Failed']];
@@ -540,7 +542,7 @@ const IC_STAR='<svg class="star" viewBox="0 0 12 12" aria-label="Focus"><path d=
 const IC_IDEA='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1l1.3 3.7L11 6 7.3 7.3 6 11 4.7 7.3 1 6l3.7-1.3z" fill="currentColor"/></svg>';
 const IC_LAB='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5h5M6.5 1.5v4.8L2.6 13a1.2 1.2 0 0 0 1 1.8h8.8a1.2 1.2 0 0 0 1-1.8L9.5 6.3V1.5M4.6 10h6.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
 const IC_GEN='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
-// Farbe = Projekt, Art = Form (Dominik 06.11.2026): jede Spalte traegt nur ihre Projektfarbe, Status/Abschnitt unterscheidet die Form.
+// Farbe = Projekt, Art = Form: jede Spalte traegt nur ihre Projektfarbe, Status/Abschnitt unterscheidet die Form.
 // --c Projektfarbe (Flaechen), --on Schrift darauf, --cm Marken-Farbe (zu helle Farben abgedunkelt, Kontrast >= 2,6 auf Weiss), --cmon Haken darauf
 function lumOf(r,g,b){const f=x=>{x/=255;return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4);};return .2126*f(r)+.7152*f(g)+.0722*f(b);}
 function rgbOf(c){const m=/^#?([0-9a-f]{6})$/i.exec(c||'');return m?[0,2,4].map(i=>parseInt(m[1].substr(i,2),16)):null;}
@@ -556,7 +558,7 @@ function projVars(p){const c0=rgbOf(p&&p.color)?p.color:'#505050',c=isDark()?mix
 const IC_BLOCK='<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.9 9.1l6.2-6.2" stroke="currentColor" stroke-width="1.5"/></svg>';
 
 // ════════════════════════════════════════════════════════════════════════════
-// 3. MARKDOWN (Agenten schreiben Markdown) — erst escapen, dann formatieren
+// 3. MARKDOWN (gespeicherte Texte sind Markdown) — erst escapen, dann formatieren
 // ════════════════════════════════════════════════════════════════════════════
 const MD_LIST=/^(\s*)([-*+]|\d{1,3}[.)])\s+(.*)$/;
 const MD_SEP={test:l=>l.includes('|')&&/^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/.test(l)};
@@ -599,7 +601,7 @@ function md(src){
 // ════════════════════════════════════════════════════════════════════════════
 // 4. DATEN — lokale Kopie in localStorage (Keys wie overview.html), Wahrheit ist der Gist
 // ════════════════════════════════════════════════════════════════════════════
-const S={projects:[],data:{},calendar:null}; // calendar = Block `calendar` aus dem Gist (z.B. calendar.google vom Agenten), in der App nur lesbar
+const S={projects:[],data:{},calendar:null}; // calendar = Block `calendar` aus dem Gist (z.B. calendar.google), in der App nur lesbar
 function _arch(p){const o={};if(p&&p.archived){o.archived=true;o.archivedAt=p.archivedAt||null;}if(p&&p.frozen){o.frozen=true;o.frozenAt=p.frozenAt||null;}if(p&&Array.isArray(p.lists))o.lists=p.lists.slice();if(p&&Array.isArray(p.categories)&&p.categories.length)o.categories=p.categories.slice();return o;} // nur wenn gesetzt; `categories` nur noch Altform fuer projLists()
 function projById(id){return S.projects.find(p=>p.id===id);}
 function liveProjects(){return S.projects.filter(p=>!p.archived);}
@@ -638,7 +640,7 @@ function _pj(doc,pid){return doc.projects.find(p=>p.id===pid);}
 function applyOp(doc,op){
   if(op.t==='proj.add'){if(!_pj(doc,op.meta.id))doc.projects.push({...op.meta,nodes:[],elements:[],tags:{},statuses:clone(DEF_ST),todos:[],journal:[],ideas:[]});return;}
   // Eigene Kalendereintraege (calendar.events) gehoeren zu keinem Projekt. Nur anlegen und Felder setzen — nie entfernen (Archiv statt Loeschen).
-  // calendar.google (die Kopie des Agenten) fasst keine Operation an.
+  // calendar.google (die Kopie aus Google) fasst keine Operation an.
   if(op.t==='cal.add'||op.t==='cal.set'){
     if(!doc.calendar||typeof doc.calendar!=='object')doc.calendar={};
     if(!Array.isArray(doc.calendar.events))doc.calendar.events=[];
@@ -660,7 +662,11 @@ function applyOp(doc,op){
     case 'sub.set':{const tt=p.todos.find(x=>x.id===op.tid);const s=tt&&(tt.subtasks||[]).find(x=>x.id===op.sid);if(s)Object.entries(op.f).forEach(([k,v])=>{if(v==='\u0000del')delete s[k];else s[k]=v;});break;}
     case 'idea.add':if(!p.ideas.some(x=>x.id===op.obj.id))p.ideas.push(clone(op.obj));break;
     case 'idea.set':{const i=p.ideas.find(x=>x.id===op.id);if(i)Object.entries(op.f).forEach(([k,v])=>{if(v==='\u0000del')delete i[k];else i[k]=v;});break;}
-    // Journal: Abschnitt an einen Tag haengen (Tag ueber das Datum, nicht die id — der Agent kann den Tag inzwischen selbst angelegt haben)
+    // Board: Elemente und Gruppen anlegen, Elementfelder setzen — nie entfernen (Archiv statt Loeschen)
+    case 'el.add':{if(!Array.isArray(p.elements))p.elements=[];if(!p.elements.some(x=>x.id===op.obj.id))p.elements.push(clone(op.obj));break;}
+    case 'el.set':{const e=(p.elements||[]).find(x=>x.id===op.id);if(e)Object.entries(op.f).forEach(([k,v])=>{if(v==='\u0000del')delete e[k];else e[k]=v;});break;}
+    case 'node.add':{if(!Array.isArray(p.nodes))p.nodes=[];if(!p.nodes.some(x=>x.id===op.obj.id))p.nodes.push(clone(op.obj));break;}
+    // Journal: Abschnitt an einen Tag haengen (Tag ueber das Datum, nicht die id — ein anderer Client kann den Tag inzwischen selbst angelegt haben)
     case 'jsec.add':{if(!Array.isArray(p.journal))p.journal=[];let e=p.journal.find(x=>x.date===op.date);if(!e){e={id:op.eid,date:op.date,sections:[],createdAt:op.at,modifiedAt:op.at};p.journal.push(e);}if(!Array.isArray(e.sections))e.sections=[];if(!e.sections.some(s=>s.id===op.obj.id)){e.sections.push(clone(op.obj));e.modifiedAt=op.at;}break;}
     case 'jsec.del':{const e=(p.journal||[]).find(x=>x.date===op.date);if(e){e.sections=(e.sections||[]).filter(s=>s.id!==op.sid);if(!e.sections.length)p.journal=p.journal.filter(x=>x!==e);}break;} // nur als Rueckgaengig eines eigenen Abschnitts
   }
@@ -689,11 +695,16 @@ function diffProject(pid,before,after){
     (a.sections||[]).forEach(s=>{if(!bs.has(s.id))ops.push({t:'jsec.add',pid,date,eid:a.id,at:a.modifiedAt||nowIso(),obj:s});});
     ((b&&b.sections)||[]).forEach(s=>{if(!as.has(s.id))ops.push({t:'jsec.del',pid,date,sid:s.id});});}
   for(const [date,b] of bJ)if(!aJ.has(date))(b.sections||[]).forEach(s=>ops.push({t:'jsec.del',pid,date,sid:s.id}));
+  // Board: neue Gruppen zuerst (ein neues Element kann in einer neuen Gruppe liegen), dann neue/geaenderte Elemente.
+  // Log und eigene Abschnitte fasst die App nicht an — sie werden nicht verglichen.
+  const bN=new Set((before.nodes||[]).map(n=>n.id));(after.nodes||[]).forEach(n=>{if(!bN.has(n.id))ops.push({t:'node.add',pid,obj:n});});
+  const bE=new Map((before.elements||[]).map(e=>[e.id,e]));
+  (after.elements||[]).forEach(a=>{const b=bE.get(a.id);if(!b){ops.push({t:'el.add',pid,obj:a});return;}const f={};new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{if(k==='log'||k==='custom')return;if(_J(a[k])!==_J(b[k]))f[k]=(k in a)?a[k]:'\u0000del';});if(Object.keys(f).length)ops.push({t:'el.set',pid,id:a.id,f});});
   return ops;
 }
 // Rueckgaengig (Strg+Z) / Wiederholen (Strg+Y, Strg+Umschalt+Z), nur diese Sitzung.
 // Ein Eintrag haelt die UMKEHR-Ops der Aenderung, nicht einen alten Gesamtstand: angewendet werden sie wie jede
-// andere Aenderung auf den aktuellen Stand, also bleibt alles erhalten, was der Agent inzwischen geschrieben hat.
+// andere Aenderung auf den aktuellen Stand, also bleibt alles erhalten, was andere Clients inzwischen geschrieben haben.
 const UNDO=[],REDO=[];let _undoMode=null;
 function _record(e){
   if(_undoMode==='undo'){REDO.push(e);return;}
@@ -704,17 +715,19 @@ function _record(e){
 function change(pid,fn){
   const d=S.data[pid];if(!d)return 0;
   // Journal nur flach kopieren (Abschnittslisten): die App haengt nur an, aendert keinen bestehenden Abschnitt
-  const before={todos:clone(d.todos),ideas:clone(d.ideas),journal:(d.journal||[]).map(e=>({...e,sections:(e.sections||[]).slice()}))};
+  // Elemente/Gruppen nur flach kopieren: die App legt sie an und ersetzt Felder, aendert aber nie Log oder Abschnitte in place
+  const before={todos:clone(d.todos),ideas:clone(d.ideas),journal:(d.journal||[]).map(e=>({...e,sections:(e.sections||[]).slice()})),elements:(d.elements||[]).map(e=>({...e})),nodes:(d.nodes||[]).slice()};
   fn(d);
   const ops=diffProject(pid,before,d);
   if(!ops.length){render();return 0;}
   const inv=clone(diffProject(pid,d,before));
   // Ideen werden nie geloescht: eine neu angelegte Idee nimmt Strg+Z per Archivieren zurueck
-  ops.forEach(o=>{if(o.t==='idea.add')inv.push({t:'idea.set',pid,id:o.obj.id,f:{archived:true,archivedAt:nowIso()}});});
+  ops.forEach(o=>{if(o.t==='idea.add'||o.t==='el.add')inv.push({t:o.t==='idea.add'?'idea.set':'el.set',pid,id:o.obj.id,f:{archived:true,archivedAt:nowIso()}});});
   _record({pid,ops:inv});
   PENDING.push(...ops);savePending();
   lsSet('rg_'+pid+'_todos',d.todos);lsSet('rg_'+pid+'_ideas',d.ideas);
   if(ops.some(o=>o.t.startsWith('jsec')))lsSet('rg_'+pid+'_journal',d.journal);
+  if(ops.some(o=>o.t.startsWith('el.')||o.t==='node.add')){lsSet('rg_'+pid+'_elements',d.elements);lsSet('rg_'+pid+'_nodes',d.nodes);}
   render();schedulePush();
   return ops.length;
 }
@@ -754,7 +767,8 @@ function addProject(meta){
 function _undoLabel(e){
   if(e.cal){const o=e.ops[0];return o?(o.obj||findCalEv('own',o.id)||{}).title||'':'';}
   if(e.proj)return projById(e.pid)?.name||'';
-  const o=e.ops.find(x=>x.t.startsWith('sub'))||e.ops[0];if(!o)return '';
+  const o=e.ops.find(x=>x.t.startsWith('sub'))||e.ops.find(x=>x.t.startsWith('el.'))||e.ops[0];if(!o)return '';
+  if(o.t.startsWith('el.'))return (o.obj||findEl(e.pid,o.id)||{}).label||'';
   if(o.t.startsWith('sub'))return (o.obj||findS(e.pid,o.tid,o.sid)||{}).text||'';
   if(o.t.startsWith('todo'))return (o.obj||findT(e.pid,o.id)||{}).text||'';
   return (o.obj||S.data[e.pid]?.ideas.find(x=>x.id===o.id)||{}).title||'';
@@ -768,7 +782,7 @@ function undoRedo(mode){
   try{
     if(e.proj)changeProject(e.pid,e.proj);
     else if(e.cal)n=changeCal(L=>{const doc={projects:[],calendar:{events:L}};e.ops.forEach(o=>applyOp(doc,clone(o)));});
-    else n=change(e.pid,d=>{const doc={projects:[{id:e.pid,todos:d.todos,ideas:d.ideas,journal:d.journal}]};e.ops.forEach(o=>applyOp(doc,clone(o)));d.todos=doc.projects[0].todos;d.ideas=doc.projects[0].ideas;d.journal=doc.projects[0].journal;});
+    else n=change(e.pid,d=>{const doc={projects:[{id:e.pid,todos:d.todos,ideas:d.ideas,journal:d.journal,elements:d.elements,nodes:d.nodes}]};e.ops.forEach(o=>applyOp(doc,clone(o)));const q=doc.projects[0];d.todos=q.todos;d.ideas=q.ideas;d.journal=q.journal;d.elements=q.elements;d.nodes=q.nodes;});
   }finally{_undoMode=null;}
   validateSel();render();
   toast(n?(mode==='undo'?'Undone':'Redone')+(label?': “'+label+'”':'')+(mode==='undo'?' · Ctrl+Y redoes':''):'Nothing changed — it was already changed elsewhere.');
@@ -984,12 +998,12 @@ function rawSt(x){return x.status||(x.done?'done':'open');} // was im Gist steht
 function tSt(t){const s=rawSt(t);return TODO_KNOWN.has(s)?s:'open';} // womit die App zeichnet und zaehlt
 function oddSt(x,known){const s=rawSt(x);return known.has(s)?'':String(s);} // unbekannter Status als Text, sonst ''
 function isArch(x){return !!(x&&x.archived);}
-// Archivieren statt Loeschen (Dominik 20.10.2026): Status und Schritte bleiben unveraendert, dazu Datum + Grund
+// Archivieren statt Loeschen: Status und Schritte bleiben unveraendert, dazu Datum + Grund
 function setArchived(x,on,reason){if(on){x.archived=true;x.archivedAt=nowIso();x.archivedReason=String(reason||'').trim()||null;}else{delete x.archived;delete x.archivedAt;delete x.archivedReason;delete x.promotedTo;}}
 function archNote(x){return isArch(x)?`<div class="archb"><b>Archived</b>${x.archivedAt?' '+esc(fmtDT(x.archivedAt)):''}${x.archivedReason?' — '+esc(x.archivedReason):''}</div>`:'';}
 function archCount(d){let n=d.todos.filter(isArch).length+d.ideas.filter(isArch).length+d.elements.filter(isArch).length;d.todos.forEach(t=>{if(!isArch(t))n+=(t.subtasks||[]).filter(isArch).length;});return n;}
 function tPr(t){return typeof t.priority==='boolean'?(t.priority?'high':'low'):(t.priority||'low');}
-// Listen (Dominik 07.11.2026): fest sind nur Lab (Schluessel 'labor', Kolben) und der Ideen-Bereich, alles andere sind
+// Listen: fest sind nur Lab (Schluessel 'labor', Kolben) und der Ideen-Bereich, alles andere sind
 // normale Listen. Projektfeld `lists` = geordnete Namen, 'labor' steht fuer Lab. Todo.category = Listenname, Vergleich
 // ohne Gross/Klein (altes 'general' gehoert so zur Liste "General", ohne die alten Todos umzuschreiben).
 function tCat(t){return t.category||'General';}
@@ -1010,7 +1024,7 @@ const isEnd=st=>st==='done'||st==='failed'; // abgeschlossen
 function closedT(t){return isEnd(tSt(t));}
 function closedS(s){return isEnd(sSt(s));}
 function mark(st){return st==='done'?'✓':st==='failed'?'✕':'○';}
-// Faelligkeit sichtbar (Dominik 11.11.2026, hebt "kein Datums-Chip in Zeilen" vom 05.08. auf): wer ein Datum hat, traegt eine Marke in der Zeile.
+// Faelligkeit sichtbar: wer ein Datum hat, traegt eine Marke in der Zeile.
 // Vier Stufen, lesbar am TEXT, die Farbe (Gelb / Orange / Dunkelrot, als Helligkeits-Treppe unter Rot-Gruen-Simulation gemessen) kommt nur dazu:
 // far = Datum liegt weiter weg ("14 Dec") · soon = im gewaehlten Vorlauf ("in 3 d") · today · late ("2 d late").
 // Vorlauf pro Eintrag in dueWarnDays (Tage vor dem Datum, ab denen es orange wird); fehlt er, gilt DUE_WARN.
@@ -1048,7 +1062,7 @@ function byPrio(a,b){return (PRANK[tPr(a)]??2)-(PRANK[tPr(b)]??2)||(a.order||0)-
 function qq(){return (ui.q||'').trim().toLowerCase();}
 function hit(...p){const s=qq();return !s||p.some(x=>String(x||'').toLowerCase().includes(s));}
 function todoHit(t){return hit(t.text,t.notes,t.blockedBy,t.failedReason,...(t.subtasks||[]).map(s=>s.text+' '+(s.notes||'')+' '+(s.failedReason||'')));}
-// Suche ueber alles (Dominik 11.11.2026): Elemente auch ueber Log und eigene Abschnitte, Journal ueber jeden Abschnitt
+// Suche ueber alles: Elemente auch ueber Log und eigene Abschnitte, Journal ueber jeden Abschnitt
 function elRest(d,e){return [e.desc,(d.nodes.find(n=>n.id===e.nodeId)||{}).label,...(e.custom||[]).flatMap(c=>c?[c.title,c.content]:[]),...(e.log||[]).slice().reverse().map(l=>l&&l.msg)];}
 function elHead(d,e){return [e.label,...(e.tags||[]).map(t=>d.tags[t]?.label),stInfo0(d,e.status).label];}
 function stInfo0(d,k){const s=d.statuses&&d.statuses[k];return {label:(s&&s.label)||k||''};}
@@ -1059,14 +1073,14 @@ function jHit(e){return hit(e.date)||(e.sections||[]).some(secHit);}
 function hitSnip(shown,rest){const q=qq();if(!q||shown.some(x=>String(x||'').toLowerCase().includes(q)))return '';
   for(const x of rest){const s=String(x||''),i=s.toLowerCase().indexOf(q);if(i>=0){const a=Math.max(0,i-30);return (a?'…':'')+snip(s.slice(a,i+q.length+60))+'…';}}return '';}
 // Trefferzahlen je Seite fuer die Kopfzeile — zaehlt genau das, was die jeweilige Seite unter der Suche zeigt
-// ── Kalender (Dominik 11.11.2026): ein Monatsblatt, auf dem ALLES steht, was ein Datum hat. Reine Ansicht auf vorhandene Daten, kein neuer Datentyp.
+// ── Kalender: eine Ansicht, auf dem ALLES steht, was ein Datum hat. Reine Ansicht auf vorhandene Daten, kein neuer Datentyp.
 // Arten: due (Task/Schritt mit Faelligkeit, offen) · done / failed (Task am Abschlusstag, Schritt am Tag des Fehlschlags — erledigte Schritte tragen kein Datum)
 //        journal (Tag mit Eintrag) · act (Element mit Log-Eintraegen an dem Tag) · idea (neu angelegte Idee).
 // Bewusst NICHT: angelegt/geaendert (jede Task, jeden Tag — Rauschen) und Archiviertes (ueberall ausgeblendet).
 function projAbbr(p){const w=String(p.name||'').trim().split(/\s+/).filter(Boolean);return (w.length>1?w.map(x=>x[0]).join(''):String(p.name||'?').slice(0,2)).toUpperCase().slice(0,3);}
 function localDay(iso){if(!iso)return '';const d=new Date(iso);return isNaN(d)?'':d.toLocaleDateString('en-CA');}
 function calProjects(){return ui.mode==='one'?[projById(onePid())].filter(Boolean):visibleProjects();}
-// Durchlaufendes Wochenband statt Monatsblatt (Dominik 11.11.2026: "kontinuierlich nach unten scrollen"). Geladen ist ein Stueck ganzer Wochen (ui.cal, Montag bis Sonntag);
+// Durchlaufendes Wochenband statt Monatsblatt: ohne Ende nach oben und unten scrollbar. Geladen ist ein Stueck ganzer Wochen (ui.cal, Montag bis Sonntag);
 // naehert sich das Scrollen einem Rand, waechst das Stueck dort um CAL_STEP Wochen. Der Kopf nennt den Monat der obersten Woche (Monat ihres Sonntags — so stimmt er auch nach einem Monatssprung).
 const CAL_PRE=8,CAL_POST=26,CAL_STEP=12; // Wochen vor / nach der obersten Woche beim Aufbau, Zuwachs je Nachladen
 function dAdd(day,n){const d=new Date(day+'T12:00:00');d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA');}
@@ -1116,7 +1130,7 @@ function calEntries(from,to){
     d.elements.forEach(el=>{if(isArch(el))return;const per={};(el.log||[]).forEach(l=>{if(!l||!l.time)return;if(qq()&&!hit(el.label,l.msg))return;const day=localDay(l.time);if(day)per[day]=(per[day]||0)+1;});
       Object.keys(per).forEach(day=>add(day,{k:'act',p,el,n:per[day]}));});
     d.ideas.forEach(i=>{if(!i.archived&&hit(i.title,i.desc))add(localDay(i.createdAt),{k:'idea',p,i});});});
-  // Kalendereintraege (calEvents): Google-Kopie und eigene Eintraege des Agenten, gleich behandelt. Die App zeigt sie an — fuer jeden Zeitraum,
+  // Kalendereintraege (calEvents): Google-Kopie und eigene Eintraege, gleich behandelt. Die App zeigt sie an — fuer jeden Zeitraum,
   // der im Gist liegt — und spricht selbst nie mit Google. Projektunabhaengig, also auch im Ein-Projekt-Modus.
   calEvents().forEach(({src,ev})=>{
     if(!ev.start||!hit(ev.title,ev.location,ev.description,...(Array.isArray(ev.attendees)?ev.attendees:[])))return;
@@ -1128,8 +1142,8 @@ function calEntries(from,to){
   });
   return out;
 }
-// Kalendereintraege (Dominik 12.11.2026: "die sollen nicht unterschiedlich behandelt werden"): die Kopie aus Google (calendar.google.events) und die
-// eigenen Eintraege, die der Agent anlegt (calendar.events), sind EINE Sache — gleiche Felder (id, title, start, end, allDay, location, description,
+// Kalendereintraege: die Kopie aus Google (calendar.google.events) und die
+// eigenen Eintraege (calendar.events, aus der App oder von einem anderen Client) sind EINE Sache — gleiche Felder (id, title, start, end, allDay, location, description,
 // link, attendees), gleiche Zeile, gleiches Detailfeld. src ('google' | 'own') haelt nur die Herkunft fest. Archivierte eigene Eintraege sind ausgeblendet.
 function calEvents(all){
   const c=S.calendar||{},out=[];
@@ -1190,7 +1204,7 @@ const ui={
   colw:lsGet('rg3_colw',{}),focusSel:null,
   mode:localStorage.getItem('rg3_mode')==='one'?'one':'all',one:localStorage.getItem('rg3_one')||'',
   collapsed:new Set(lsGet('rg3_collapsed',[])),
-  folded:new Set(lsGet('rg3_folded',[])), // eingeklappte Tasks (pid|tid), Issue #6
+  folded:new Set(lsGet('rg3_folded',[])), // eingeklappte Tasks (pid|tid)
   closedOpen:new Set(lsGet('rg3_closed',[])), // Projekte, deren "Closed"-Liste aufgeklappt ist
   pick:null // Zeile, deren Status-Auswahl gerade offen ist (ort:pid|tid[|sid])
 };
@@ -1274,7 +1288,7 @@ function renderTop(){
       ${ui.menu==='main'?`<div class="menu" data-k="menu-main"><button data-act="newProject">New project</button><button data-act="archived">Archived projects (${S.projects.filter(p=>p.archived).length})</button><button data-act="resetWidths">Reset column widths</button><div class="sep"></div><button data-act="openSync">GitHub connection</button><button data-act="help">Help</button></div>`:''}</span>
   </header>`;
 }
-// Spaltenbreiten als Anteile (flex-grow), nicht als feste Pixel: Ziehen verschiebt Breite nur zwischen den zwei Nachbarn, alle anderen bleiben stehen (Dominik 06.11.2026)
+// Spaltenbreiten als Anteile (flex-grow), nicht als feste Pixel: Ziehen verschiebt Breite nur zwischen den zwei Nachbarn, alle anderen bleiben stehen
 function colStyle(pid,def){const w=ui.colw[pid]||def||1;return `flex:${w} 1 0`;}
 function onePid(){const v=visibleProjects();return (v.find(p=>p.id===ui.one)||v[0]||{}).id;}
 const CAL_RANK={gcal:-1,due:0,journal:1,act:2,done:3,failed:3,idea:4};
@@ -1312,7 +1326,7 @@ function renderCalendar(){
     <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(calTitle())}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button><button class="tbtn" data-act="calNew" title="Add a calendar entry — or use the ＋ that appears in a day">＋ New entry</button>
       <span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span>✦ idea</span><span>element · log entries</span></span>
       <span class="grow"></span><span class="cal-l">${projs.map(p=>`<span><b class="ab" style="${projVars(p)}">${esc(projAbbr(p))}</b>${esc(p.name)}</span>`).join('')}${(()=>{
-        // Legende des Google-Kalenders, mit ehrlichem Alter: aelter als 36 h heisst, der Abgleich des Agenten laeuft nicht mehr
+        // Legende des Google-Kalenders, mit ehrlichem Alter: aelter als 36 h heisst, der Abgleich laeuft nicht mehr
         const g=S.calendar&&S.calendar.google;if(!g)return '';
         const old=!g.checkedAt||Date.now()-Date.parse(g.checkedAt)>36*3600*1000;
         return `<span class="gc-l${old?' gc-old':''}" title="From your Google Calendar — change these entries in Google; nothing is sent back.${g.from&&g.to?' Covers '+esc(fmtDate(g.from))+' to '+esc(fmtDate(g.to))+'.':''}${g.checkedAt?' Last refreshed '+esc(fmtDT(g.checkedAt))+'.':''}"><b class="ab gcab">G</b>Google Calendar${old?' — not refreshed since '+esc(g.checkedAt?fmtDT(g.checkedAt):'?'):''}</span>`;})()}${calEvents().some(x=>x.src==='own')?'<span class="gc-o" title="Your own calendar entries. Click one for its details."><b class="ab gcab">C</b>Calendar entries</span>':''}${(n=>n?`<button class="lbtn" data-act="calArchived" title="Archived calendar entries — nothing is deleted">${n} archived</button>`:'')(calEvents(true).filter(x=>x.src==='own'&&isArch(x.ev)).length)}</span></div>
@@ -1327,7 +1341,7 @@ function renderMain(){
   let html='',prevOpen=null;
   const open=projs.filter(p=>!ui.collapsed.has(p.id)).map(p=>p.id),known=open.map(id=>ui.colw[id]).filter(Boolean);
   const def=known.length?known.reduce((a,b)=>a+b,0)/known.length:1; // neue Spalte bekommt den Durchschnitt
-  // Zieh-Griff rechts jeder offenen Spalte, wenn rechts noch eine offene folgt — auch ueber eingeklappte Leisten hinweg (#5)
+  // Zieh-Griff rechts jeder offenen Spalte, wenn rechts noch eine offene folgt — auch ueber eingeklappte Leisten hinweg
   projs.forEach(p=>{
     const right=prevOpen&&open[open.indexOf(prevOpen)+1];
     if(right)html+=`<div class="split" data-split="${esc(prevOpen)}" data-right="${esc(right)}" title="Drag to resize · double-click to make both equal"></div>`;
@@ -1366,7 +1380,7 @@ function taskParts(p){
   parts.ideas=`<div class="sec-h" data-k="sh-ideas"><i class="sec-ic">${IC_IDEA}</i><span>Ideas</span><span class="c">${ideas.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|idea')}" title="Add an idea" aria-label="Add an idea">＋</button></div>`
     +(addI?`<input class="add-in" data-k="ai-idea" data-add="idea" data-pid="${esc(pid)}" placeholder="New idea — Enter adds, Esc stops">`:'')
     +ideas.map(i=>`<div class="idea${isOpen('idea',pid,i.id)?' sel':''}" data-k="i-${esc(i.id)}"><span class="ic">${IC_IDEA}</span><div class="tm"><button class="tt" data-act="open" data-type="idea" data-pid="${esc(pid)}" data-id="${esc(i.id)}">${esc(i.title||'Untitled idea')}</button>${i.archived?'<div class="sl">archived</div>':''}</div></div>`).join('');
-  // Closed (Dominik 11.11.2026): abgeschlossene Tasks auf Abruf, juengste zuerst. Zugeklappt eine Zeile mit der Zahl.
+  // Closed: abgeschlossene Tasks auf Abruf, juengste zuerst. Zugeklappt eine Zeile mit der Zahl.
   // Unter der Suche immer offen und um archivierte Treffer ergaenzt, damit nichts unauffindbar bleibt.
   const closedAll=d.todos.filter(t=>closedT(t)&&!isArch(t));
   const when=t=>String((isArch(t)?t.archivedAt:(t.completedAt||t.failedAt))||t.modifiedAt||'');
@@ -1385,7 +1399,7 @@ function closedRow(p,t,when){
     <div class="rc"><span class="when" title="${arch?'Archived':st==='failed'?'Failed':'Done'} ${esc(fmtDT(when))}">${esc(fmtDate(when,{day:'numeric',month:'short'}))}</span></div>
   </div>${arch?'':stPick('c',pid,t.id,null,st)}`;
 }
-// Status-Auswahl statt Klick-Zyklus (Dominik 11.11.2026: "in Arbeit" liess sich in der Zeile nicht zuruecknehmen).
+// Status-Auswahl statt Klick-Zyklus: jede Richtung in zwei Klicks, auch zurueck.
 // Klick auf das Kaestchen klappt direkt darunter dieselbe Auswahl auf wie in der Schublade; ein Klick setzt den Status, in jede Richtung.
 function stKey(loc,pid,id,sid){return loc+':'+pid+'|'+id+(sid?'|'+sid:'');}
 function stBox(loc,pid,id,sid,st){
@@ -1408,7 +1422,7 @@ function renderCol(p,def){
 // Ein Projekt ueber die ganze Breite: Lab | General | Ideas nebeneinander (Board: Status nebeneinander)
 function renderOne(p){
   const d=S.data[p.id];let cols=[];
-  if(ui.page==='board')cols=boardGroups(p,d);
+  if(ui.page==='board'){cols=boardGroups(p,d);if(!cols.length)cols=['<div class="empty">No elements.</div>'];cols[0]=elNewBtn(p.id)+cols[0];}
   else if(ui.page==='journal')cols=[journalBody(p,d)];
   else{const x=taskParts(p),c=x.cats,rest=Object.entries(c).filter(([k])=>k!=='labor').map(([,v])=>v).join('');
     cols=('labor' in c)?[x.focus+c.labor,rest,x.ideas+x.closed]:[x.focus+rest,x.ideas+x.closed];cols=cols.filter((s,i)=>s||i===cols.length-1);}
@@ -1449,7 +1463,7 @@ function renderSubs(p,t){
   let hidden=0;
   const rows=list.map(s=>{
     const st=sSt(s);
-    if(ui.hideDone&&isEnd(st)&&s!==fs&&!isOpen('step',pid,t.id,s.id)&&!qq()){hidden++;return '';} // done und failed gleich (Issue #8)
+    if(ui.hideDone&&isEnd(st)&&s!==fs&&!isOpen('step',pid,t.id,s.id)&&!qq()){hidden++;return '';} // done und failed gleich
     const cls=['s',st==='done'?'done':st==='failed'?'failed':'',s===fs?'fstep':'',isOpen('step',pid,t.id,s.id)?'sel':''].filter(Boolean).join(' ');
     const chip=s.elementId&&s.elementId!==rowElement(t)?elChip(pid,s.elementId):''; // gleicher Chip wie die Task-Zeile = Wiederholung, weglassen
     const odd=oddSt(s,STEP_KNOWN);
@@ -1472,11 +1486,12 @@ function boardGroups(p,d){
     return `<div data-k="bg-${esc(k)}"><div class="grp-h"><span class="pill" style="background:${esc(s.bg)};color:${esc(s.fg)}">${esc(s.icon)} ${esc(s.label)}</span><span class="c">${els.length}</span></div>${els.map(e=>{
       const sub=[(e.tags||[]).map(t=>d.tags[t]?.label).filter(Boolean).join(', '),nodeName(e.nodeId)].filter(Boolean).join(' — ');
       const sn=hitSnip([e.label,sub,s.label],elRest(d,e)); // Treffer nur im Log / in der Beschreibung: Fundstelle zeigen
-      const m=elMeta(d,e); // Experiment-Uebersicht (Dominik 11.11.2026, zum Ausprobieren): letzte Aktivitaet + offene verknuepfte Tasks/Schritte
+      const m=elMeta(d,e); // Experiment-Uebersicht: letzte Aktivitaet + offene verknuepfte Tasks/Schritte
       return `<button class="el" data-k="e-${esc(e.id)}" data-act="open" data-type="element" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><i style="--c:${esc(elColor(pid,e))}"></i><div><b>${esc(e.label)}</b><small>${esc(sub)}</small>${sn?`<small class="sn">${esc(sn)}</small>`:''}</div>${m.last||m.n?`<span class="em" title="${m.last?'Last activity '+esc(fmtDT(m.last)):'No activity logged'} · open linked tasks and steps: ${m.n}">${m.last?`<span>${esc(fmtDate(m.last,{day:'numeric',month:'short'}))}</span>`:''}${m.n?`<b>${m.n} open</b>`:''}</span>`:''}</button>`;}).join('')}</div>`;
   }).filter(Boolean);
 }
-function boardBody(p,d){return boardGroups(p,d).join('')||'<div class="empty">No elements.</div>';}
+function elNewBtn(pid){return `<button class="md-empty" style="margin:6px 0 4px" data-k="en" data-act="elNew" data-pid="${esc(pid)}">＋ New element</button>`;}
+function boardBody(p,d){return elNewBtn(p.id)+(boardGroups(p,d).join('')||'<div class="empty">No elements.</div>');}
 function journalBody(p,d){
   const pid=p.id;
   const q=qq();
@@ -1487,7 +1502,7 @@ function journalBody(p,d){
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 10. FELDER (nur Tasks, Schritte, Ideen sind in der App editierbar — Elemente/Journal pflegt der Agent)
+// 10. FELDER (Tasks, Schritte, Ideen, eigene Kalendereintraege; Elemente werden in der App nur angelegt, Journal-Abschnitte nur angehaengt)
 // ════════════════════════════════════════════════════════════════════════════
 const FIELDS={
   'todo.text':{req:true,get:([p,i])=>findT(p,i)?.text,set:([p,i],v,d)=>{const t=d.todos.find(x=>x.id===i);t.text=v;t.modifiedAt=nowIso();}},
@@ -1540,9 +1555,9 @@ function seg(items,cur,act,extra){return `<div class="seg">${items.map(([v,ic,l]
 // ── Schublade ──
 function renderDrawer(){
   const dr=ui.drawer;if(!dr)return '';
-  if(dr.type==='cal'){ // Kalendereintrag: gehoert zu keinem Projekt (dr.pid = Herkunft 'google' | 'own'); der Agent pflegt ihn, hier nur lesbar — wie Elemente
+  if(dr.type==='cal'){ // Kalendereintrag: gehoert zu keinem Projekt (dr.pid = Herkunft 'google' | 'own'); Google-Kopie hier nur lesbar
     const ev=findCalEv(dr.pid,dr.id);if(!ev)return '';
-    if(dr.pid==='own'){ // eigener Eintrag: anlegen und bearbeiten wie Tasks (Dominik 12.11.2026) — Titel, Zeit, Ort, Teilnehmer, Link, Beschreibung, Archiv
+    if(dr.pid==='own'){ // eigener Eintrag: anlegen und bearbeiten wie Tasks — Titel, Zeit, Ort, Teilnehmer, Link, Beschreibung, Archiv
       const k='own|'+ev.id,ia=` data-id="${esc(ev.id)}"`,w=calParts(ev),lk=/^https?:\/\//i.test(String(ev.link||''))?String(ev.link):'';
       const di=(f,type,val)=>`<input type="${type}" class="inl" style="width:auto" data-in="calf" data-f="${f}"${ia} value="${esc(val)}" aria-label="${{sd:'Start day',st:'Start time',ed:'End day',et:'End time'}[f]}">`;
       const head=`<div style="flex:1;min-width:0"><div class="k">Calendar entry${isArch(ev)?' · archived':''}</div>${titleIn('cal.title|'+k,ev.title,'Entry')}</div>`;
@@ -1736,6 +1751,21 @@ function renderDialog(){
       <div class="fld"><label for="cnl">Where</label><input id="cnl" type="text" data-in="dlg" data-name="location" value="${esc(d.location||'')}" placeholder="e.g. Seminar room 2" autocomplete="off"></div>
       <div class="fld"><label for="cnd">Description</label><textarea id="cnd" rows="3" data-in="dlg" data-name="description" placeholder="Optional — Markdown works">${esc(d.description||'')}</textarea>${d.err?`<div class="err">${esc(d.err)}</div>`:''}</div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="calSave">Add entry</button></div>`;
+  }else if(d.type==='elnew'){
+    // Neues Element in einem Fenster: Name, Gruppe (bestehende oder neue), Status, Tags, Beschreibung. Enter legt an, Esc bricht ab.
+    const D=S.data[d.pid]||{nodes:[],statuses:{},tags:{}},N=D.nodes||[];
+    const tree=[],seen=new Set(),walk=(par,k)=>N.filter(n=>(n.parentId||null)===par&&!seen.has(n.id)).sort((a,b)=>(a.order??0)-(b.order??0)).forEach(n=>{seen.add(n.id);tree.push([n,k]);walk(n.id,k+1);});
+    walk(null,0);N.forEach(n=>{if(!seen.has(n.id))tree.push([n,0]);}); // Gruppen mit fehlender Elterngruppe trotzdem anbieten
+    const isNew=!tree.length||d.node==='__new';
+    const tags=Object.entries(D.tags||{});
+    inner=`<h2>New element · ${esc(projById(d.pid)?.name||'')}</h2>
+      <div class="fld"><label for="ent">Name</label><input id="ent" type="text" data-in="dlg" data-name="label" value="${esc(d.label||'')}" placeholder="e.g. pDC130" autocomplete="off"></div>
+      <div class="fld"><label for="${tree.length?'eng':'enng'}">Group</label>${tree.length?`<select id="eng" data-in="dlg" data-name="node">${tree.map(([n,k])=>`<option value="${esc(n.id)}"${d.node===n.id?' selected':''}>${'   '.repeat(k)}${esc(n.label||'Untitled group')}</option>`).join('')}<option value="__new"${d.node==='__new'?' selected':''}>＋ New group…</option></select>`:''}
+        ${isNew?`<input id="enng" type="text" data-in="dlg" data-name="newNode" value="${esc(d.newNode||'')}" placeholder="Name of the new group, e.g. Plasmids" autocomplete="off"${tree.length?' style="margin-top:6px"':''}>`:''}</div>
+      <div class="fld"><label for="ens">Status</label><select id="ens" data-in="dlg" data-name="status">${Object.keys(D.statuses||{}).map(k=>{const s=stInfo(d.pid,k);return `<option value="${esc(k)}"${d.status===k?' selected':''}>${esc((s.icon?s.icon+' ':'')+s.label)}</option>`;}).join('')}</select></div>
+      ${tags.length?`<div class="fld"><label>Tags</label><div class="seg" role="group" aria-label="Tags">${tags.map(([k,t])=>{const on=(d.tags||[]).includes(k);return `<button class="${on?'on':''}" data-act="elTag" data-v="${esc(k)}" aria-pressed="${on}">${esc(t.label||k)}</button>`;}).join('')}</div><div class="help">The first tag gives the card its colour.</div></div>`:''}
+      <div class="fld"><label for="end">Description</label><textarea id="end" rows="3" data-in="dlg" data-name="desc" placeholder="Optional — Markdown works">${esc(d.desc||'')}</textarea>${d.err?`<div class="err">${esc(d.err)}</div>`:''}</div>
+      <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="elSave">Add element</button></div>`;
   }else if(d.type==='carch'){
     const L=calEvents(true).filter(x=>x.src==='own'&&isArch(x.ev)).map(x=>x.ev).sort((a,b)=>String(b.archivedAt||'').localeCompare(String(a.archivedAt||'')));
     inner=`<h2>Archived calendar entries</h2><p>Nothing is ever deleted. Click an entry to read it; Restore puts it back into the calendar.</p>
@@ -1773,7 +1803,7 @@ function renderDialog(){
       <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
       <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
       <li><b>Calendar</b> shows everything that has a date, week under week without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar (marked G) and your own calendar entries (marked C) appear there too; click one for its details — time, place, description. Add an entry with “＋ New entry” or the ＋ in a day: one small window takes title, day, time, place and description; without a time it lasts all day. Own entries can be changed and archived here; Google entries are only shown, nothing is sent back.</li>
-      <li>Board shows the elements of each project with their status and latest activity. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to what is already there.</li>
+      <li>Board shows the elements of each project with their status and latest activity. “＋ New element” adds one: name, group, status, tags and description in one small window — pick an existing group or name a new one. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to what is already there.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with changes made elsewhere, so nothing is overwritten.</li></ul>
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
   }
@@ -1867,7 +1897,30 @@ const ACT={
   startAdd:el=>{ui.adding=ui.adding===A(el).v?null:A(el).v;ui.focusSel='.add-in';render();},
   // Kalender: Eintrag fuer heute anlegen (Zeile im heutigen Tag), ganztaegig <-> mit Uhrzeit, archivierte Eintraege
   // ＋ (im Kopf: heute, im Tag: dieser Tag) oeffnet EIN kleines Fenster, in dem alles Wichtige steht — Titel, Tag, Uhrzeit, Ort, Beschreibung.
-  // Kein Anlegen-und-danach-in-den-Details-nachstellen (Dominik 12.11.2026: "Das ist Quatsch. Das soll alles moeglichst barrierefrei sein.").
+  // Anlegen in einem Schritt: alles Wichtige sofort im selben Fenster, nicht erst anlegen und danach in den Details nachstellen.
+  elNew:el=>{const pid=A(el).pid,D=S.data[pid];if(!D)return;const N=D.nodes||[],root=N.filter(n=>!n.parentId).sort((a,b)=>(a.order??0)-(b.order??0));
+    const st=Object.keys(D.statuses||{});
+    openDialog({type:'elnew',pid,label:'',node:(root[0]||N[0])?.id||'__new',newNode:'',status:st.includes('planned')?'planned':st[0]||'planned',tags:[],desc:''});ui.focusSel='#ent';},
+  elTag:el=>{const g=ui.dialog;if(!g||g.type!=='elnew')return;const k=A(el).v;g.tags=(g.tags||[]).includes(k)?g.tags.filter(x=>x!==k):[...(g.tags||[]),k];render();},
+  elSave:()=>{
+    const g=ui.dialog;if(!g||g.type!=='elnew')return;
+    const bad=(msg,sel)=>{g.err=msg;ui.focusSel=sel;render();};
+    const D=S.data[g.pid];if(!D){closeDialog();return;}
+    const label=String(g.label||'').trim(),nn=String(g.newNode||'').trim();
+    if(!label)return bad('Give the element a name.','#ent');
+    let nodeId=(D.nodes||[]).some(n=>n.id===g.node)?g.node:null;
+    if(!nodeId&&!nn)return bad('Pick a group or name a new one.','#enng');
+    const now=nowIso(),status=g.status||'planned',desc=String(g.desc||'').replace(/\s+$/,'');
+    ui.dialog=null;
+    change(g.pid,d=>{
+      if(!Array.isArray(d.nodes))d.nodes=[];if(!Array.isArray(d.elements))d.elements=[];
+      if(!nodeId){const ex=d.nodes.find(n=>String(n.label||'').trim().toLowerCase()===nn.toLowerCase()); // gleichnamige Gruppe wiederverwenden statt doppelt anlegen
+        if(ex)nodeId=ex.id;else{const n={id:_uid('grp'),label:nn,desc:'',parentId:null,icon:'',custom:[],order:d.nodes.length};d.nodes.push(n);nodeId=n.id;}}
+      // gleiche Form wie ein Element, das per MCP angelegt wird
+      d.elements.push({id:_uid('el'),label,desc,status,tags:(g.tags||[]).filter(t=>d.tags&&d.tags[t]),nodeId,custom:[],log:[{id:_uid('lg'),time:now,msg:'Created'}],order:d.elements.filter(e=>e.nodeId===nodeId).length,createdAt:now,modifiedAt:now,completedAt:status==='done'?now:null});
+    });
+    toast('Added “'+snip(label,50)+'” to the board. Ctrl+Z undoes.');
+  },
   calNew:el=>{const day=(el&&A(el).day)||todayStr();openDialog({type:'calnew',title:'',sd:day,ed:day,st:'',et:'',location:'',description:''});ui.focusSel='#cnt';},
   calSave:()=>{
     const g=ui.dialog;if(!g||g.type!=='calnew')return;
@@ -1968,7 +2021,7 @@ const ACT={
   },
   // Dialog-Grundlagen
   closeDialog:()=>closeDialog(),
-  // Journal selbst schreiben (Rueckfall, falls der Agent ausfaellt) — haengt einen Abschnitt an den Tag
+  // Journal selbst schreiben  — haengt einen Abschnitt an den Tag
   jwrite:el=>{const a=A(el);openDialog({type:'jwrite',pid:a.pid,date:a.date||new Date().toLocaleDateString('en-CA'),title:'',content:''});ui.focusSel=a.date?'#jwt':'#jwt';},
   jsave:()=>{
     const g=ui.dialog;if(!g||g.type!=='jwrite')return;
@@ -1980,7 +2033,7 @@ const ACT={
     if(eid)openDrawer({type:'entry',pid:g.pid,id:eid});
     toast('Saved to the journal. Ctrl+Z undoes.');
   },
-  dscrim:(el,ev)=>{if(ev.target!==el)return;const d=ui.dialog;if(d&&d.type==='feedback'&&String((d.title||'')+(d.desc||'')).trim())return;if(d&&d.type==='jwrite'&&String((d.title||'')+(d.content||'')).trim())return;if(d&&d.type==='calnew'&&String((d.title||'')+(d.location||'')+(d.description||'')).trim())return;closeDialog();}, // angefangenes Feedback nicht per Fehlklick verlieren
+  dscrim:(el,ev)=>{if(ev.target!==el)return;const d=ui.dialog;if(d&&d.type==='feedback'&&String((d.title||'')+(d.desc||'')).trim())return;if(d&&d.type==='jwrite'&&String((d.title||'')+(d.content||'')).trim())return;if(d&&d.type==='calnew'&&String((d.title||'')+(d.location||'')+(d.description||'')).trim())return;if(d&&d.type==='elnew'&&String((d.label||'')+(d.newNode||'')+(d.desc||'')).trim())return;closeDialog();}, // angefangenes Feedback nicht per Fehlklick verlieren
   choose:el=>{const d=ui.dialog;if(d&&d.type==='choice')resolveChoice(d.options[+A(el).i]?.value??null);}
 };
 function archiveItem(kind,pid,id,sid,on,reason){
@@ -2026,7 +2079,9 @@ document.addEventListener('input',ev=>{
     const d=ui.dialog,n=t.dataset.name;
     // Neuer Kalendereintrag: der letzte Tag laeuft mit dem ersten mit, solange er ihm gleicht oder davor laege
     if(d.type==='calnew'&&n==='sd'&&t.value&&(d.ed===d.sd||!d.ed||d.ed<t.value)){d.ed=t.value;const e=document.getElementById('cned');if(e)e.value=t.value;}
-    d[n]=t.value;if(n==='q')render();}
+    d[n]=t.value;
+    if(d.type==='elnew'&&n==='node'){if(t.value==='__new')ui.focusSel='#enng';render();} // "New group…" blendet das Namensfeld ein
+    else if(n==='q')render();}
 });
 document.addEventListener('change',ev=>{
   const t=ev.target,k=t.dataset&&t.dataset.in,a=t.dataset||{};
@@ -2045,8 +2100,9 @@ document.addEventListener('keydown',ev=>{
     if(ev.key==='Escape'){ev.preventDefault();closeDialog();return;}
     if(mod&&ev.key==='Enter'&&ui.dialog.type==='jwrite'){ev.preventDefault();ACT.jsave();return;}
     if(mod&&ev.key==='Enter'&&ui.dialog.type==='calnew'){ev.preventDefault();ACT.calSave();return;}
+    if(mod&&ev.key==='Enter'&&ui.dialog.type==='elnew'){ev.preventDefault();ACT.elSave();return;}
     if(ev.key==='Enter'&&ui.dialog.type==='jwrite'&&t.tagName==='INPUT'){ev.preventDefault();return;} // Enter im Titel speichert nicht halbfertig
-    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='list')ACT.saveList();else if(d.type==='archive')ACT.doArchive();else if(d.type==='calnew')ACT.calSave();else if(d.type==='fail')ACT.doFail();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
+    if(ev.key==='Enter'&&t.tagName==='INPUT'){ev.preventDefault();const d=ui.dialog;if(d.type==='project')ACT.saveProject();else if(d.type==='list')ACT.saveList();else if(d.type==='archive')ACT.doArchive();else if(d.type==='calnew')ACT.calSave();else if(d.type==='elnew')ACT.elSave();else if(d.type==='fail')ACT.doFail();else if(d.type==='sync'&&!ghToken)ACT.connect();else if(d.type==='pick'){const f=document.querySelector('.pick button');if(f)f.click();}}
     return;
   }
   // Strg+Z / Strg+Y (Strg+Umschalt+Z) ueberall — nur in Textfeldern bleibt es das Rueckgaengig des Browsers fuer den Text

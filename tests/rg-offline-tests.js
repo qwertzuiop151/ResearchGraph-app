@@ -962,6 +962,70 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     env.w.close();}
   }
 
+  // ── 23. Elemente in der App anlegen (Issue #10, 13.11.2026): ein Fenster mit Name, Gruppe, Status, Tags, Beschreibung ──
+  console.log('23. elements made in the app');
+  {
+   gh=makeGitHub(snapText);
+   env=boot(gh,{timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+   ok(await until(()=>env.doc.querySelectorAll('.col').length===NC),'loaded');
+   click(env,'[data-act="page"][data-v="board"]');await tick();
+   const live=snap.projects.filter(p=>!p.archived&&!p.frozen);
+   ok(live.every(p=>env.doc.querySelector(`.col[data-col="${p.id}"] [data-act="elNew"]`)),'every column on the board has "＋ New element"');
+   const pw=live.find(p=>(p.nodes||[]).length&&Object.keys(p.tags||{}).length),p0=live.find(p=>!(p.nodes||[]).length);
+   const gp=id=>gh.doc().projects.find(p=>p.id===id),dlgErr=()=>(env.doc.querySelector('.dlg .err')||{}).textContent||'';
+   const fill=f=>Object.entries(f).forEach(([id,v])=>typeIn(env,env.doc.querySelector('#'+id),v));
+   const pick=(id,v)=>{const s=env.doc.querySelector('#'+id);s.value=v;s.dispatchEvent(new env.w.Event('input',{bubbles:true}));};
+   if(!pw||!p0){ok(false,'snapshot needs a project with groups and tags and one without groups');}
+   else{
+    const othersBefore=JSON.stringify(gp(pw.id).elements),nodesBefore=JSON.stringify(gp(pw.id).nodes),todosBefore=JSON.stringify(gp(pw.id).todos);
+    click(env,`.col[data-col="${pw.id}"] [data-act="elNew"]`);await tick();
+    ok(env.doc.querySelector('.dlg #ent')&&env.doc.activeElement===env.doc.querySelector('#ent'),'it opens one small window, cursor in the name');
+    const opts=[...env.doc.querySelectorAll('#eng option')].map(o=>o.value);
+    ok(opts.length===pw.nodes.length+1&&opts[opts.length-1]==='__new'&&!env.doc.querySelector('#enng'),'group: every existing group plus "New group…", no extra field yet');
+    ok(env.doc.querySelector('#ens').value==='planned'&&env.doc.querySelectorAll('.dlg [data-act="elTag"]').length===Object.keys(pw.tags).length&&env.doc.querySelector('#end'),'status starts at planned; all tags of the project and a description are offered');
+    click(env,'[data-act="elSave"]');await tick();
+    ok(/name/.test(dlgErr())&&JSON.stringify(gp(pw.id).elements)===othersBefore,'without a name nothing is added and the window says why');
+    const tag=Object.keys(pw.tags)[0],grp=opts[opts.length>2?1:0];
+    fill({ent:'ZZ pTest1',end:'Backbone **ZZ**'});pick('eng',grp);pick('ens','in_progress');click(env,`.dlg [data-act="elTag"][data-v="${tag}"]`);await tick();
+    ok(env.doc.querySelector(`.dlg [data-act="elTag"][data-v="${tag}"]`).classList.contains('on')&&env.doc.querySelector('#ent').value==='ZZ pTest1','a tag toggles on; what was typed stays');
+    key(env,env.doc.querySelector('#ent'),'Enter');await tick();
+    ok(await until(()=>gp(pw.id).elements.some(e=>e.label==='ZZ pTest1')),'Enter adds the element: it reaches the gist');
+    const e1=gp(pw.id).elements.find(e=>e.label==='ZZ pTest1');
+    ok(e1&&/^el_/.test(e1.id)&&e1.nodeId===grp&&e1.status==='in_progress'&&JSON.stringify(e1.tags)===JSON.stringify([tag])&&e1.desc==='Backbone **ZZ**','group, status, tag and description went in with the same click');
+    ok(e1&&Array.isArray(e1.custom)&&e1.log.length===1&&e1.log[0].msg==='Created'&&!!e1.createdAt&&typeof e1.order==='number'&&e1.completedAt===null,'same shape as an element made elsewhere (log "Created", order, createdAt)');
+    ok(JSON.stringify(gp(pw.id).elements.filter(e=>e.id!==e1.id))===othersBefore&&JSON.stringify(gp(pw.id).nodes)===nodesBefore&&JSON.stringify(gp(pw.id).todos)===todosBefore,'all other elements, groups and tasks are untouched');
+    ok(!env.doc.querySelector('.dlg')&&!env.doc.querySelector('.drawer')&&env.doc.querySelector('.toast'),'the window closes, nothing else opens, a line confirms it');
+    ok([...env.doc.querySelectorAll(`.col[data-col="${pw.id}"] .el`)].some(x=>x.textContent.includes('ZZ pTest1')),'the card stands on the board');
+    // neue Gruppe ueber "New group…"; gleicher Name wie eine bestehende Gruppe = die bestehende
+    click(env,`.col[data-col="${pw.id}"] [data-act="elNew"]`);await tick();
+    pick('eng','__new');await tick();
+    ok(env.doc.querySelector('#enng')&&env.doc.activeElement===env.doc.querySelector('#enng'),'"New group…" shows a name field and puts the cursor there');
+    fill({ent:'ZZ pTest2'});click(env,'[data-act="elSave"]');await tick();
+    ok(/group/.test(dlgErr())&&!gp(pw.id).elements.some(e=>e.label==='ZZ pTest2'),'"New group…" without a name is refused');
+    fill({enng:'  '+pw.nodes[0].label.toUpperCase()+' '});click(env,'[data-act="elSave"]');await tick();
+    ok(await until(()=>gp(pw.id).elements.some(e=>e.label==='ZZ pTest2')),'added');
+    ok(gp(pw.id).elements.find(e=>e.label==='ZZ pTest2').nodeId===pw.nodes[0].id&&gp(pw.id).nodes.length===pw.nodes.length,'a new group with the name of an existing one uses that group instead of a duplicate');
+    // Projekt ohne Gruppen: nur das Namensfeld, die Gruppe wird mit angelegt
+    click(env,`.col[data-col="${p0.id}"] [data-act="elNew"]`);await tick();
+    ok(!env.doc.querySelector('#eng')&&env.doc.querySelector('#enng'),'a project without groups asks for the name of a new group directly');
+    fill({ent:'ZZ pTest3',enng:'ZZ Plasmids'});click(env,'[data-act="elSave"]');await tick();
+    ok(await until(()=>(gp(p0.id).elements||[]).some(e=>e.label==='ZZ pTest3')),'added to the project without groups');
+    {const P=gp(p0.id),n=(P.nodes||[]).find(x=>x.label==='ZZ Plasmids');ok(n&&/^grp_/.test(n.id)&&n.parentId===null&&P.elements.find(e=>e.label==='ZZ pTest3').nodeId===n.id,'the new group is created and the element sits in it');}
+    // Strg+Z archiviert das neue Element (nichts wird geloescht), Strg+Y holt es zurueck
+    key(env,env.doc.body,'z',{ctrlKey:true});await tick();
+    ok(await until(()=>{const e=(gp(p0.id).elements||[]).find(e=>e.label==='ZZ pTest3');return e&&e.archived===true;}),'Ctrl+Z archives the new element — it stays in the data');
+    ok(![...env.doc.querySelectorAll(`.col[data-col="${p0.id}"] .el`)].some(x=>x.textContent.includes('ZZ pTest3')),'and it leaves the board');
+    key(env,env.doc.body,'y',{ctrlKey:true});await tick();
+    ok(await until(()=>{const e=(gp(p0.id).elements||[]).find(e=>e.label==='ZZ pTest3');return e&&!e.archived;}),'Ctrl+Y brings it back');
+    // Fehlklick neben das Fenster verliert Angefangenes nicht
+    click(env,`.col[data-col="${pw.id}"] [data-act="elNew"]`);await tick();fill({ent:'ZZ half'});
+    {const sc=env.doc.querySelector('[data-act="dscrim"]');sc.dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();}
+    ok(env.doc.querySelector('.dlg #ent')&&env.doc.querySelector('#ent').value==='ZZ half','a stray click next to a started window does not close it');
+    key(env,env.doc.querySelector('#ent'),'Escape');await tick();
+   }
+   ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+   env.w.close();
+  }
   console.log(`\nTOTAL: ${pass} passed, ${fail} failed`);
   process.exit(fail?1:0);
 })().catch(e=>{console.error('HARNESS CRASH',e);process.exit(2);});
