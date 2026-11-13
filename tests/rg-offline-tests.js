@@ -1,5 +1,5 @@
 // Offline-Tests fuer overview.html (ResearchGraph v3): echte Daten (Gist-Snapshot, nie ins Repo), jsdom, GitHub komplett simuliert
-// (Revisionen, Historie, ETag/304, raw_url) inkl. eines "Agenten", der gleichzeitig schreibt.
+// (Revisionen, Historie, ETag/304, raw_url) inkl. eines zweiten Clients, der gleichzeitig schreibt.
 // Aufruf: node tests/rg-offline-tests.js <gist-snapshot.json>   (braucht jsdom@24 im NODE_PATH)
 const fs=require('fs'),path=require('path'),nodeCrypto=require('crypto');
 const {JSDOM,VirtualConsole}=require('jsdom');
@@ -33,9 +33,9 @@ function makeGitHub(initialText){
     if(url==='https://api.github.com/gists/G'&&m==='PATCH'){if(hook&&hook.beforePatch){const h=hook.beforePatch;hook.beforePatch=null;await h();}const c=JSON.parse(init.body).files['researchgraph_data.json'].content;const v=write(c);return res(200,{id:'G',history:[{version:v}]});}
     return res(404,{message:'not mocked '+url});
   }
-  // Agent: liest den Kopf, aendert, schreibt (wie der MCP: read-modify-write der ganzen Datei)
-  function agentWrite(fn){const doc=JSON.parse(head().text);fn(doc);doc.saved=new Date().toISOString();return write(JSON.stringify(doc,null,2));}
-  return {fetch,revs,head,log,agentWrite,setHook:h=>{hook=h;},doc:()=>JSON.parse(head().text)};
+  // Zweiter Client: liest den Kopf, aendert, schreibt (wie der MCP: read-modify-write der ganzen Datei)
+  function remoteWrite(fn){const doc=JSON.parse(head().text);fn(doc);doc.saved=new Date().toISOString();return write(JSON.stringify(doc,null,2));}
+  return {fetch,revs,head,log,remoteWrite,setHook:h=>{hook=h;},doc:()=>JSON.parse(head().text)};
 }
 function seed(ls,data,extra){
   ls.setItem('rg_projects',JSON.stringify(data.projects.map(p=>({id:p.id,name:p.name,color:p.color}))));
@@ -114,36 +114,36 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(JSON.stringify(remote.projects)===JSON.stringify(exp.projects),'everything else on GitHub is unchanged');
   ok(await until(()=>env.doc.querySelector('.sync').textContent.includes('Live')),'status shows Live again');
 
-  // ── 3. Agent schreibt -> App zeigt es ohne F5 ──
-  console.log('3. agent writes, app shows it');
-  gh.agentWrite(doc=>{doc.projects[1].todos.push({id:'t_agent1',text:'AGENT NEW TASK',notes:'',status:'open',category:'labor',order:999,subtasks:[{id:'st_a1',text:'agent step',status:'open'}],priority:'high',focus:false});});
-  ok(await until(()=>env.doc.body.textContent.includes('AGENT NEW TASK'),5000),'agent task appears by itself');
-  ok(env.doc.body.textContent.includes('agent step'),'agent step appears');
+  // ── 3. Zweiter Client schreibt -> App zeigt es ohne F5 ──
+  console.log('3. remote writes, app shows it');
+  gh.remoteWrite(doc=>{doc.projects[1].todos.push({id:'t_remote1',text:'REMOTE NEW TASK',notes:'',status:'open',category:'labor',order:999,subtasks:[{id:'st_a1',text:'remote step',status:'open'}],priority:'high',focus:false});});
+  ok(await until(()=>env.doc.body.textContent.includes('REMOTE NEW TASK'),5000),'remote task appears by itself');
+  ok(env.doc.body.textContent.includes('remote step'),'remote step appears');
 
-  // ── 4. Gleichzeitig: Agent schreibt genau zwischen App-Lesen und App-PATCH -> beides bleibt ──
-  console.log('4. agent writes inside the upload window');
-  gh.setHook({beforePatch:async()=>{gh.agentWrite(doc=>{doc.projects[0].ideas.push({id:'idea_agent',title:'AGENT IDEA DURING UPLOAD',desc:'',createdAt:new Date().toISOString()});});}});
+  // ── 4. Gleichzeitig: zweiter Client schreibt genau zwischen App-Lesen und App-PATCH -> beides bleibt ──
+  console.log('4. remote writes inside the upload window');
+  gh.setHook({beforePatch:async()=>{gh.remoteWrite(doc=>{doc.projects[0].ideas.push({id:'idea_remote',title:'REMOTE IDEA DURING UPLOAD',desc:'',createdAt:new Date().toISOString()});});}});
   env.w.eval(`ui.adding=${JSON.stringify(P0+'|labor')};render()`);await tick();
-  let inp=env.doc.querySelector('.add-in[data-add="todo"]');typeIn(env,inp,'MY TASK DURING AGENT WRITE');key(env,inp,'Enter');
-  ok(await until(()=>{const d=gh.doc();return d.projects[0].todos.some(t=>t.text==='MY TASK DURING AGENT WRITE')&&d.projects[0].ideas.some(i=>i.id==='idea_agent');},6000),'both my task and the agent idea are on GitHub');
+  let inp=env.doc.querySelector('.add-in[data-add="todo"]');typeIn(env,inp,'MY TASK DURING REMOTE WRITE');key(env,inp,'Enter');
+  ok(await until(()=>{const d=gh.doc();return d.projects[0].todos.some(t=>t.text==='MY TASK DURING REMOTE WRITE')&&d.projects[0].ideas.some(i=>i.id==='idea_remote');},6000),'both my task and the remote idea are on GitHub');
   remote=gh.doc();
-  ok(remote.projects[1].todos.some(t=>t.id==='t_agent1'),'earlier agent task still there');
-  ok(remote.projects[0].todos.filter(t=>t.text==='MY TASK DURING AGENT WRITE').length===1,'my task exactly once');
-  ok(await until(()=>env.doc.body.textContent.includes('AGENT IDEA DURING UPLOAD')),'app shows the agent idea too');
+  ok(remote.projects[1].todos.some(t=>t.id==='t_remote1'),'earlier remote task still there');
+  ok(remote.projects[0].todos.filter(t=>t.text==='MY TASK DURING REMOTE WRITE').length===1,'my task exactly once');
+  ok(await until(()=>env.doc.body.textContent.includes('REMOTE IDEA DURING UPLOAD')),'app shows the remote idea too');
 
-  // ── 5. App hat alten Stand, Agent hat inzwischen geschrieben, Nutzer hakt ab -> kein Verlust, kein Dialog ──
+  // ── 5. App hat alten Stand, ein zweiter Client hat inzwischen geschrieben, Nutzer hakt ab -> kein Verlust, kein Dialog ──
   console.log('5. stale view + tick');
   env.w.document.dispatchEvent(new env.w.Event('visibilitychange'));
-  const agentOnlyV=gh.agentWrite(doc=>{doc.projects[0].todos.find(t=>t.id===t0.id).notes+='\nAGENT NOTE LINE';});
+  const remoteOnlyV=gh.remoteWrite(doc=>{doc.projects[0].todos.find(t=>t.id===t0.id).notes+='\nREMOTE NOTE LINE';});
   // sofort (bevor die App pollt) abhaken
   const s1=t0.subtasks.find(s=>s.id!==s0.id&&s.status!=='done'&&!s.archived)||s0;
   await setSt(env,s1.id,NEXT[s1.status||'open']);
-  ok(await until(()=>{const d=gh.doc();const tt=d.projects[0].todos.find(t=>t.id===t0.id);return tt.notes.includes('AGENT NOTE LINE')&&tt.subtasks.find(s=>s.id===s1.id).status!==(snap.projects[0].todos.find(t=>t.id===t0.id).subtasks.find(s=>s.id===s1.id).status||'open');},6000),'agent note AND my tick both on GitHub');
+  ok(await until(()=>{const d=gh.doc();const tt=d.projects[0].todos.find(t=>t.id===t0.id);return tt.notes.includes('REMOTE NOTE LINE')&&tt.subtasks.find(s=>s.id===s1.id).status!==(snap.projects[0].todos.find(t=>t.id===t0.id).subtasks.find(s=>s.id===s1.id).status||'open');},6000),'remote note AND my tick both on GitHub');
   ok(!env.doc.querySelector('.dlg'),'no conflict dialog');
 
   // ── 6. Detail-Schublade: Notiz bearbeiten, Status, Prioritaet, Focus exklusiv ──
   console.log('6. drawer editing');
-  const mine=gh.doc().projects[0].todos.find(t=>t.text==='MY TASK DURING AGENT WRITE');
+  const mine=gh.doc().projects[0].todos.find(t=>t.text==='MY TASK DURING REMOTE WRITE');
   env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P0)},id:${JSON.stringify(mine.id)}})`);await tick();
   click(env,'.drawer [data-act="edit"]');await tick();
   let ta=env.doc.querySelector('textarea[data-in="draft"]');typeIn(env,ta,'**bold** note\n\n| a | b |\n|---|---|\n| 1 | 2 |');key(env,ta,'Enter',{ctrlKey:true});await tick();
@@ -163,7 +163,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   // zurueck zum alten Focus
   const oldF=snap.projects[0].todos.find(t=>t.focus);
   if(oldF){env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P0)},id:${JSON.stringify(oldF.id)}})`);await tick();click(env,'.drawer [data-act="toggleFocus"]');ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===oldF.id).focus===true&&!gh.doc().projects[0].todos.find(t=>t.id===mine.id).focus),'focus moved back');}
-  // Archivieren statt Loeschen (Dominik 20.10.2026): mit Grund, alles bleibt erhalten
+  // Archivieren statt Loeschen: mit Grund, alles bleibt erhalten
   ok(!env.doc.querySelector('[data-act="delTodo"],[data-act="delStep"]'),'no delete button anywhere');
   env.w.eval(`openDrawer({type:'todo',pid:${JSON.stringify(P0)},id:${JSON.stringify(mine.id)}})`);await tick();
   click(env,'.drawer [data-act="archiveAsk"][data-kind="todo"]');await tick();
@@ -196,7 +196,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     ok(!!env.doc.querySelector(`.col[data-col="${p.id}"] .sec-h[data-k="sh-General"]`)===hasG,`${p.name}: General list ${hasG?'kept':'absent'} as its data says`);
     ok(!!env.doc.querySelector(`.col[data-col="${p.id}"] .sec-h[data-k="sh-labor"]`),`${p.name}: Lab list present`);
   });
-  // Eigene Liste anlegen (Dominik 06.11.2026): bleibt leer sichtbar, Tasks lassen sich hineinschieben
+  // Eigene Liste anlegen: bleibt leer sichtbar, Tasks lassen sich hineinschieben
   env.w.eval(`ui.menu='p:${P2}';render()`);await tick();click(env,`[data-act="newList"][data-pid="${P2}"]`);await tick();
   let ln=env.doc.querySelector('#ln');ok(ln&&env.doc.activeElement===ln,'new-list dialog opens with the name field focused');
   typeIn(env,ln,'lab');key(env,ln,'Enter');await tick();
@@ -326,16 +326,16 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(!env.doc.querySelector('.sub-in'),'Esc closes the input');
   ok(!env.doc.querySelector('.drawer'),'still no drawer');
   ok(await until(()=>{const s=gh.doc().projects[0].todos.find(t=>t.id===tq.id).subtasks||[];return s.slice(-2).map(x=>x.text).join('|')==='INLINE STEP 1|INLINE STEP 2';}),'both steps uploaded in order');
-  // Strg+Z: Aenderungen nacheinander zuruecknehmen, waehrend der Agent anderswo schreibt
-  gh.agentWrite(doc=>{doc.projects[0].todos.find(t=>t.id===tq.id).notes='AGENT NOTE DURING UNDO';});
-  ok(await until(()=>env.w.eval(`findT(${JSON.stringify(P0)},${JSON.stringify(tq.id)}).notes`)==='AGENT NOTE DURING UNDO'),'agent note arrived');
+  // Strg+Z: Aenderungen nacheinander zuruecknehmen, waehrend ein zweiter Client anderswo schreibt
+  gh.remoteWrite(doc=>{doc.projects[0].todos.find(t=>t.id===tq.id).notes='REMOTE NOTE DURING UNDO';});
+  ok(await until(()=>env.w.eval(`findT(${JSON.stringify(P0)},${JSON.stringify(tq.id)}).notes`)==='REMOTE NOTE DURING UNDO'),'remote note arrived');
   const body=env.doc.body,z=o=>key(env,body,'z',Object.assign({ctrlKey:true},o||{}));
   z();await tick();
   ok(await until(()=>{const s=gh.doc().projects[0].todos.find(t=>t.id===tq.id).subtasks||[];return !s.some(x=>x.text==='INLINE STEP 2')&&s.some(x=>x.text==='INLINE STEP 1');}),'Ctrl+Z removes the last step only');
   ok(env.doc.querySelector('.toast')&&env.doc.querySelector('.toast').textContent.includes('INLINE STEP 2'),'toast names what was undone');
   z();await tick();z();await tick();
   ok(await until(()=>{const t=gh.doc().projects[0].todos.find(t=>t.id===tq.id);return !(t.subtasks||[]).some(x=>x.text.startsWith('INLINE STEP'))&&t.priority===tq.priority;}),'two more Ctrl+Z: step 1 gone, old priority back');
-  ok(gh.doc().projects[0].todos.find(t=>t.id===tq.id).notes==='AGENT NOTE DURING UNDO','undo keeps what the agent wrote meanwhile');
+  ok(gh.doc().projects[0].todos.find(t=>t.id===tq.id).notes==='REMOTE NOTE DURING UNDO','undo keeps what the other client wrote meanwhile');
   key(env,body,'y',{ctrlKey:true});await tick();
   ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===tq.id).priority===prNew),'Ctrl+Y redoes the priority');
   // Versehentlich abgehakt -> Strg+Z (der gemeldete Fall)
@@ -377,12 +377,12 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(env.doc.querySelector('.drawer .md strong'),'entry opens, markdown rendered');
   const jBefore=JSON.stringify(snap.projects[1].journal.filter(e=>e.date!==today));
   ok(JSON.stringify(gh.doc().projects[1].journal.filter(e=>e.date!==today))===jBefore,'other journal days untouched');
-  // Agent schreibt denselben Tag parallel -> beide Abschnitte bleiben
-  gh.agentWrite(doc=>{let e=doc.projects[1].journal.find(e=>e.date===today);e.sections.push({id:'js_agent',title:'AGENT SECTION',content:'x'});});
-  ok(await until(()=>env.w.eval(`S.data[${JSON.stringify(P1)}].journal.find(e=>e.date===${JSON.stringify(today)}).sections.length`)>=2),'agent section arrives');
+  // Zweiter Client schreibt denselben Tag parallel -> beide Abschnitte bleiben
+  gh.remoteWrite(doc=>{let e=doc.projects[1].journal.find(e=>e.date===today);e.sections.push({id:'js_remote',title:'REMOTE SECTION',content:'x'});});
+  ok(await until(()=>env.w.eval(`S.data[${JSON.stringify(P1)}].journal.find(e=>e.date===${JSON.stringify(today)}).sections.length`)>=2),'remote section arrives');
   click(env,`.drawer [data-act="jwrite"][data-date="${today}"]`);await tick();
   typeIn(env,env.doc.querySelector('#jwc'),'second own line');click(env,'[data-act="jsave"]');
-  ok(await until(()=>{const e=gh.doc().projects[1].journal.find(e=>e.date===today);return e.sections.slice(-3).map(s=>s.title).join('|')==='MY OWN JOURNAL|AGENT SECTION|Note';}),'own + agent + own sections, in order, same day');
+  ok(await until(()=>{const e=gh.doc().projects[1].journal.find(e=>e.date===today);return e.sections.slice(-3).map(s=>s.title).join('|')==='MY OWN JOURNAL|REMOTE SECTION|Note';}),'own + remote + own sections, in order, same day');
   ok(gh.doc().projects[1].journal.filter(e=>e.date===today).length===1,'still one entry for the day');  click(env,'[data-act="page"][data-v="tasks"]');await tick();env.doc.activeElement&&env.doc.activeElement.blur&&env.doc.activeElement.blur();
   // Neue Idee: Strg+Z archiviert, loescht nie
   env.w.eval(`ui.adding=${JSON.stringify(P0+'|idea')};render()`);await tick();
@@ -452,10 +452,10 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     await setSt(env,ti.id,'blocked');await tick();
     ok(env.doc.querySelector('.drawer')&&String((env.doc.activeElement.dataset||{}).key||'').startsWith('todo.blockedBy'),'picking blocked opens the details with the cursor in "Waiting for"');
     env.w.eval('ui.drawer=null;render()');await tick();}
-   // unbekannter Status vom Agenten: die Seite bleibt stehen und nennt ihn
+   // unbekannter Status von einem zweiten Client: die Seite bleibt stehen und nennt ihn
    const P=snap.projects.find(pr=>(pr.todos||[]).some(t=>liveX(t)&&t.status==='open')),PI=snap.projects.indexOf(P),tu=P.todos.find(t=>liveX(t)&&t.status==='open');
-   gh.agentWrite(doc=>{doc.projects[PI].todos.find(t=>t.id===tu.id).status='on_hold';});
-   ok(await until(()=>env.w.eval(`findT(${J(P.id)},${J(tu.id)}).status`)==='on_hold'),'agent wrote a status the app does not know');
+   gh.remoteWrite(doc=>{doc.projects[PI].todos.find(t=>t.id===tu.id).status='on_hold';});
+   ok(await until(()=>env.w.eval(`findT(${J(P.id)},${J(tu.id)}).status`)==='on_hold'),'another client wrote a status the app does not know');
    await tick();
    ok(env.doc.querySelectorAll('.col').length===NC,'all columns still there (the Tasks page used to go blank)');
    const urow=env.doc.querySelector(box(tu.id));ok(urow&&urow.closest('.t').textContent.includes('on_hold'),'the row names the unknown status');
@@ -493,8 +493,8 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    if(PD){const DI=snap.projects.indexOf(PD),col=`.col[data-col="${PD.id}"]`;
     const dn=PD.todos.find(t=>liveX(t)&&t.status==='done'),el=PD.elements.find(e=>liveX(e)&&e.status!=='abandoned'&&(e.log||[]).length),jd=PD.journal.find(e=>(e.sections||[]).length>3);
     // eindeutige Woerter an drei Stellen, die die Suche frueher nicht erreichte
-    gh.agentWrite(doc=>{const p=doc.projects[DI];const t=p.todos.find(t=>t.id===dn.id);t.notes=(t.notes||'')+'\nZZDONEWORD';p.elements.find(e=>e.id===el.id).log.push({time:'2026-11-11T09:00:00.000Z',msg:'measured ZZLOGWORD today'});const s=p.journal.find(e=>e.id===jd.id).sections[3];s.content=(s.content||'')+'\nZZJRNWORD';});
-    ok(await until(()=>String(env.w.eval(`findT(${J(PD.id)},${J(dn.id)}).notes`)).includes('ZZDONEWORD')),'agent data arrived');
+    gh.remoteWrite(doc=>{const p=doc.projects[DI];const t=p.todos.find(t=>t.id===dn.id);t.notes=(t.notes||'')+'\nZZDONEWORD';p.elements.find(e=>e.id===el.id).log.push({time:'2026-11-11T09:00:00.000Z',msg:'measured ZZLOGWORD today'});const s=p.journal.find(e=>e.id===jd.id).sections[3];s.content=(s.content||'')+'\nZZJRNWORD';});
+    ok(await until(()=>String(env.w.eval(`findT(${J(PD.id)},${J(dn.id)}).notes`)).includes('ZZDONEWORD')),'remote data arrived');
     click(env,'[data-act="page"][data-v="journal"]');await tick();
     const jrow=env.doc.querySelector(col+` .jd[data-k="j-${jd.id}"]`);
     ok(jrow&&jrow.querySelectorAll('.x div').length===jd.sections.length,'a journal day lists every section title ('+jd.sections.length+', it used to stop at 3)');
@@ -758,14 +758,14 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
      {id:'a',title:'ZZ Group meeting',allDay:false,start:at(10,0),end:at(11,0),location:'Seminar room 2',description:'Agenda:\n\n- **ZZ-progress** report\n- budget',link:'https://calendar.example.org/event?eid=a_b',attendees:['ZZ Person One','ZZ Person Two']},
      {id:'b',title:'ZZ Thesis committee',allDay:true,start:today,end:today},
      {id:'c',title:'ZZ Early call',allDay:false,start:at(8,30),end:at(9,0)}]}};
-   gh.agentWrite(doc=>{doc.calendar=cal;});
+   gh.remoteWrite(doc=>{doc.calendar=cal;});
    const gc=()=>[...env.doc.querySelectorAll('.cd.now .ce.gc')];
-   ok(await until(()=>gc().length===3),'the agent copied three appointments for today: they appear without a reload');
+   ok(await until(()=>gc().length===3),'another client copied three appointments for today: they appear without a reload');
    const tx=gc().map(x=>x.textContent);
    ok(tx.length===3&&tx[0].includes('ZZ Thesis committee')&&tx[1].includes('08:30')&&tx[1].includes('ZZ Early call')&&tx[2].includes('10:00')&&tx[2].includes('Seminar room 2'),'all-day first, then by time, with time and place: '+tx.join(' | '));
    ok(env.doc.querySelector('.cd.now .cdn').nextElementSibling.classList.contains('gc'),'appointments stand at the top of the day');
    ok(env.doc.querySelector('.cal-l .gc-l')&&!env.doc.querySelector('.cal-l .gc-old'),'the legend names Google Calendar; no warning while the copy is fresh');
-   // Detailfeld (Dominik 12.11.2026): jeder Kalendereintrag oeffnet wie alles andere seine Details, mit Beschreibung
+   // Detailfeld: jeder Kalendereintrag oeffnet wie alles andere seine Details, mit Beschreibung
    ok(gc().every(x=>x.tagName==='BUTTON'&&x.dataset.act==='open'&&x.dataset.type==='cal'),'every appointment opens its details on a click');
    ok(gc().filter(x=>x.querySelector('.gcn')).length===1&&gc()[2].querySelector('.gcn'),'the row marks the one that carries a description');
    gc()[2].dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();
@@ -775,11 +775,11 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     ok(dw&&tx.includes('ZZ Person One, ZZ Person Two')&&dw.querySelector('a[href="https://calendar.example.org/event?eid=a_b"]'),'and who is there and the link');
     ok(dw&&!dw.querySelector('textarea,input,[data-act="archiveAsk"]'),'read-only: nothing to edit, nothing to archive');}
    key(env,env.doc.body,'Escape');await tick();ok(!env.doc.querySelector('.drawer'),'Esc closes the details');
-   // eigene Eintraege des Agenten (calendar.events): gleiche Zeile, gleiches Detailfeld; archivierte ausgeblendet
+   // eigene Eintraege eines zweiten Clients (calendar.events): gleiche Zeile, gleiches Detailfeld; archivierte ausgeblendet
    cal.events=[{id:'o1',title:'ZZ Order primers',allDay:false,start:at(14,0),end:at(14,30),description:'Stock of **ZZ-primer** is empty.',createdAt:new Date().toISOString()},
      {id:'o2',title:'ZZ Dropped entry',allDay:true,start:today,end:today,archived:true,archivedAt:new Date().toISOString(),archivedReason:'moved'}];
-   gh.agentWrite(doc=>{doc.calendar=cal;});
-   ok(await until(()=>gc().length===4),'an entry the agent added itself appears next to the Google ones; the archived one stays hidden');
+   gh.remoteWrite(doc=>{doc.calendar=cal;});
+   ok(await until(()=>gc().length===4),'an entry another client added appears next to the Google ones; the archived one stays hidden');
    {const own=gc()[3];
     ok(own.textContent.includes('14:00')&&own.textContent.includes('ZZ Order primers')&&own.className===gc()[2].className&&own.querySelector('.ab').textContent==='C'&&gc()[2].querySelector('.ab').textContent==='G','same row as a Google appointment, sorted by time, origin as a letter (G / C)');
     ok(!!env.doc.querySelector('.cal-l .gc-o'),'the legend names the calendar entries');
@@ -798,7 +798,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===tg.id).priority===pg),'the app uploaded a change of its own');
    ok(JSON.stringify(gh.doc().calendar)===JSON.stringify(cal),'and the calendar block in the gist is untouched by it');
    // jeder Zeitraum: ein dreitaegiger Termin in zwei Jahren; die Kopie ist drei Tage alt
-   gh.agentWrite(doc=>{doc.calendar.google.events=[{id:'d',title:'ZZ Conference',allDay:true,start:'2028-06-05',end:'2028-06-07'}];doc.calendar.google.checkedAt=new Date(Date.now()-3*86400000).toISOString();});
+   gh.remoteWrite(doc=>{doc.calendar.google.events=[{id:'d',title:'ZZ Conference',allDay:true,start:'2028-06-05',end:'2028-06-07'}];doc.calendar.google.checkedAt=new Date(Date.now()-3*86400000).toISOString();});
    click(env,'[data-act="page"][data-v="calendar"]');await tick();
    ok(await until(()=>env.w.eval('S.calendar&&S.calendar.google.events.length')===1),'new copy arrived');
    env.w.eval(`calGoto('2028-06-01')`);await tick();
@@ -816,7 +816,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    env.w.close();
   }
 
-  // ── 22. Eigene Kalendereintraege in der App anlegen, bearbeiten, archivieren (Dominik 12.11.2026: "sollte moeglich sein sie manuell zu machen") ──
+  // ── 22. Eigene Kalendereintraege in der App anlegen, bearbeiten, archivieren ──
   console.log('22. calendar entries made in the app');
   {
    const today=new Date().toLocaleDateString('en-CA'),at=(h,m,n)=>{const d=new Date();d.setDate(d.getDate()+(n||0));d.setHours(h,m,0,0);return d.toISOString();};
@@ -829,7 +829,7 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    const gBefore=JSON.stringify(gh.doc().calendar.google),pBefore=JSON.stringify(gh.doc().projects);
    const own=()=>gh.doc().calendar.events||[],byT=t=>own().find(e=>e.title===t);
    const chg=(sel,v)=>{const el=env.doc.querySelector(sel);if(!el)throw new Error('missing '+sel);el.value=v;el.dispatchEvent(new env.w.Event('change',{bubbles:true}));};
-   // anlegen (Dominik 12.11.2026 abends): ＋ oeffnet EIN kleines Fenster mit allem Wichtigen — kein Nachstellen in den Details
+   // anlegen: ＋ oeffnet EIN kleines Fenster mit allem Wichtigen — kein Nachstellen in den Details
    const fill=f=>Object.entries(f).forEach(([id,v])=>typeIn(env,env.doc.querySelector('#'+id),v));
    const dlgErr=()=>(env.doc.querySelector('.dlg .err')||{}).textContent||'';
    click(env,'.cal-h [data-act="calNew"]');await tick();
@@ -907,26 +907,26 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    ok(!!env.doc.querySelector('.dlg #cnt'),'a stray click beside the window does not throw away what was typed');
    key(env,env.doc.querySelector('#cnt'),'Escape');await tick();
    ok(!env.doc.querySelector('.dlg')&&!byT('ZZ Half typed'),'Esc cancels without adding');
-   // der Agent schreibt gleichzeitig einen eigenen Eintrag: beide bleiben
-   gh.agentWrite(doc=>{doc.calendar.events.push({id:'cal_agent1',title:'ZZ From agent',allDay:true,start:today,end:today,createdAt:new Date().toISOString()});});
-   ok(await until(()=>[...env.doc.querySelectorAll('.cal-g .ce.gc')].some(x=>x.dataset.id==='cal_agent1')),'an entry the agent adds appears next to the ones made here');
+   // ein zweiter Client schreibt gleichzeitig einen eigenen Eintrag: beide bleiben
+   gh.remoteWrite(doc=>{doc.calendar.events.push({id:'cal_remote1',title:'ZZ From elsewhere',allDay:true,start:today,end:today,createdAt:new Date().toISOString()});});
+   ok(await until(()=>[...env.doc.querySelectorAll('.cal-g .ce.gc')].some(x=>x.dataset.id==='cal_remote1')),'an entry another client adds appears next to the ones made here');
    // archivieren mit Grund, Liste, wiederherstellen, Strg+Z
-   [...env.doc.querySelectorAll('.cal-g .ce.gc')].find(x=>x.dataset.id==='cal_agent1').dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();
-   ok(T('textarea[data-key^="cal.title"]'),'the agent’s entry is editable here too (one kind of entry)');
+   [...env.doc.querySelectorAll('.cal-g .ce.gc')].find(x=>x.dataset.id==='cal_remote1').dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();
+   ok(T('textarea[data-key^="cal.title"]'),'the other client’s entry is editable here too (one kind of entry)');
    click(env,'.drawer [data-act="archiveAsk"][data-kind="cal"]');await tick();
    typeIn(env,env.doc.querySelector('#arr'),'cancelled');click(env,'[data-act="doArchive"]');await tick();
-   ok(await until(()=>{const e=own().find(x=>x.id==='cal_agent1');return e.archived===true&&e.archivedReason==='cancelled'&&!!e.archivedAt;}),'archiving stores date and reason; nothing is removed');
-   ok(own().length===5&&!env.doc.querySelector('.drawer')&&![...env.doc.querySelectorAll('.cal-g .ce.gc')].some(x=>x.dataset.id==='cal_agent1'),'the entry left the calendar, all five are still in the gist');
+   ok(await until(()=>{const e=own().find(x=>x.id==='cal_remote1');return e.archived===true&&e.archivedReason==='cancelled'&&!!e.archivedAt;}),'archiving stores date and reason; nothing is removed');
+   ok(own().length===5&&!env.doc.querySelector('.drawer')&&![...env.doc.querySelectorAll('.cal-g .ce.gc')].some(x=>x.dataset.id==='cal_remote1'),'the entry left the calendar, all five are still in the gist');
    ok(env.doc.querySelector('[data-act="calArchived"]')&&env.doc.querySelector('[data-act="calArchived"]').textContent.includes('1 archived'),'the calendar head says that one entry is archived');
    click(env,'[data-act="calArchived"]');await tick();
-   ok(env.doc.querySelector('.dlg')&&env.doc.querySelector('.dlg').textContent.includes('ZZ From agent')&&env.doc.querySelector('.dlg').textContent.includes('cancelled'),'the list shows it with its reason');
+   ok(env.doc.querySelector('.dlg')&&env.doc.querySelector('.dlg').textContent.includes('ZZ From elsewhere')&&env.doc.querySelector('.dlg').textContent.includes('cancelled'),'the list shows it with its reason');
    click(env,'.dlg [data-act="restore"][data-kind="cal"]');await tick();
-   ok(await until(()=>!('archived' in own().find(x=>x.id==='cal_agent1'))),'Restore brings it back');
+   ok(await until(()=>!('archived' in own().find(x=>x.id==='cal_remote1'))),'Restore brings it back');
    click(env,'[data-act="closeDialog"]');await tick();
    key(env,env.doc.body,'z',{ctrlKey:true});await tick();
-   ok(await until(()=>own().find(x=>x.id==='cal_agent1').archived===true),'Ctrl+Z takes the restore back');
+   ok(await until(()=>own().find(x=>x.id==='cal_remote1').archived===true),'Ctrl+Z takes the restore back');
    key(env,env.doc.body,'y',{ctrlKey:true});await tick();
-   ok(await until(()=>!own().find(x=>x.id==='cal_agent1').archived),'Ctrl+Y redoes it');
+   ok(await until(()=>!own().find(x=>x.id==='cal_remote1').archived),'Ctrl+Y redoes it');
    // Strg+Z nach dem Anlegen archiviert (loescht nicht)
    click(env,'.cal-h [data-act="calNew"]');await tick();
    fill({cnt:'ZZ Oops'});click(env,'[data-act="calSave"]');await tick();

@@ -1,5 +1,9 @@
+# Das Repo ist public und enthaelt nur die App (overview.html, index.html) und ihre Tests.
+# Alles andere — Projektdoku, Arbeitsdokumente, lokale Werkzeuge, Daten, Prototypen — bleibt lokal.
 CLAUDE.md
 VISION.md
+PROJECT.md
+docs/
 thesis_data.json
 *_backup.json
 *.log
@@ -9,8 +13,6 @@ thesis_data.json
 *.gbk
 Kontext/
 ResearchGraph/
-# MCP-Server (31.07.2026 aus Projects/ hierher gezogen). NIE committen: index.js hat die
-# Gist-ID hartcodiert, und dieses Repo ist public — secret Gists sind mit der URL frei lesbar.
 ResearchGraphMCP/
 deploy/
 .claude/
@@ -18,11 +20,4 @@ Untitled
 graph.html
 Screenshot*
 .planning/
-
-# UI-Prototypen (19.10.2026): enthalten eine eingebettete Kopie der Labordaten -> NIE committen (Repo ist public)
 prototypes/
-
-# Persoenliche Arbeitsdokumente (Dominik 19.10.2026: "die bleiben nur lokal") — Repo ist public
-docs/plans/
-docs/ResearchGraph_Anforderungen-Interview_*.md
-docs/ResearchGraph_Sync-Recherche_*.md
