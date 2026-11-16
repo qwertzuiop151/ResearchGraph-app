@@ -520,7 +520,12 @@ div.ce.gc{cursor:default}
 [data-phone] .pages.bot button.on{color:var(--ink);font-weight:700;box-shadow:inset 0 3px 0 var(--ink)}
 [data-phone] .board{padding:0}
 [data-phone] .one{border:0;border-radius:0}
-[data-phone] .one-b>div{padding:0 10px 48px}
+[data-phone] .one-b>div{padding:0 10px 48px;position:relative}
+[data-phone] .pj>.col-h{margin:0 -10px;height:40px;padding:0 14px;border-radius:0}
+[data-phone] .pj+.pj{margin-top:22px}
+[data-phone] .pj>.col-h+.sec-h{margin-top:0;border-top:0}
+[data-phone] .pj>.col-h+.t{margin-top:6px}
+[data-phone] .pj>.col-h+.t::before{display:none}
 [data-phone] .sec-h{margin:14px -10px 4px;height:42px;font-size:14px;padding:0 10px 0 14px}
 [data-phone] .sec-h .c{font-size:13px;line-height:20px;padding:0 8px}
 [data-phone] .sec-h .add{width:42px;height:32px;font-size:20px}
@@ -652,7 +657,7 @@ function nowIso(){return new Date().toISOString();}
 function fmtDate(iso,o){if(!iso)return '';const d=new Date(String(iso).length===10?iso+'T12:00:00':iso);return isNaN(d)?String(iso):d.toLocaleDateString('en-GB',o||{day:'numeric',month:'short',year:'numeric'});}
 function fmtDT(iso){if(!iso)return '';const d=new Date(iso);return isNaN(d)?String(iso):d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
 function snip(s,n){s=String(s||'').replace(/```[\s\S]*?```/g,' ').replace(/[#*_`>|~]+/g,' ').replace(/\s+/g,' ').trim();return n&&s.length>n?s.slice(0,n-1)+'…':s;}
-function plural(n,w){return n+' '+w+(n===1?'':'s');}
+function plural(n,w){return n+' '+w+(n===1?'':/(s|x|ch|sh)$/.test(w)?'es':'s');}
 function lsGet(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v!=null?v:d;}catch{return d;}}
 function lsSet(k,v){try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v));return true;}catch(e){console.error(e);toast('This browser could not store data ('+(e.name||'error')+').','err');return false;}}
 // cap = Anfragen/Minute insgesamt; wcap/wcapH = Schreibvorgaenge pro Minute/Stunde (GitHub begrenzt inhalterzeugende Anfragen gesondert)
@@ -1337,8 +1342,10 @@ function calSetWhen(id,f,v){
   changeCal(()=>{ev.start=start;ev.end=end;ev.modifiedAt=nowIso();});
 }
 function hitCounts(){const o={tasks:0,board:0,journal:0,calendar:0};o.calendar=calEntries('0000-01-01','9999-12-31').length;visibleProjects().forEach(p=>{const d=S.data[p.id];if(!d)return;
-  o.tasks+=d.todos.filter(todoHit).length+d.ideas.filter(i=>hit(i.title,i.desc)).length;
-  o.board+=d.elements.filter(e=>!isArch(e)&&elHit(d,e)).length;o.journal+=d.journal.filter(jHit).length;});return o;}
+  const h=hitOf(d);o.tasks+=h.tasks;o.board+=h.board;o.journal+=h.journal;});return o;}
+function hitOf(d){return {tasks:d.todos.filter(todoHit).length+d.ideas.filter(i=>hit(i.title,i.desc)).length,board:d.elements.filter(e=>!isArch(e)&&elHit(d,e)).length,journal:d.journal.filter(jHit).length};}
+// Handy: unter der Suche zeigt jede Seite ausser dem Kalender die Treffer ALLER Projekte untereinander (am Desktop leisten das die Spalten)
+function foundMode(){return isPhone()&&!!qq()&&ui.page!=='calendar';}
 // Letzte Aktivitaet (juengster Log-Eintrag) und offene verknuepfte Tasks/Schritte eines Elements — fuer die Board-Zeile
 function elMeta(d,e){let last='';(e.log||[]).forEach(l=>{if(l&&l.time&&String(l.time)>last)last=String(l.time);});let n=0;
   d.todos.forEach(t=>{if(isArch(t)||closedT(t))return;if(t.elementId===e.id)n++;(t.subtasks||[]).forEach(s=>{if(s.elementId===e.id&&!isArch(s)&&!closedS(s))n++;});});return {last,n};}
@@ -1361,6 +1368,7 @@ const ui={
   closedOpen:new Set(lsGet('rg3_closed',[])), // Projekte, deren "Closed"-Liste aufgeklappt ist
   pick:null, // Zeile, deren Status- oder Prioritaets-Auswahl gerade offen ist (ort:pid|tid[|sid])
   calDay:null, // Handy: oberster sichtbarer Tag der Kalender-Tagesliste
+  jump:null, // Handy-Trefferliste: Projekt, dessen Block nach dem Zeichnen nach oben soll ('' = Anfang)
   calAll:true // Handy: Kalender ueber alle Projekte (true) oder nur das gewaehlte
 };
 // Schmaler Bildschirm (Handy): ein Projekt pro Bildschirm, Abschnitte untereinander, Projekte als Reiter oben, Seiten unten.
@@ -1393,6 +1401,7 @@ function renderNow(){
   calPlace(app.querySelector('.cal-g'),g0,anc);
   app.querySelectorAll('textarea[data-auto]').forEach(autosize);
   if(ph){syncBack();const on=app.querySelector('.ptabs .tabs button.on'),k=on?on.dataset.pid||'all':'';if(on&&k!==_tabShown&&on.scrollIntoView)on.scrollIntoView({block:'nearest',inline:'nearest'});_tabShown=k;}
+  if(ui.jump!=null){const sc=app.querySelector('.one.found .one-b>div'),b=ui.jump?app.querySelector('.pj[data-pj="'+CSS.escape(ui.jump)+'"]'):null;ui.jump=null;if(sc)sc.scrollTop=b?b.offsetTop:0;} // Trefferliste: Reiter springt zum Block seines Projekts
   if(ui.focusSel){const el=document.querySelector(ui.focusSel);ui.focusSel=null;if(el){el.focus();if(el.select&&el.dataset.sel)el.select();}}
 }
 function morph(a,b){
@@ -1437,7 +1446,7 @@ function renderTop(){
   if(isPhone()){
     // Handy: Suche + Sync + Menue in einer Zeile, darunter die Projekte als Reiter (mit ihrer Zahl) und das Projektmenue.
     // Was am Desktop in der Kopfzeile steht und hier keinen Platz hat, liegt im Menue; die Seiten stehen unten (renderBottom).
-    const cur=projById(onePid()),cal=ui.page==='calendar',allOn=cal&&ui.calAll;
+    const cur=projById(onePid()),cal=ui.page==='calendar',found=foundMode(),allOn=found||(cal&&ui.calAll);
     const mi=(act,label,extra)=>`<button data-act="${act}" data-close="1"${extra||''}>${label}</button>`;
     const menu=ui.menu==='main'?`<div class="menu" data-k="menu-main">
       ${ui.page==='tasks'?mi('toggleDone',ui.hideDone?'Show closed steps':'Hide closed steps'):''}
@@ -1453,7 +1462,7 @@ function renderTop(){
     ${sync}
     <span class="menu-wrap"><button class="icon" data-act="menu" data-v="main" aria-label="Menu">${IC_MORE}</button>${menu}</span>
   </header>${vis.length?`<div class="ptabs" data-k="ptabs">
-    <nav class="tabs" aria-label="Projects">${cal?`<button class="all${allOn?' on':''}" data-act="calAll" aria-pressed="${allOn}">All</button>`:''}${vis.map(p=>{const on=!allOn&&cur&&p.id===cur.id;return `<button class="${on?'on':''}" style="${projVars(p)}" data-act="pickOne" data-pid="${esc(p.id)}" aria-pressed="${!!on}"><span class="dot"></span>${p.frozen?'❄ ':''}${esc(p.name)}${cal?'':`<span class="n">${countNum(p,S.data[p.id])}</span>`}</button>`;}).join('')}</nav>
+    <nav class="tabs" aria-label="Projects">${cal||found?`<button class="all${allOn?' on':''}" data-act="${found?'foundTop':'calAll'}" aria-pressed="${allOn}">All</button>`:''}${vis.map(p=>{const on=!allOn&&cur&&p.id===cur.id;return `<button class="${on?'on':''}" style="${projVars(p)}" data-act="pickOne" data-pid="${esc(p.id)}" aria-pressed="${!!on}"><span class="dot"></span>${p.frozen?'❄ ':''}${esc(p.name)}${cal?'':`<span class="n">${found?hitOf(S.data[p.id])[ui.page]:countNum(p,S.data[p.id])}</span>`}</button>`;}).join('')}</nav>
     ${cur&&!allOn?`<span class="menu-wrap"><button class="icon" data-act="menu" data-v="p:${esc(cur.id)}" aria-label="Project menu for ${esc(cur.name)}">${IC_MORE}</button>${projMenu(cur)}</span>`:''}
   </div>`:''}`;
   }
@@ -1547,6 +1556,7 @@ function renderMain(){
   if(ui.page==='calendar'&&visibleProjects().length)return renderCalendar();
   const projs=visibleProjects();
   if(!projs.length)return `<main class="board" data-k="main"><div class="nodata">${ghToken?'No active project. Use ⋯ → New project.':'Connect GitHub (top right) to load your ResearchGraph data.'}</div></main>`;
+  if(foundMode())return `<main class="board" data-k="main-found-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${renderFound()}</div></main>`;
   if(oneMode()){const p=projById(onePid());return `<main class="board" data-k="main-one-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${renderOne(p)}</div></main>`;}
   let html='',prevOpen=null;
   const open=projs.filter(p=>!ui.collapsed.has(p.id)).map(p=>p.id),known=open.map(id=>ui.colw[id]).filter(Boolean);
@@ -1576,11 +1586,11 @@ function taskParts(p){
   const d=S.data[p.id],pid=p.id,f=focusOf(d);
   const open=d.todos.filter(t=>!closedT(t)&&!isArch(t));
   const cats=projCats(p);
-  const parts={focus:(f&&!closedT(f)&&todoHit(f))?renderTodo(p,f,true):'',cats:{}};
+  const parts={focus:(f&&!closedT(f)&&todoHit(f))?renderTodo(p,f,true):'',cats:{}},cn={};
   cats.forEach(c=>{
     const list=open.filter(t=>sameCat(tCat(t),c)&&!(f&&t.id===f.id)&&todoHit(t)).sort(byPrio);
     const label=catLabel(c);
-    const add=ui.adding===pid+'|'+c;
+    const add=ui.adding===pid+'|'+c;cn[c]=list.length||add;
     parts.cats[c]=`<div class="sec-h" data-k="sh-${esc(c)}"><i class="sec-ic">${c==='labor'?IC_LAB:IC_GEN}</i><span>${esc(label)}</span><span class="c">${list.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|'+c)}" title="Add a ${esc(label.toLowerCase())} task" aria-label="Add a ${esc(label.toLowerCase())} task">＋</button></div>`
       +(add?`<input class="add-in" data-k="ai-${esc(c)}" data-add="todo" data-pid="${esc(pid)}" data-cat="${esc(c)}" placeholder="New task — Enter adds, Esc stops">`:'')
       +list.map(t=>renderTodo(p,t,false)).join('');
@@ -1600,6 +1610,8 @@ function taskParts(p){
   const openC=!!q||ui.closedOpen.has(pid);
   parts.closed=(closedAll.length||rows.length)?`<div class="sec-h cl-h" data-k="sh-closed" data-act="toggleClosed" data-pid="${esc(pid)}" title="${openC?'Hide':'Show'} the closed tasks"><i class="sec-ic">${CB_ICON.done}</i><span>Closed</span><span class="c">${q?rows.length:closedAll.length}</span><button class="add" data-act="toggleClosed" data-pid="${esc(pid)}" aria-expanded="${openC}" aria-label="${openC?'Hide':'Show'} closed tasks">${openC?'▾':'▸'}</button></div>`
     +(openC?rows.map(t=>closedRow(p,t,when(t))).join(''):''):'';
+  if(foundMode()){ // Trefferliste ueber alle Projekte: Abschnitte ohne Treffer weglassen, sonst stuenden je Projekt leere Koepfe da
+    cats.forEach(c=>{if(!cn[c])parts.cats[c]='';});if(!ideas.length&&!addI)parts.ideas='';if(!rows.length)parts.closed='';}
   return parts;
 }
 // Zeile der Closed-Liste: Status-Kaestchen (holt die Task ueber die Auswahl zurueck), Titel (oeffnet alles Weitere), Datum
@@ -1630,6 +1642,15 @@ function renderCol(p,def){
   else if(ui.page==='journal')body=journalBody(p,d);
   else{const x=taskParts(p);body=x.focus+Object.values(x.cats).join('')+x.ideas+x.closed;}
   return `<section class="col${p.frozen?' frozen':''}" data-k="col-${esc(pid)}" data-col="${esc(pid)}" style="${colStyle(pid,def)};${projVars(p)}">${colHead(p,countLabel(p,d))}<div class="col-b" data-k="cb-${esc(pid)}">${body}</div></section>`;
+}
+// Handy + Suche: je Projekt mit Treffern ein Block (Kopf in Projektfarbe mit der Trefferzahl), alle untereinander in einer Liste
+function renderFound(){
+  const blocks=visibleProjects().map(p=>{
+    const d=S.data[p.id],n=d?hitOf(d)[ui.page]:0;if(!n)return '';
+    const x=ui.page==='tasks'?taskParts(p):null;
+    const body=ui.page==='board'?boardGroups(p,d).join(''):ui.page==='journal'?journalBody(p,d,true):x.focus+Object.values(x.cats).join('')+x.ideas+x.closed;
+    return `<section class="pj" data-k="pj-${esc(p.id)}" data-pj="${esc(p.id)}" style="${projVars(p)}"><div class="col-h"><h2>${p.frozen?'❄ ':''}${esc(p.name)}</h2><span class="n">${plural(n,'match')}</span></div>${body}</section>`;}).join('');
+  return `<section class="one found" data-k="found-${ui.page}"><div class="one-b" style="--n:1"><div data-k="oc-0">${blocks||'<div class="empty">No matches on this page.</div>'}</div></div></section>`;
 }
 // Ein Projekt ueber die ganze Breite: Lab | General | Ideas nebeneinander (Board: Status nebeneinander)
 function renderOne(p){
@@ -1719,13 +1740,13 @@ function boardGroups(p,d){
 }
 function elNewBtn(pid){return `<button class="md-empty" style="margin:6px 0 4px" data-k="en" data-act="elNew" data-pid="${esc(pid)}">＋ New element</button>`;}
 function boardBody(p,d){return elNewBtn(p.id)+(boardGroups(p,d).join('')||'<div class="empty">No elements.</div>');}
-function journalBody(p,d){
+function journalBody(p,d,bare){ // bare: nur die Tage, ohne den Schreiben-Knopf (Trefferliste)
   const pid=p.id;
   const q=qq();
   const list=[...d.journal].filter(jHit).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   // Jeder Abschnitt eines Tages mit Titel (frueher nur die ersten drei). Unter der Suche: nur die Abschnitte mit Treffer, samt Fundstelle.
   const secs=e=>{const all=e.sections||[];if(!q)return all;const m=all.filter(secHit);return m.length?m:all;};
-  return `<button class="md-empty" style="margin:6px 0 4px" data-k="jw" data-act="jwrite" data-pid="${esc(pid)}">＋ Write a journal entry</button>`+list.map(e=>`<button class="jd" data-k="j-${esc(e.id)}" data-act="open" data-type="entry" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><span class="d">${esc(fmtDate(e.date,{day:'numeric',month:'short'}))}</span><span class="x">${secs(e).map(s=>{const sn=hitSnip([s.title],[s.content]);return `<div>${esc(snip(s.title,90))}</div>${sn?`<div class="sn">${esc(sn)}</div>`:''}`;}).join('')}</span></button>`).join('')||'<div class="empty">No entries.</div>';
+  return (bare?'':`<button class="md-empty" style="margin:6px 0 4px" data-k="jw" data-act="jwrite" data-pid="${esc(pid)}">＋ Write a journal entry</button>`)+list.map(e=>`<button class="jd" data-k="j-${esc(e.id)}" data-act="open" data-type="entry" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><span class="d">${esc(fmtDate(e.date,{day:'numeric',month:'short'}))}</span><span class="x">${secs(e).map(s=>{const sn=hitSnip([s.title],[s.content]);return `<div>${esc(snip(s.title,90))}</div>${sn?`<div class="sn">${esc(sn)}</div>`:''}`;}).join('')}</span></button>`).join('')||'<div class="empty">No entries.</div>';
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2074,7 +2095,8 @@ const ACT={
   menu:el=>{ui.menu=ui.menu===A(el).v?null:A(el).v;render();},
   closeToast:()=>{ui.toast=null;render();},
   mode:el=>{ui.mode=A(el).v;localStorage.setItem('rg3_mode',ui.mode);render();},
-  pickOne:el=>{ui.one=A(el).pid;if(ui.page==='calendar')ui.calAll=false;localStorage.setItem('rg3_one',ui.one);render();},
+  foundTop:()=>{ui.jump='';render();},
+  pickOne:el=>{ui.one=A(el).pid;if(ui.page==='calendar')ui.calAll=false;if(foundMode())ui.jump=A(el).pid;localStorage.setItem('rg3_one',ui.one);render();},
   calAll:()=>{ui.calAll=true;ui.menu=null;render();},
   undo:()=>undoRedo('undo'),
   redo:()=>undoRedo('redo'),

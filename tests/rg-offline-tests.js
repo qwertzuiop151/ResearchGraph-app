@@ -1069,6 +1069,13 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     ok(await until(()=>gp(pp.id).todos.find(t=>t.id===tp.id).priority===pr0),'Undo from the menu takes the priority back in the gist');
     ok(/Redo is in the/.test((env.doc.querySelector('.toast')||{}).textContent||''),'the confirmation names the menu, not a keyboard shortcut');
     ok(gh.revs.length>revs,'changes were uploaded');
+    // Suche: Treffer aller Projekte untereinander, nicht nur des gewaehlten
+    {const inp=env.doc.querySelector('.top .search input');typeIn(env,inp,'a');await tick();
+     const want=snap.projects.filter(p=>!p.archived&&!p.frozen&&((p.todos||[]).some(t=>JSON.stringify([t.text,t.notes,t.blockedBy,t.failedReason,(t.subtasks||[]).map(s=>[s.text,s.notes,s.failedReason])]).toLowerCase().includes('a'))||(p.ideas||[]).some(i=>((i.title||'')+(i.desc||'')).toLowerCase().includes('a')))).map(p=>p.id);
+     ok(env.doc.querySelector('.one.found')&&[...env.doc.querySelectorAll('.one.found .pj')].map(b=>b.dataset.pj).join()===want.join()&&want.length>1,'searching on the phone lists the matches of all projects');
+     ok(env.doc.querySelector('.ptabs .tabs button.all.on'),'and the tabs say so');
+     typeIn(env,inp,'');await tick();
+     ok(!env.doc.querySelector('.one.found')&&env.doc.querySelector('.one').dataset.k==='one-'+pp.id,'clearing the search returns to the chosen project');}
     // Kalender: alle Projekte, ein Reiter grenzt ein
     click(env,'.pages.bot [data-act="page"][data-v="calendar"]');await tick();
     ok(env.doc.querySelector('.ptabs .tabs button.all.on')&&env.doc.querySelectorAll('.cal-l .ab:not(.gcab)').length===NC,'the calendar starts over all projects');

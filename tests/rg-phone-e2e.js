@@ -196,10 +196,24 @@ const STEP=8000; // Obergrenze je Protokollaufruf; ein haengender Schritt bricht
 
     // ── Suche: Trefferzahlen an den Seiten unten ──
     await tap('.top .search input','search');
-    const word=await ev(`(${find}.text.match(/[A-Za-z]{4,}/)||["a"])[0]`);
+    // ein Wort, das in den Tasks moeglichst vieler Projekte vorkommt — die Suche muss sie alle auf einmal zeigen
+    const word=await ev(`(()=>{const vp=visibleProjects(),seen={};vp.forEach(p=>S.data[p.id].todos.slice(0,60).forEach(t=>(String(t.text).toLowerCase().match(/[a-z]{4,}/g)||[]).forEach(w=>{(seen[w]=seen[w]||new Set()).add(p.id);})));const best=Object.entries(seen).sort((a,b)=>b[1].size-a[1].size||a[0].length-b[0].length)[0];return best?best[0]:'a';})()`);
     await type(word);
     ok(await ev('document.querySelectorAll(".pages.bot .hc").length')===4,'search shows the number of matches on every page');
-    await audit('search');
+    const withHits=await ev('visibleProjects().filter(p=>hitOf(S.data[p.id]).tasks>0).map(p=>p.id)');
+    ok(await ev('[...document.querySelectorAll(".one.found .pj")].map(b=>b.dataset.pj).join()')===withHits.join(),'search lists the matches of every project, one block per project ('+withHits.length+' with “'+word+'”)');
+    ok(await ev('!!document.querySelector(".ptabs .tabs button.all.on")&&[...document.querySelectorAll(".ptabs .tabs button[data-act=pickOne]")].every(b=>b.querySelector(".n").textContent===String(hitOf(S.data[b.dataset.pid]).tasks))'),'while searching the tabs carry the matches per project');
+    ok(await ev('[...document.querySelectorAll(".one.found .pj")].every(b=>!b.querySelector(".sec-h .c")||[...b.querySelectorAll(".sec-h .c")].every(c=>c.textContent!=="0"))'),'sections without a match are left out');
+    await audit('search');await shot('16-search-all-projects');
+    if(withHits.length>1){const last=withHits[withHits.length-1];
+      await tap(`.ptabs .tabs button[data-pid="${last}"]`,'tab of the last project with matches');
+      ok(await ev(`(()=>{const sc=document.querySelector('.one.found .one-b>div'),b=document.querySelector('.pj[data-pj="${last}"]');const a=sc.getBoundingClientRect(),r=b.getBoundingClientRect();return Math.abs(r.top-a.top)<3||sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2;})()`),'a tab jumps to the block of its project');
+      await tap('.ptabs .tabs button.all','All');ok(await ev('document.querySelector(".one.found .one-b>div").scrollTop')===0,'All jumps back to the top');}
+    await tap('.one.found .tt','a match');await waitFor('ui.drawer','details of a match');await ev('(history.back(),1)');await waitFor('!ui.drawer','back to the matches');
+    ok(await ev('ui.q')===word&&await ev('!!document.querySelector(".one.found")'),'the search is still there after looking at a match');
+    for(const pg of ['board','journal']){await tap(`.pages.bot button[data-v=${pg}]`,pg+' under search');
+      ok(await ev(`[...document.querySelectorAll(".one.found .pj")].map(b=>b.dataset.pj).join()===visibleProjects().filter(p=>hitOf(S.data[p.id]).${pg}>0).map(p=>p.id).join()`),pg+': matches of every project');await audit(pg+' under search');}
+    await tap('.pages.bot button[data-v=tasks]','tasks');
     await tap('.top .search button[data-act=clearQ]','clear search');ok(await ev('ui.q')==='','search cleared');
     await ev('(document.activeElement&&document.activeElement.blur(),1)');
 
