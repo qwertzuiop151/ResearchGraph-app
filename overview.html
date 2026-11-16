@@ -23,7 +23,7 @@ body{font:13px/1.4 var(--ui);color:var(--ink);background:var(--bg);overflow:hidd
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;text-align:left}
 :focus-visible{outline:2px solid var(--ink);outline-offset:1px}
-#app{height:100vh;display:flex;flex-direction:column}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column}
 
 /* ── Kopfzeile ── */
 .top{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--paper);border-bottom:1px solid var(--rule);flex-shrink:0;flex-wrap:wrap}
@@ -485,6 +485,157 @@ div.ce.gc{cursor:default}
 [data-theme="dark"] .scrim,[data-theme="dark"] .dscrim{background:rgba(0,0,0,.5)}
 [data-theme="dark"] .menu,[data-theme="dark"] .drawer,[data-theme="dark"] .dlg{box-shadow:0 12px 40px rgba(0,0,0,.55)}
 [data-theme="dark"] .col-h .dot,[data-theme="dark"] .strip .dot{box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+/* ── Handy (html[data-phone], gesetzt in renderNow aus isPhone): ein Projekt pro Bildschirm, alles untereinander.
+   Schrift und Trefferflaechen fuer den Finger; nichts erscheint erst beim Ueberfahren. Nur vorhandene Farb-Tokens. ── */
+.ptabs,.pages.bot,.rm{display:none}
+@media (hover:none){.t:not(.sel):hover,.s:not(.sel):hover,.idea:not(.sel):hover,.jd:hover,.arow:hover{background:transparent}}
+[data-phone] body{font-size:15px}
+[data-phone] button{touch-action:manipulation}
+[data-phone] input,[data-phone] select,[data-phone] textarea{font-size:16px}
+[data-phone] .top{height:50px;padding:0 8px;gap:8px}
+[data-phone] .top .search{flex:1;min-width:0}
+[data-phone] .top .search input{width:100%;height:38px;font-size:16px;padding:0 36px 0 11px;border-radius:8px}
+[data-phone] .top .search button{top:4px;right:2px;width:34px;height:30px;font-size:15px;text-align:center}
+[data-phone] .top .sync{height:38px;font-size:13.5px;padding:0 10px;border-radius:8px;flex-shrink:0;max-width:48vw;overflow:hidden}
+[data-phone] .top .icon,[data-phone] .ptabs .icon{width:42px;height:38px;border-radius:8px;border:1px solid var(--rule-2);color:var(--ink)}
+[data-phone] .icon svg{width:18px;height:18px}
+[data-phone] .menu{position:fixed;left:8px;right:8px;top:54px;max-height:calc(100vh - 130px);overflow-y:auto;min-width:0;padding:6px;z-index:50;font-size:15.5px}
+[data-phone] .ptabs .menu{top:100px}
+[data-phone] .menu button{padding:12px}
+[data-phone] .menu .mrow{display:flex;align-items:center;justify-content:space-between;padding:4px 12px}
+[data-phone] .menu .zoom{height:40px}
+[data-phone] .menu .zoom button{display:inline-block;width:50px;height:100%;padding:0;text-align:center;font-size:19px;border-radius:0}
+[data-phone] .menu .zoom span{min-width:58px;font-size:14px}
+[data-phone] .ptabs{display:flex;align-items:center;gap:6px;height:48px;padding:0 8px;background:var(--paper);border-bottom:1px solid var(--rule);flex-shrink:0}
+[data-phone] .ptabs .tabs{flex:1;gap:6px;flex-wrap:nowrap;overflow-x:auto;align-items:center;padding:3px 2px;scrollbar-width:none}
+[data-phone] .ptabs .tabs::-webkit-scrollbar{display:none}
+[data-phone] .ptabs .tabs button{height:38px;padding:0 12px;border-radius:8px;border:1px solid var(--rule-2);font-size:14.5px;gap:7px;flex-shrink:0;color:var(--ink);background:var(--paper)}
+[data-phone] .ptabs .tabs button.on{background:var(--c);color:var(--on);font-weight:700;border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+[data-phone] .ptabs .tabs button.all.on{background:var(--ink);color:var(--paper)}
+[data-phone] .ptabs .tabs .dot{width:11px;height:11px}
+[data-phone] .ptabs .tabs button.on .dot{display:none}
+[data-phone] .ptabs .tabs .n{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;padding:0 6px;border-radius:999px;border:1px solid currentColor;line-height:18px}
+[data-phone] .pages.bot{display:flex;height:auto;gap:0;flex-shrink:0;background:var(--paper);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom,0px)}
+[data-phone] .pages.bot button{flex:1;height:52px;justify-content:center;padding:0 2px;font-size:14.5px;color:var(--ink-2);box-shadow:inset 0 3px 0 transparent}
+[data-phone] .pages.bot button.on{color:var(--ink);font-weight:700;box-shadow:inset 0 3px 0 var(--ink)}
+[data-phone] .board{padding:0}
+[data-phone] .one{border:0;border-radius:0}
+[data-phone] .one-b>div{padding:0 10px 48px}
+[data-phone] .sec-h{margin:14px -10px 4px;height:42px;font-size:14px;padding:0 10px 0 14px}
+[data-phone] .sec-h .c{font-size:13px;line-height:20px;padding:0 8px}
+[data-phone] .sec-h .add{width:42px;height:32px;font-size:20px}
+[data-phone] .empty{font-size:14px;padding:12px 4px}
+[data-phone] .t{grid-template-columns:24px minmax(0,1fr);column-gap:10px;padding:9px 0 5px 4px;margin-top:9px}
+[data-phone] .t.cl{grid-template-columns:24px minmax(0,1fr) auto;padding-bottom:9px}
+[data-phone] .t::before{left:-10px;right:-10px;top:-5px}
+[data-phone] .t.focus{padding-left:10px}
+[data-phone] .sec-h+.t,[data-phone] .sec-h+.add-in+.t,[data-phone] .one-b>div>.t:first-child,[data-phone] .t.cl{margin-top:1px}
+[data-phone] .cb{width:24px;height:24px;border-radius:6px;position:relative;margin-top:-1px}
+[data-phone] .cb::after{content:"";position:absolute;inset:-9px}
+[data-phone] .cb svg{width:17px;height:17px}
+[data-phone] .cb.r{width:20px;height:20px;margin-top:0}
+[data-phone] .cb.r svg{width:14px;height:14px}
+[data-phone] .tm,[data-phone] .tt{line-height:22px}
+[data-phone] .tt{font-size:15px;padding:5px 0} /* Zeilenabstand bleibt, die Trefferflaeche jeder Titelzeile waechst auf 31 px */
+[data-phone] .t>.tm>.tt{font-size:16px}
+[data-phone] .t.cl>.tm>.tt{font-size:15px}
+[data-phone] .s .tm,[data-phone] .s .tt{line-height:21px}
+[data-phone] .s .tt{font-size:15px}
+[data-phone] .sl{font-size:13px;line-height:18px}
+[data-phone] .when{font-size:13px}
+[data-phone] .rc{gap:2px;height:auto;min-height:22px;align-items:flex-start}
+[data-phone] .rm{display:flex;flex-wrap:wrap;align-items:center;gap:6px;grid-column:2;margin-top:3px;min-height:32px}
+[data-phone] .rm .rc{margin-left:auto;gap:6px;align-items:center}
+[data-phone] .chip{height:26px;font-size:13px;max-width:62vw;padding-right:8px}
+[data-phone] .due{height:26px;font-size:13px;padding:0 8px}
+[data-phone] .fold,[data-phone] .addst{visibility:visible;width:40px;height:32px;font-size:21px;color:var(--ink-2)}
+[data-phone] .fold{font-size:17px}
+[data-phone] .prio.pb{width:40px;height:32px;padding:9px 11px;gap:3px;border-radius:6px;align-items:flex-end;justify-content:center}
+[data-phone] .prio.pb b{width:4px}
+[data-phone] .prio.pb b:nth-child(1){height:6px}[data-phone] .prio.pb b:nth-child(2){height:10px}[data-phone] .prio.pb b:nth-child(3){height:14px}
+[data-phone] .subs{margin:0 0 6px 15px;padding-left:14px}
+[data-phone] .s{grid-template-columns:20px minmax(0,1fr);column-gap:10px;padding:7px 0 7px 5px;font-size:15px}
+[data-phone] .s::before{left:-14px}
+[data-phone] .s::after{left:-14px;top:17px;width:11px}
+[data-phone] .s:last-child::before{height:18px}
+[data-phone] .s .rc{grid-column:2;justify-content:flex-start;flex-wrap:wrap;gap:6px;margin-top:4px}
+[data-phone] .s .rc:empty{display:none}
+[data-phone] .s.hidden-n,[data-phone] .s.folded-n{font-size:13.5px;line-height:20px;padding:8px 5px}
+[data-phone] .stpick{margin:4px 0 8px 34px}
+[data-phone] .stpick.sub,[data-phone] .dr-b .stpick.sub{margin-left:30px}
+[data-phone] .seg button{padding:8px 11px;font-size:14.5px;min-height:38px}
+[data-phone] .idea{grid-template-columns:20px minmax(0,1fr) auto;column-gap:10px;padding:9px 4px}
+[data-phone] .idea .tm,[data-phone] .idea .tt{font-size:15px;line-height:21px}
+[data-phone] .idea .ic{height:21px}
+[data-phone] .idea .ic svg{width:14px;height:14px}
+[data-phone] .add-in{height:42px;margin:6px 0 8px}
+[data-phone] .sub-in{margin-left:34px;width:calc(100% - 34px);height:40px;font-size:16px}
+[data-phone] .grp-h{font-size:14px;padding:14px 2px 6px}
+[data-phone] .pill{font-size:13px;padding:2px 9px}
+[data-phone] .el{margin:5px 0;border-radius:8px}
+[data-phone] .el div{padding:9px 10px}
+[data-phone] .el b{font-size:15px}
+[data-phone] .el small,[data-phone] .el .em{font-size:13px}
+[data-phone] .el .em{padding:9px 10px}
+[data-phone] .md-empty{padding:12px;font-size:15px}
+[data-phone] .jd{padding:10px 4px;gap:10px;border-radius:0;border-bottom:1px solid var(--rule)}
+[data-phone] .jd .d{width:60px;font-size:14.5px}
+[data-phone] .jd .x{font-size:14px}
+[data-phone] .jd .x div{white-space:normal;overflow-wrap:anywhere}
+[data-phone] .drawer{width:100vw;box-shadow:none}
+[data-phone] .dr-h{padding:10px 6px 8px 14px}
+[data-phone] .dr-h .k,[data-phone] .kv>span{font-size:13.5px}
+[data-phone] .dr-x{width:46px;height:44px;font-size:20px}
+[data-phone] .dr-b{padding:10px 14px 64px}
+[data-phone] .ttl{font-size:18px}
+[data-phone] .ttl.ln{font-size:16px}
+[data-phone] .kv{gap:10px 12px}
+[data-phone] .lbtn{font-size:14.5px;padding:7px 9px}
+[data-phone] .btn{padding:10px 15px;font-size:15px}
+[data-phone] .inl,[data-phone] .fld input,[data-phone] .fld select,[data-phone] .kv input,[data-phone] .kv select{min-height:40px}
+[data-phone] .fld textarea,[data-phone] .edit textarea{font-size:16px!important}
+[data-phone] .dsec h3{font-size:14.5px}
+[data-phone] .stamp,[data-phone] .ro,[data-phone] .logi small,[data-phone] .fld .help,[data-phone] .fld .err,[data-phone] .archb,[data-phone] .arow small{font-size:13px}
+[data-phone] .md{font-size:16px}
+[data-phone] .dscrim{padding:10px 8px 48px}
+[data-phone] .dlg{padding:16px 14px;max-width:none}
+[data-phone] .dlg h2{font-size:18px}
+[data-phone] .acts .btn{min-height:44px}
+[data-phone] .choice{padding:13px 14px;font-size:15.5px}
+[data-phone] .pick button{padding:12px}
+[data-phone] .arow{padding:11px 10px}
+[data-phone] .hl{font-size:15px}
+[data-phone] .sw{width:60px;font-size:13px}
+[data-phone] .toast{left:8px;right:8px;transform:none;max-width:none;bottom:calc(62px + env(safe-area-inset-bottom,0px));font-size:14.5px}
+[data-phone] .toast button{padding:6px 8px}
+[data-phone] .calw{border:0;border-radius:0}
+[data-phone] .cal-h{padding:6px 8px;gap:6px}
+[data-phone] .cal-h h2{flex:1;min-width:0;font-size:16.5px}
+[data-phone] .cal-h .tbtn{display:inline-flex;align-items:center;justify-content:center;height:38px;min-width:42px;padding:0 11px;font-size:15px}
+[data-phone] .cal-h .grow{display:none}
+[data-phone] .cal-leg{display:flex;flex:0 0 100%;gap:16px;overflow-x:auto;padding:2px 0 3px;scrollbar-width:none}
+[data-phone] .cal-leg::-webkit-scrollbar{display:none}
+[data-phone] .cal-k,[data-phone] .cal-l{margin:0;flex-wrap:nowrap;flex-shrink:0;font-size:13px;gap:4px 14px;white-space:nowrap}
+[data-phone] .cal-l{order:-1}
+[data-phone] .cal-k>span{white-space:nowrap}
+[data-phone] .cal-g{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
+[data-phone] .cwd{display:none}
+[data-phone] .cd{min-height:0;padding:6px 10px 8px;border-right:0}
+[data-phone] .cd:nth-child(7n+1){border-top:2px solid var(--rule-2)}
+[data-phone] .cd.m1{border-top:3px solid var(--ink)}
+[data-phone] .cdn{gap:8px;padding:0;align-items:center;min-height:30px;font-size:15px}
+[data-phone] .cdn .wd{font-style:normal;width:34px;font-size:13.5px;color:var(--ink-2)}
+[data-phone] .cdn b{font-size:16px}
+[data-phone] .cdn span{font-size:13px}
+[data-phone] .cdn .mn{font-size:14.5px}
+[data-phone] .cdn .cadd{visibility:visible;width:42px;height:30px;margin-top:0;font-size:20px}
+[data-phone] .ce{font-size:14.5px;line-height:20px;padding:5px 6px;margin-top:3px;gap:8px}
+[data-phone] .ab{font-size:12px;line-height:20px;min-width:30px}
+[data-phone] .ce.cl span,[data-phone] .ce.jr span,[data-phone] .ce.id span{white-space:normal}
+[data-phone] .ce.gc small{font-size:13px}
+[data-phone] .cea{gap:0 6px}
+[data-phone] .cea .ce{white-space:normal;max-width:100%}
+[data-phone] .hc{font-size:12.5px;line-height:18px}
 </style>
 </head>
 <body>
@@ -785,7 +936,7 @@ function undoRedo(mode){
     else n=change(e.pid,d=>{const doc={projects:[{id:e.pid,todos:d.todos,ideas:d.ideas,journal:d.journal,elements:d.elements,nodes:d.nodes}]};e.ops.forEach(o=>applyOp(doc,clone(o)));const q=doc.projects[0];d.todos=q.todos;d.ideas=q.ideas;d.journal=q.journal;d.elements=q.elements;d.nodes=q.nodes;});
   }finally{_undoMode=null;}
   validateSel();render();
-  toast(n?(mode==='undo'?'Undone':'Redone')+(label?': “'+label+'”':'')+(mode==='undo'?' · Ctrl+Y redoes':''):'Nothing changed — it was already changed elsewhere.');
+  toast(n?(mode==='undo'?'Undone':'Redone')+(label?': “'+label+'”':'')+(mode==='undo'?(isPhone()?' · Redo is in the ⋯ menu':' · Ctrl+Y redoes'):''):'Nothing changed — it was already changed elsewhere.');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1079,7 +1230,7 @@ function hitSnip(shown,rest){const q=qq();if(!q||shown.some(x=>String(x||'').toL
 // Bewusst NICHT: angelegt/geaendert (jede Task, jeden Tag — Rauschen) und Archiviertes (ueberall ausgeblendet).
 function projAbbr(p){const w=String(p.name||'').trim().split(/\s+/).filter(Boolean);return (w.length>1?w.map(x=>x[0]).join(''):String(p.name||'?').slice(0,2)).toUpperCase().slice(0,3);}
 function localDay(iso){if(!iso)return '';const d=new Date(iso);return isNaN(d)?'':d.toLocaleDateString('en-CA');}
-function calProjects(){return ui.mode==='one'?[projById(onePid())].filter(Boolean):visibleProjects();}
+function calProjects(){return (isPhone()?!ui.calAll:ui.mode==='one')?[projById(onePid())].filter(Boolean):visibleProjects();}
 // Durchlaufendes Wochenband statt Monatsblatt: ohne Ende nach oben und unten scrollbar. Geladen ist ein Stueck ganzer Wochen (ui.cal, Montag bis Sonntag);
 // naehert sich das Scrollen einem Rand, waechst das Stueck dort um CAL_STEP Wochen. Der Kopf nennt den Monat der obersten Woche (Monat ihres Sonntags — so stimmt er auch nach einem Monatssprung).
 const CAL_PRE=8,CAL_POST=26,CAL_STEP=12; // Wochen vor / nach der obersten Woche beim Aufbau, Zuwachs je Nachladen
@@ -1088,28 +1239,30 @@ function monOf(day){return dAdd(day,-((new Date(day+'T12:00:00').getDay()+6)%7))
 function calTop(){return ui.calAt||monOf(todayStr());}
 function calSpan(top){return {from:dAdd(top,-7*CAL_PRE),to:dAdd(top,7*CAL_POST+6)};}
 function calRange(){return ui.cal||(ui.cal=calSpan(calTop()));}
-function calTitle(){return fmtDate(dAdd(calTop(),6),{month:'long',year:'numeric'});}
+function calRef(){return isPhone()?ui.calDay||todayStr():dAdd(calTop(),6);} // der Tag, dessen Monat im Kopf steht: Sonntag der obersten Woche, am Handy der oberste Tag
+function calTitle(){return fmtDate(calRef(),{month:isPhone()?'short':'long',year:'numeric'});}
 // Woche eines Tages nach oben holen. Liegt sie im geladenen Stueck oder nah dran, waechst das Stueck dorthin; liegt sie mehr als ein Jahr weg, entsteht ein neues Stueck um das Ziel.
 function calGoto(day){
   const m=monOf(day),r=calRange();
   if(m<dAdd(r.from,-364)||m>dAdd(r.to,364))ui.cal=calSpan(m);
   else ui.cal={from:m<dAdd(r.from,14)?dAdd(m,-7*CAL_PRE):r.from,to:dAdd(m,7*CAL_STEP+6)>r.to?dAdd(m,7*CAL_POST+6):r.to};
-  ui.calAt=m;ui.calGo=m;render();
+  ui.calAt=m;ui.calGo=isPhone()?day:m;if(isPhone())ui.calDay=day;render(); // Handy: der Tag selbst an die Oberkante, nicht sein Montag
 }
 // Scroll-Lage: alles in den eigenen Pixeln des Bandes (offsetTop/scrollTop), damit der Zoom der Seite nicht hineinrechnet.
 const _calHead=g=>{const h=g.querySelector('.cwd');return h?h.offsetHeight:0;};
-function calTopCell(g){const y=g.scrollTop+_calHead(g)+40;for(const c of g.querySelectorAll('.cd:nth-child(7n+1)'))if(c.offsetTop+c.offsetHeight>y)return c;return null;} // oberste Woche, von der noch mindestens 40 px zu sehen sind
+function calTopCell(g){const ph=isPhone(),y=g.scrollTop+_calHead(g)+(ph?8:40);for(const c of g.querySelectorAll(ph?'.cd':'.cd:nth-child(7n+1)'))if(c.offsetTop+c.offsetHeight>y)return c;return null;} // oberste Woche, von der noch mindestens 40 px zu sehen sind
 function calAnchor(g){const c=calTopCell(g);return c?{day:c.dataset.day,off:c.offsetTop-g.scrollTop}:null;}
 // Nach jedem Zeichnen: neues Band oder Sprung → Zielwoche an die Oberkante; sonst dieselbe Woche an derselben Stelle halten (oben nachgeladene Wochen oder gewachsene Zeilen duerfen die Ansicht nicht verschieben).
 function calPlace(g,g0,anc){
   if(!g)return;
-  if(ui.calGo||g!==g0){const c=g.querySelector(`.cd[data-day="${ui.calGo||calTop()}"]`);ui.calGo=null;if(c)g.scrollTop=c.offsetTop-_calHead(g);return;}
+  if(ui.calGo||g!==g0){const c=g.querySelector(`.cd[data-day="${ui.calGo||(isPhone()?ui.calDay||todayStr():calTop())}"]`);ui.calGo=null;if(c)g.scrollTop=c.offsetTop-_calHead(g);return;}
   if(!anc)return;const c=g.querySelector(`.cd[data-day="${anc.day}"]`);if(!c)return;
   const top=c.offsetTop-anc.off;if(Math.abs(g.scrollTop-top)>1)g.scrollTop=top;
 }
 function calScroll(g){
   const c=calTopCell(g);
-  if(c&&ui.calAt!==c.dataset.day){ui.calAt=c.dataset.day;const h=document.querySelector('.cal-h h2'),t=calTitle();if(h&&h.textContent!==t)h.textContent=t;}
+  const m=c?monOf(c.dataset.day):'';if(c)ui.calDay=c.dataset.day;
+  if(c&&(ui.calAt!==m||isPhone())){ui.calAt=m;const h=document.querySelector('.cal-h h2'),t=calTitle();if(h&&h.textContent!==t)h.textContent=t;}
   const r=calRange(),edge=Math.max(600,g.clientHeight);
   if(g.scrollTop<edge)ui.cal={from:dAdd(r.from,-7*CAL_STEP),to:r.to};
   else if(g.scrollHeight-g.scrollTop-g.clientHeight<edge)ui.cal={from:r.from,to:dAdd(r.to,7*CAL_STEP)};
@@ -1206,8 +1359,17 @@ const ui={
   collapsed:new Set(lsGet('rg3_collapsed',[])),
   folded:new Set(lsGet('rg3_folded',[])), // eingeklappte Tasks (pid|tid)
   closedOpen:new Set(lsGet('rg3_closed',[])), // Projekte, deren "Closed"-Liste aufgeklappt ist
-  pick:null // Zeile, deren Status-Auswahl gerade offen ist (ort:pid|tid[|sid])
+  pick:null, // Zeile, deren Status- oder Prioritaets-Auswahl gerade offen ist (ort:pid|tid[|sid])
+  calDay:null, // Handy: oberster sichtbarer Tag der Kalender-Tagesliste
+  calAll:true // Handy: Kalender ueber alle Projekte (true) oder nur das gewaehlte
 };
+// Schmaler Bildschirm (Handy): ein Projekt pro Bildschirm, Abschnitte untereinander, Projekte als Reiter oben, Seiten unten.
+// Eine Quelle fuer Aufbau (isPhone) und Aussehen (html[data-phone]) — die Abfrage steht nur hier.
+const _mqPhone=window.matchMedia?window.matchMedia('(max-width:720px),(pointer:coarse) and (max-height:520px)'):null;
+function isPhone(){return !!(_mqPhone&&_mqPhone.matches);}
+function oneMode(){return ui.mode==='one'||isPhone();}
+if(_mqPhone){const f=()=>render();if(_mqPhone.addEventListener)_mqPhone.addEventListener('change',f);else if(_mqPhone.addListener)_mqPhone.addListener(f);}
+function undoHint(){return isPhone()?'Undo is in the ⋯ menu.':'Ctrl+Z undoes.';}
 function visibleProjects(){return liveProjects().filter(p=>ui.showFrozen||!p.frozen);}
 function validateSel(){
   const d=ui.drawer;if(!d)return;
@@ -1223,11 +1385,14 @@ function render(){if(!_mounted||_rq)return;_rq=true;queueMicrotask(()=>{_rq=fals
 function renderNow(){
   const app=document.getElementById('app');
   const tpl=document.createElement('template');
-  tpl.innerHTML=renderTop()+renderMain()+renderDrawer()+renderDialog()+renderToast();
+  const ph=isPhone(),root=document.documentElement;
+  if(root.hasAttribute('data-phone')!==ph){if(ph)root.setAttribute('data-phone','');else root.removeAttribute('data-phone');}
+  tpl.innerHTML=renderTop()+renderMain()+renderBottom()+renderDrawer()+renderDialog()+renderToast();
   const g0=app.querySelector('.cal-g'),anc=g0&&!ui.calGo?calAnchor(g0):null;
   morphKids(app,tpl.content);
   calPlace(app.querySelector('.cal-g'),g0,anc);
   app.querySelectorAll('textarea[data-auto]').forEach(autosize);
+  if(ph){syncBack();const on=app.querySelector('.ptabs .tabs button.on'),k=on?on.dataset.pid||'all':'';if(on&&k!==_tabShown&&on.scrollIntoView)on.scrollIntoView({block:'nearest',inline:'nearest'});_tabShown=k;}
   if(ui.focusSel){const el=document.querySelector(ui.focusSel);ui.focusSel=null;if(el){el.focus();if(el.select&&el.dataset.sel)el.select();}}
 }
 function morph(a,b){
@@ -1264,11 +1429,34 @@ function renderTop(){
   if(!ghToken)sync=`<button class="sync err" data-act="openSync"><i class="sd off"></i>Connect GitHub</button>`;
   else if(SY.state==='error')sync=`<button class="sync err" data-act="openSync" title="${esc(SY.msg)}"><i class="sd off"></i>Sync paused</button>`;
   else if(_inflight||PENDING.length)sync=`<button class="sync" data-act="openSync"><i class="sd busy"></i>Saving…</button>`;
-  else if(SY.state==='offline')sync=`<button class="sync err" data-act="openSync" title="${esc(SY.msg)} — you see the data from the last successful check"><i class="sd off"></i>Not live${SY.okAt?' · last check OK '+esc(_hm(SY.okAt)):''}</button>`;
+  else if(SY.state==='offline')sync=`<button class="sync err" data-act="openSync" title="${esc(SY.msg)} — you see the data from the last successful check"><i class="sd off"></i>Not live${SY.okAt?(isPhone()?' · ':' · last check OK ')+esc(_hm(SY.okAt)):''}</button>`;
   else sync=`<button class="sync" data-act="openSync" title="Checks GitHub every ${Math.round(T.poll/1000)} s. The time is when the data last changed."><i class="sd ok"></i>Live${SY.at?' · '+esc(fmtDT(SY.at).split(' ').pop()):''}</button>`;
   const pages=[['tasks','Tasks'],['board','Board'],['journal','Journal'],['calendar','Calendar']];
   const vis=visibleProjects();
   const hc=qq()?hitCounts():null; // Suche aktiv: Trefferzahl an jeder Seite, damit man sieht, wo etwas liegt
+  if(isPhone()){
+    // Handy: Suche + Sync + Menue in einer Zeile, darunter die Projekte als Reiter (mit ihrer Zahl) und das Projektmenue.
+    // Was am Desktop in der Kopfzeile steht und hier keinen Platz hat, liegt im Menue; die Seiten stehen unten (renderBottom).
+    const cur=projById(onePid()),cal=ui.page==='calendar',allOn=cal&&ui.calAll;
+    const mi=(act,label,extra)=>`<button data-act="${act}" data-close="1"${extra||''}>${label}</button>`;
+    const menu=ui.menu==='main'?`<div class="menu" data-k="menu-main">
+      ${ui.page==='tasks'?mi('toggleDone',ui.hideDone?'Show closed steps':'Hide closed steps'):''}
+      ${frozen?mi('toggleFrozen',`❄ ${ui.showFrozen?'Hide':'Show'} frozen projects (${frozen})`):''}
+      ${mi('undo','↶ Undo last change')}${mi('redo','↷ Redo')}
+      <div class="sep"></div>
+      ${mi('theme',isDark()?'☀ Light':'☾ Dark')}
+      <div class="mrow"><span>Size</span><span class="zoom"><button data-act="zoom" data-v="-10" aria-label="Smaller">−</button><span>${ui.zoom}%</span><button data-act="zoom" data-v="10" aria-label="Larger">+</button></span></div>
+      <div class="sep"></div>
+      ${mi('feedback','✉ Feedback')}${mi('newProject','New project')}${mi('archived',`Archived projects (${S.projects.filter(p=>p.archived).length})`)}${mi('openSync','GitHub connection')}${mi('help','Help')}</div>`:'';
+    return `<header class="top" data-k="top">
+    <span class="search"><input type="text" data-in="q" value="${esc(ui.q)}" placeholder="Search" aria-label="Search" enterkeyhint="search">${ui.q?'<button data-act="clearQ" aria-label="Clear search">✕</button>':''}</span>
+    ${sync}
+    <span class="menu-wrap"><button class="icon" data-act="menu" data-v="main" aria-label="Menu">${IC_MORE}</button>${menu}</span>
+  </header>${vis.length?`<div class="ptabs" data-k="ptabs">
+    <nav class="tabs" aria-label="Projects">${cal?`<button class="all${allOn?' on':''}" data-act="calAll" aria-pressed="${allOn}">All</button>`:''}${vis.map(p=>{const on=!allOn&&cur&&p.id===cur.id;return `<button class="${on?'on':''}" style="${projVars(p)}" data-act="pickOne" data-pid="${esc(p.id)}" aria-pressed="${!!on}"><span class="dot"></span>${p.frozen?'❄ ':''}${esc(p.name)}${cal?'':`<span class="n">${countNum(p,S.data[p.id])}</span>`}</button>`;}).join('')}</nav>
+    ${cur&&!allOn?`<span class="menu-wrap"><button class="icon" data-act="menu" data-v="p:${esc(cur.id)}" aria-label="Project menu for ${esc(cur.name)}">${IC_MORE}</button>${projMenu(cur)}</span>`:''}
+  </div>`:''}`;
+  }
   return `<header class="top" data-k="top">
     <span class="brand">ResearchGraph</span>
     <nav class="pages" aria-label="Pages">${pages.map(([k,l])=>`<button class="${ui.page===k?'on':''}" data-act="page" data-v="${k}"${ui.page===k?' aria-current="page"':''}${hc?` title="${plural(hc[k],'match')} on ${l}${k==='calendar'?' in the month shown':''}"`:''}>${l}${hc?`<span class="hc${hc[k]?'':' zero'}">${hc[k]}</span>`:''}</button>`).join('')}</nav>
@@ -1288,6 +1476,28 @@ function renderTop(){
       ${ui.menu==='main'?`<div class="menu" data-k="menu-main"><button data-act="newProject">New project</button><button data-act="archived">Archived projects (${S.projects.filter(p=>p.archived).length})</button><button data-act="resetWidths">Reset column widths</button><div class="sep"></div><button data-act="openSync">GitHub connection</button><button data-act="help">Help</button></div>`:''}</span>
   </header>`;
 }
+// Handy: die vier Seiten als Leiste am unteren Rand (mit dem Daumen erreichbar), Trefferzahlen der Suche wie oben
+function renderBottom(){
+  if(!isPhone())return '';
+  const hc=qq()?hitCounts():null;
+  return `<nav class="pages bot" data-k="bot" aria-label="Pages">${[['tasks','Tasks'],['board','Board'],['journal','Journal'],['calendar','Calendar']].map(([k,l])=>`<button class="${ui.page===k?'on':''}" data-act="page" data-v="${k}"${ui.page===k?' aria-current="page"':''}>${l}${hc?`<span class="hc${hc[k]?'':' zero'}">${hc[k]}</span>`:''}</button>`).join('')}</nav>`;
+}
+// Handy: die Zurueck-Taste schliesst, was gerade offen ist (Dialog, Details, Menue), statt die App zu verlassen.
+// Solange etwas offen ist, liegt genau ein eigener Verlaufseintrag obenauf. Wird das Offene in der App geschlossen, nimmt die App
+// den Eintrag selbst zurueck (_backSkip zaehlt diese eigenen Schritte) — so verlaesst die Zurueck-Taste danach die App beim ersten Druck.
+let _backArmed=false,_backSkip=0,_tabShown='';
+function syncBack(){
+  const open=!!(ui.dialog||ui.drawer||ui.menu);
+  try{
+    if(open&&!_backArmed&&!_backSkip){history.pushState({rg:1},'');_backArmed=true;}
+    else if(!open&&_backArmed){_backArmed=false;_backSkip++;history.back();}
+  }catch(e){}
+}
+window.addEventListener('popstate',()=>{
+  if(_backSkip){_backSkip--;if(isPhone())syncBack();return;}
+  _backArmed=false;if(!isPhone())return;
+  if(ui.dialog)closeDialog();else if(ui.drawer)ACT.closeDrawer();else if(ui.menu){ui.menu=null;render();}
+});
 // Spaltenbreiten als Anteile (flex-grow), nicht als feste Pixel: Ziehen verschiebt Breite nur zwischen den zwei Nachbarn, alle anderen bleiben stehen
 function colStyle(pid,def){const w=ui.colw[pid]||def||1;return `flex:${w} 1 0`;}
 function onePid(){const v=visibleProjects();return (v.find(p=>p.id===ui.one)||v[0]||{}).id;}
@@ -1311,25 +1521,25 @@ function calEntry(e){
   return `<button class="ce cl" ${o(type,e.t.id,e.s&&e.s.id)} title="${pn}${par} · ${e.k}${x.failedReason?': '+esc(x.failedReason):''}">${ab}<span>${mark(e.k)} ${e.s?'↳ ':''}${esc(x.text||'Untitled')}</span></button>`;
 }
 function renderCalendar(){
-  const r=calRange(),today=todayStr(),by={},days=[];
+  const r=calRange(),today=todayStr(),by={},days=[],ph=isPhone(),WD=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; // Handy: ein Tag pro Zeile statt sieben nebeneinander
   for(const d=new Date(r.from+'T12:00:00');;d.setDate(d.getDate()+1)){const s=d.toLocaleDateString('en-CA');if(s>r.to||isNaN(d))break;days.push(s);}
   calEntries(r.from,r.to).forEach(e=>{(by[e.day]=by[e.day]||[]).push(e);});
   const cells=days.map((day,ix)=>{
     const list=(by[day]||[]).sort((a,b)=>CAL_RANK[a.k]-CAL_RANK[b.k]||(a.k==='gcal'?_gcKey(a).localeCompare(_gcKey(b)):0));
     const dn=+day.slice(8); // Monatsgrenze: Linie ueber den Tagen 1–7 (mt) und links vom 1. (ml), der 1. traegt den Monat ausgeschrieben
-    return `<div class="cd${day===today?' now':''}${ix%7>4?' we':''}${dn<=7?' mt':''}${dn===1&&ix%7?' ml':''}" data-k="cd-${day}" data-day="${day}"><div class="cdn"><b>${dn}</b>${day===today?'<span>today</span>':''}${dn===1?`<span class="mn">${esc(fmtDate(day,{month:'long',year:'numeric'}))}</span>`:''}<button class="addst cadd" data-act="calNew" data-day="${day}" title="Add a calendar entry on this day" aria-label="Add a calendar entry on ${day}">＋</button></div>${(()=>{
+    return `<div class="cd${day===today?' now':''}${ix%7>4?' we':''}${ph?(dn===1?' m1':''):(dn<=7?' mt':'')+(dn===1&&ix%7?' ml':'')}" data-k="cd-${day}" data-day="${day}"><div class="cdn">${ph?`<i class="wd">${WD[ix%7]}</i>`:''}<b>${dn}</b>${day===today?'<span>today</span>':''}${dn===1?`<span class="mn">${esc(fmtDate(day,{month:'long',year:'numeric'}))}</span>`:''}<button class="addst cadd" data-act="calNew" data-day="${day}" title="Add a calendar entry on this day" aria-label="Add a calendar entry on ${day}">＋</button></div>${(()=>{
       // Element-Aktivitaet als fliessende Reihe kleiner Marken statt einer Zeile pro Element — sonst erschlaegt sie den Tag
       const act=list.filter(e=>e.k==='act'),pre=list.filter(e=>CAL_RANK[e.k]<CAL_RANK.act),post=list.filter(e=>CAL_RANK[e.k]>CAL_RANK.act);
       return pre.map(calEntry).join('')+(act.length?`<div class="cea">${act.map(calEntry).join('')}</div>`:'')+post.map(calEntry).join('');})()}</div>`;}).join('');
   const projs=calProjects();
   return `<main class="board" data-k="main-calendar"><div class="zoomer" style="zoom:${ui.zoom/100}"><section class="calw" data-k="calw">
-    <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(calTitle())}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button><button class="tbtn" data-act="calNew" title="Add a calendar entry — or use the ＋ that appears in a day">＋ New entry</button>
-      <span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span>✦ idea</span><span>element · log entries</span></span>
+    <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(calTitle())}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button><button class="tbtn" data-act="calNew" title="Add a calendar entry — or use the ＋ that appears in a day"${ph?' aria-label="New calendar entry"':''}>${ph?'＋':'＋ New entry'}</button>
+      ${ph?'<div class="cal-leg">':''}<span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span>✦ idea</span><span>element · log entries</span></span>
       <span class="grow"></span><span class="cal-l">${projs.map(p=>`<span><b class="ab" style="${projVars(p)}">${esc(projAbbr(p))}</b>${esc(p.name)}</span>`).join('')}${(()=>{
         // Legende des Google-Kalenders, mit ehrlichem Alter: aelter als 36 h heisst, der Abgleich laeuft nicht mehr
         const g=S.calendar&&S.calendar.google;if(!g)return '';
         const old=!g.checkedAt||Date.now()-Date.parse(g.checkedAt)>36*3600*1000;
-        return `<span class="gc-l${old?' gc-old':''}" title="From your Google Calendar — change these entries in Google; nothing is sent back.${g.from&&g.to?' Covers '+esc(fmtDate(g.from))+' to '+esc(fmtDate(g.to))+'.':''}${g.checkedAt?' Last refreshed '+esc(fmtDT(g.checkedAt))+'.':''}"><b class="ab gcab">G</b>Google Calendar${old?' — not refreshed since '+esc(g.checkedAt?fmtDT(g.checkedAt):'?'):''}</span>`;})()}${calEvents().some(x=>x.src==='own')?'<span class="gc-o" title="Your own calendar entries. Click one for its details."><b class="ab gcab">C</b>Calendar entries</span>':''}${(n=>n?`<button class="lbtn" data-act="calArchived" title="Archived calendar entries — nothing is deleted">${n} archived</button>`:'')(calEvents(true).filter(x=>x.src==='own'&&isArch(x.ev)).length)}</span></div>
+        return `<span class="gc-l${old?' gc-old':''}" title="From your Google Calendar — change these entries in Google; nothing is sent back.${g.from&&g.to?' Covers '+esc(fmtDate(g.from))+' to '+esc(fmtDate(g.to))+'.':''}${g.checkedAt?' Last refreshed '+esc(fmtDT(g.checkedAt))+'.':''}"><b class="ab gcab">G</b>Google Calendar${old?' — not refreshed since '+esc(g.checkedAt?fmtDT(g.checkedAt):'?'):''}</span>`;})()}${calEvents().some(x=>x.src==='own')?'<span class="gc-o" title="Your own calendar entries. Click one for its details."><b class="ab gcab">C</b>Calendar entries</span>':''}${(n=>n?`<button class="lbtn" data-act="calArchived" title="Archived calendar entries — nothing is deleted">${n} archived</button>`:'')(calEvents(true).filter(x=>x.src==='own'&&isArch(x.ev)).length)}</span>${ph?'</div>':''}</div>
     <div class="cal-g">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(w=>`<div class="cwd">${w}</div>`).join('')}${cells}</div>
   </section></div></main>`;
 }
@@ -1337,7 +1547,7 @@ function renderMain(){
   if(ui.page==='calendar'&&visibleProjects().length)return renderCalendar();
   const projs=visibleProjects();
   if(!projs.length)return `<main class="board" data-k="main"><div class="nodata">${ghToken?'No active project. Use ⋯ → New project.':'Connect GitHub (top right) to load your ResearchGraph data.'}</div></main>`;
-  if(ui.mode==='one'){const p=projById(onePid());return `<main class="board" data-k="main-one-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${renderOne(p)}</div></main>`;}
+  if(oneMode()){const p=projById(onePid());return `<main class="board" data-k="main-one-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${renderOne(p)}</div></main>`;}
   let html='',prevOpen=null;
   const open=projs.filter(p=>!ui.collapsed.has(p.id)).map(p=>p.id),known=open.map(id=>ui.colw[id]).filter(Boolean);
   const def=known.length?known.reduce((a,b)=>a+b,0)/known.length:1; // neue Spalte bekommt den Durchschnitt
@@ -1351,14 +1561,16 @@ function renderMain(){
   });
   return `<main class="board" data-k="main-${ui.page}"><div class="zoomer" style="zoom:${ui.zoom/100}">${html}</div></main>`;
 }
-function countLabel(p,d){return ui.page==='board'?plural(d.elements.filter(e=>e.status!=='abandoned'&&!isArch(e)).length,'element'):ui.page==='journal'?plural(d.journal.length,'day'):d.todos.filter(t=>!closedT(t)&&!isArch(t)).length+' open';}
+function countNum(p,d){return ui.page==='board'?d.elements.filter(e=>e.status!=='abandoned'&&!isArch(e)).length:ui.page==='journal'?d.journal.length:d.todos.filter(t=>!closedT(t)&&!isArch(t)).length;}
+function countLabel(p,d){const n=countNum(p,d);return ui.page==='board'?plural(n,'element'):ui.page==='journal'?plural(n,'day'):n+' open';}
 function renderStrip(p){const d=S.data[p.id];return `<button class="strip" data-k="strip-${esc(p.id)}" data-act="expand" data-pid="${esc(p.id)}" style="--c:${esc(p.color||'#505050')}" title="Expand ${esc(p.name)}"><span class="dot"></span><b>${p.frozen?'❄ ':''}${esc(p.name)}</b><small>${esc(countLabel(p,d))}</small></button>`;}
 function colHead(p,count,inOne){
   return `<div class="col-h" style="${projVars(p)}"><span class="dot"></span><h2 title="${esc(p.name)}">${p.frozen?'❄ ':''}${esc(p.name)}</h2><span class="n">${esc(count)}</span>
     ${inOne?'':`<button class="icon" data-act="collapse" data-pid="${esc(p.id)}" title="Collapse this column" aria-label="Collapse ${esc(p.name)}">${IC_COLLAPSE}</button><button class="icon" data-act="solo" data-pid="${esc(p.id)}" title="Show only this project" aria-label="Show only ${esc(p.name)}">${IC_SOLO}</button>`}
     <span class="menu-wrap"><button class="icon" data-act="menu" data-v="p:${esc(p.id)}" aria-label="Project menu">${IC_MORE}</button>
-    ${ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="newList" data-pid="${esc(p.id)}">New list…</button><button data-act="removeList" data-pid="${esc(p.id)}">Remove a list…</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}">Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive project (finished)</button></div>`:''}</span></div>`;
+    ${projMenu(p)}</span></div>`;
 }
+function projMenu(p){return ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="newList" data-pid="${esc(p.id)}">New list…</button><button data-act="removeList" data-pid="${esc(p.id)}">Remove a list…</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}">Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive project (finished)</button></div>`:'';}
 // Bausteine der Task-Seite: Focus, je Kategorie ein Abschnitt, dazu der Ideen-Abschnitt
 function taskParts(p){
   const d=S.data[p.id],pid=p.id,f=focusOf(d);
@@ -1422,6 +1634,11 @@ function renderCol(p,def){
 // Ein Projekt ueber die ganze Breite: Lab | General | Ideas nebeneinander (Board: Status nebeneinander)
 function renderOne(p){
   const d=S.data[p.id];let cols=[];
+  if(isPhone()){ // Handy: alles untereinander in einer Spalte, in der Reihenfolge der Projektspalte; der Projektkopf steht als Reiter oben
+    const x=ui.page==='tasks'?taskParts(p):null;
+    const body=ui.page==='board'?boardBody(p,d):ui.page==='journal'?journalBody(p,d):x.focus+Object.values(x.cats).join('')+x.ideas+x.closed;
+    return `<section class="one" data-k="one-${esc(p.id)}" style="${projVars(p)}"><div class="one-b" style="--n:1"><div data-k="oc-0">${body}</div></div></section>`;
+  }
   if(ui.page==='board'){cols=boardGroups(p,d);if(!cols.length)cols=['<div class="empty">No elements.</div>'];cols[0]=elNewBtn(p.id)+cols[0];}
   else if(ui.page==='journal')cols=[journalBody(p,d)];
   else{const x=taskParts(p),c=x.cats,rest=Object.entries(c).filter(([k])=>k!=='labor').map(([,v])=>v).join('');
@@ -1447,8 +1664,18 @@ function renderTodo(p,t,isF){
   return `<div class="${cls}" style="--c:${esc(p.color||'#505050')}" data-k="t-${esc(t.id)}">
     ${stBox('c',pid,t.id,null,st)}
     <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}${esc(t.text||'Untitled task')}</button>${sl}</div>
-    <div class="rc">${dueChip(pid,t)}${elChip(pid,rowElement(t))}${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">＋</button>${prioHTML(pr,pid,t.id)}</div>
-  </div>${stPick('c',pid,t.id,null,odd?'':st)}${renderSubs(p,t)}`;
+    ${(()=>{
+      const chips=dueChip(pid,t)+elChip(pid,rowElement(t)),ph=isPhone();
+      const ctrl=`${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">＋</button>${ph?prioBtn(pr,pid,t.id):prioHTML(pr,pid,t.id)}`;
+      // Handy: der Titel bekommt die ganze Breite; Marken (Faelligkeit, Element) links und die Bedienelemente rechts stehen in einer eigenen Zeile darunter
+      return ph?`<div class="rm">${chips}<div class="rc">${ctrl}</div></div>`:`<div class="rc">${chips}${ctrl}</div>`;})()}
+  </div>${stPick('c',pid,t.id,null,odd?'':st)}${prioPick(pr,pid,t.id)}${renderSubs(p,t)}`;
+}
+// Handy: die drei Balken sind zu schmal zum Treffen — ein Knopf zeigt die Prioritaet, ein Tipp klappt die Auswahl unter der Zeile auf (wie beim Status)
+function prioBtn(pr,pid,id){const n=pr==='high'?3:pr==='medium'?2:1,k='p:'+pid+'|'+id;return `<button class="prio pb" data-act="pickSt" data-v="${esc(k)}" aria-label="Priority ${pr} — change" aria-expanded="${ui.pick===k}"><b class="on"></b><b class="${n>1?'on':''}"></b><b class="${n>2?'on':''}"></b></button>`;}
+function prioPick(pr,pid,id){
+  if(ui.pick!=='p:'+pid+'|'+id)return '';
+  return `<div class="stpick" data-k="pp-${esc(id)}" role="group" aria-label="Set priority">${seg(PRIOS.map(([v,l])=>[v,'',l+' priority']),pr,'setPrio',` data-pid="${esc(pid)}" data-id="${esc(id)}"`)}</div>`;
 }
 function renderSubs(p,t){
   const subs=(t.subtasks||[]).filter(s=>!isArch(s)),pid=p.id;
@@ -1671,7 +1898,7 @@ function resolveChoice(v){const d=ui.dialog;ui.dialog=ui.stack.pop()||null;rende
 const FB_REPO='qwertzuiop151/ResearchGraph-app',FB_TOKEN_KEY='rg_fb_token';
 // Was automatisch mitgeht — im Dialog sichtbar, damit nichts unbemerkt erfasst wird
 function fbContext(){
-  const L=['App: v3','Page: '+ui.page,'Layout: '+(ui.mode==='one'?'one project ('+(projById(onePid())?.name||'—')+')':'all projects')];
+  const L=['App: v3','Page: '+ui.page,'Layout: '+(isPhone()?'phone · ':'')+(oneMode()?'one project ('+(projById(onePid())?.name||'—')+')':'all projects')];
   const dr=ui.drawer;
   if(dr){const lab=dr.type==='todo'?findT(dr.pid,dr.id)?.text:dr.type==='step'?findS(dr.pid,dr.id,dr.sid)?.text:dr.type==='idea'?S.data[dr.pid]?.ideas.find(x=>x.id===dr.id)?.title:dr.type==='element'?findEl(dr.pid,dr.id)?.label:dr.type==='entry'?S.data[dr.pid]?.journal.find(x=>x.id===dr.id)?.date:dr.type==='cal'?findCalEv(dr.pid,dr.id)?.title:'';
     L.push('Open: '+dr.type+(lab?' "'+snip(lab,60)+'"':'')+(projById(dr.pid)?' in '+projById(dr.pid).name:''));}
@@ -1788,21 +2015,21 @@ function renderDialog(){
       ${T.length+St.length+I.length+E.length?'':'<p class="ro" style="margin-top:10px">Nothing archived yet.</p>'}
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
   }else if(d.type==='help'){
-    wide=true;
+    wide=true;const ph=isPhone();
     inner=`<h2>How ResearchGraph works</h2><ul class="hl">
-      <li>Every active project is a column. Drag the thin line between two columns to change their width.</li>
+      ${ph?'<li>The projects are the tabs at the top, each with its number of open tasks; tap one to switch. Tasks, Board, Journal and Calendar are at the bottom. Everything else — closed steps, frozen projects, undo, dark mode, size — is in the ⋯ menu next to the search.</li>':'<li>Every active project is a column. Drag the thin line between two columns to change their width.</li>'}
       <li>The box in front of a task or step shows its status: empty = open, dot = in progress, stroke = blocked, tick = done, cross = failed. Click it and pick the new status right below — in any direction. Blocked tasks show what they wait for.</li>
       <li>Something that did not work is set to <b>failed</b>; the app asks why, and the reason stays with it. Steps and tasks work the same way.</li>
       <li>A task you set to done or failed moves to <b>Closed</b> at the bottom of its project. Click “Closed” to see them, newest first; the box brings one back.</li>
       <li>Search looks through everything — tasks (also closed and archived ones), ideas, elements with their activity, every journal section. The numbers next to Tasks / Board / Journal show where the matches are.</li>
-      <li>The bars after a title show the priority: one bar low, two medium, three high. Click the first, second or third bar to set it. ★ marks the focus task and the focus step.</li>
-      <li>Hover a task and click ＋ to add a step right there.</li>
+      <li>The bars after a title show the priority: one bar low, two medium, three high. ${ph?'Tap the bars and pick the priority right below.':'Click the first, second or third bar to set it.'} ★ marks the focus task and the focus step.</li>
+      <li>${ph?'Tap ＋ in the row of a task to add a step right there; ▾ hides its steps.':'Hover a task and click ＋ to add a step right there.'}</li>
       <li>A task or step with a due date carries a mark in its row: the date in yellow while it is far off, “in 3 d” in orange once it comes close, “today” and “2 d late” in dark red. How many days before it turns orange you choose next to the date in the details (3 days unless you say otherwise).</li>
-      <li>Click a title to open details on the right: status, priority, focus, steps, notes. The chip after a title is the linked element.</li>
-      <li>Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.</li>
-      <li>❄ Freeze a project (column menu ⋯) to hide it until you have time again; archive it when it is finished.</li>
+      <li>Click a title to open ${ph?'its details':'details on the right'}: status, priority, focus, steps, notes. The chip after a title is the linked element.</li>
+      <li>${ph?'Undo in the ⋯ menu takes back your last change, again and again; Redo brings it back.':'Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.'}</li>
+      <li>❄ Freeze a project (${ph?'the ⋯ next to the project tabs':'column menu ⋯'}) to hide it until you have time again; archive it when it is finished.</li>
       <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
-      <li><b>Calendar</b> shows everything that has a date, week under week without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar (marked G) and your own calendar entries (marked C) appear there too; click one for its details — time, place, description. Add an entry with “＋ New entry” or the ＋ in a day: one small window takes title, day, time, place and description; without a time it lasts all day. Own entries can be changed and archived here; Google entries are only shown, nothing is sent back.</li>
+      <li><b>Calendar</b> shows everything that has a date, ${ph?'day under day':'week under week'} without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar (marked G) and your own calendar entries (marked C) appear there too; click one for its details — time, place, description. Add an entry with “＋ New entry” or the ＋ in a day: one small window takes title, day, time, place and description; without a time it lasts all day. Own entries can be changed and archived here; Google entries are only shown, nothing is sent back.</li>
       <li>Board shows the elements of each project with their status and latest activity. “＋ New element” adds one: name, group, status, tags and description in one small window — pick an existing group or name a new one. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to what is already there.</li>
       <li>The app stays in sync on its own: it checks GitHub every ${Math.round(T.poll/1000)} seconds and merges your changes with changes made elsewhere, so nothing is overwritten.</li></ul>
       <div class="acts"><button class="btn primary" data-act="closeDialog">Close</button></div>`;
@@ -1847,7 +2074,10 @@ const ACT={
   menu:el=>{ui.menu=ui.menu===A(el).v?null:A(el).v;render();},
   closeToast:()=>{ui.toast=null;render();},
   mode:el=>{ui.mode=A(el).v;localStorage.setItem('rg3_mode',ui.mode);render();},
-  pickOne:el=>{ui.one=A(el).pid;localStorage.setItem('rg3_one',ui.one);render();},
+  pickOne:el=>{ui.one=A(el).pid;if(ui.page==='calendar')ui.calAll=false;localStorage.setItem('rg3_one',ui.one);render();},
+  calAll:()=>{ui.calAll=true;ui.menu=null;render();},
+  undo:()=>undoRedo('undo'),
+  redo:()=>undoRedo('redo'),
   solo:el=>{ui.one=A(el).pid;ui.mode='one';localStorage.setItem('rg3_one',ui.one);localStorage.setItem('rg3_mode','one');render();},
   collapse:el=>{ui.collapsed.add(A(el).pid);lsSet('rg3_collapsed',[...ui.collapsed]);render();},
   expand:el=>{ui.collapsed.delete(A(el).pid);lsSet('rg3_collapsed',[...ui.collapsed]);render();},
@@ -1858,7 +2088,7 @@ const ACT={
   // Kaestchen: klappt die Status-Auswahl dieser Zeile auf/zu (kein Klick-Zyklus mehr — der fuehrte nur vorwaerts und liess Tasks spurlos verschwinden)
   pickSt:el=>{ui.pick=ui.pick===A(el).v?null:A(el).v;ui.menu=null;render();},
   // ‹ › springen zum Anfang des Monats davor/danach (vom Monat im Kopf aus gerechnet), Today zur aktuellen Woche — das Band selbst laeuft durch
-  calNav:el=>{const v=+A(el).v;if(!v)return calGoto(todayStr());const s=dAdd(calTop(),6),d=new Date(+s.slice(0,4),+s.slice(5,7)-1+v,1,12);calGoto(d.toLocaleDateString('en-CA'));},
+  calNav:el=>{const v=+A(el).v;if(!v)return calGoto(todayStr());const s=calRef(),d=new Date(+s.slice(0,4),+s.slice(5,7)-1+v,1,12);calGoto(d.toLocaleDateString('en-CA'));},
   toggleClosed:el=>{const pid=A(el).pid;if(qq())return;if(ui.closedOpen.has(pid))ui.closedOpen.delete(pid);else ui.closedOpen.add(pid);lsSet('rg3_closed',[...ui.closedOpen]);render();},
   open:el=>{const a=A(el);if(ui.dialog&&(ui.dialog.type==='parch'||ui.dialog.type==='carch')){ui.dialog=null;ui.stack=[];}openDrawer({type:a.type,pid:a.pid,id:a.id,sid:a.sid});},
   closeDrawer:()=>{commitDraft();ui.drawer=null;render();},
@@ -1868,9 +2098,9 @@ const ACT={
     if(v==='failed'){openDialog({type:'fail',kind:'todo',pid:a.pid,id:a.id,label:t.text,reason:''});ui.focusSel='#flr';return;} // erst nach dem Grund fragen
     change(a.pid,()=>setTodoStatus(t,v));
     if(v==='blocked'){if(inRow&&!isOpen('todo',a.pid,a.id))openDrawer({type:'todo',pid:a.pid,id:a.id});ui.focusSel='textarea[data-key^="todo.blockedBy"]';render();} // der Wartegrund steht in der Schublade
-    else if(v==='done')toast('Done: “'+snip(t.text,60)+'” — now under Closed in '+(projById(a.pid)?.name||'its project')+'. Ctrl+Z undoes.');
+    else if(v==='done')toast('Done: “'+snip(t.text,60)+'” — now under Closed in '+(projById(a.pid)?.name||'its project')+'. '+undoHint());
   },
-  setPrio:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tPr(t)===A(el).v)return;change(A(el).pid,()=>{t.priority=A(el).v;t.modifiedAt=nowIso();});},
+  setPrio:el=>{if(ui.pick&&ui.pick.startsWith('p:')){ui.pick=null;render();}const t=findT(A(el).pid,A(el).id);if(!t||tPr(t)===A(el).v)return;change(A(el).pid,()=>{t.priority=A(el).v;t.modifiedAt=nowIso();});},
   setCat:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tCat(t)===A(el).v)return;/* exakt: altes 'general' -> 'General' darf umschreiben */change(A(el).pid,()=>{t.category=A(el).v;t.modifiedAt=nowIso();});},
   toggleFocus:el=>{const pid=A(el).pid,t=findT(pid,A(el).id);if(!t)return;const on=focusOf(S.data[pid])?.id!==t.id;change(pid,d=>setFocus(d,t,on));},
   setStepStatus:el=>{const s=findS(A(el).pid,A(el).id,A(el).sid);ui.pick=null;if(!s||(s.status||'open')===A(el).v){render();return;}
@@ -1878,7 +2108,7 @@ const ACT={
     change(A(el).pid,d=>{setStepSt(s,A(el).v);d.todos.find(x=>x.id===A(el).id).modifiedAt=nowIso();});},
   doFail:()=>{
     const g=ui.dialog;if(!g||g.type!=='fail')return;ui.dialog=null;
-    if(g.kind==='todo'){const t=findT(g.pid,g.id);if(!t){render();return;}change(g.pid,()=>setTodoStatus(t,'failed',g.reason));toast('Failed: “'+snip(t.text,60)+'” — now under Closed in '+(projById(g.pid)?.name||'its project')+'. Ctrl+Z undoes.');}
+    if(g.kind==='todo'){const t=findT(g.pid,g.id);if(!t){render();return;}change(g.pid,()=>setTodoStatus(t,'failed',g.reason));toast('Failed: “'+snip(t.text,60)+'” — now under Closed in '+(projById(g.pid)?.name||'its project')+'. '+undoHint());}
     else{const s=findS(g.pid,g.id,g.sid);if(!s){render();return;}change(g.pid,d=>{setStepSt(s,'failed',g.reason);d.todos.find(x=>x.id===g.id).modifiedAt=nowIso();});}
   },
   toggleStepFocus:el=>{const a=A(el),t=findT(a.pid,a.id),s=findS(a.pid,a.id,a.sid);if(!t||!s)return;const was=!!s.focus;change(a.pid,()=>{(t.subtasks||[]).forEach(x=>{if(x.focus)x.focus=false;});s.focus=!was;t.modifiedAt=nowIso();});},
@@ -1919,7 +2149,7 @@ const ACT={
       // gleiche Form wie ein Element, das per MCP angelegt wird
       d.elements.push({id:_uid('el'),label,desc,status,tags:(g.tags||[]).filter(t=>d.tags&&d.tags[t]),nodeId,custom:[],log:[{id:_uid('lg'),time:now,msg:'Created'}],order:d.elements.filter(e=>e.nodeId===nodeId).length,createdAt:now,modifiedAt:now,completedAt:status==='done'?now:null});
     });
-    toast('Added “'+snip(label,50)+'” to the board. Ctrl+Z undoes.');
+    toast('Added “'+snip(label,50)+'” to the board. '+undoHint());
   },
   calNew:el=>{const day=(el&&A(el).day)||todayStr();openDialog({type:'calnew',title:'',sd:day,ed:day,st:'',et:'',location:'',description:''});ui.focusSel='#cnt';},
   calSave:()=>{
@@ -1942,7 +2172,7 @@ const ACT={
       ev={id:_uid('cal'),title,allDay:false,start:a.toISOString(),end:b.toISOString(),createdAt:now};}
     if(loc)ev.location=loc;if(desc.trim())ev.description=desc;
     ui.dialog=null;changeCal(L=>{L.push(ev);});
-    toast('Added “'+snip(title,50)+'” on '+fmtDate(sd,{weekday:'short',day:'numeric',month:'short'})+(ev.allDay?'':' at '+st)+'. Ctrl+Z undoes.');
+    toast('Added “'+snip(title,50)+'” on '+fmtDate(sd,{weekday:'short',day:'numeric',month:'short'})+(ev.allDay?'':' at '+st)+'. '+undoHint());
   },
   calKind:el=>{
     const ev=findCalEv('own',A(el).id),toDay=A(el).v==='day';if(!ev||!!ev.allDay===toDay)return;
@@ -1981,7 +2211,7 @@ const ACT={
       [...cur.map(c=>{const n=openIn(c);return {label:catLabel(c),sub:n?plural(n,'open task')+' — move them first':'no open tasks',value:c};}),{label:'Cancel',value:null}]);
     if(v==null)return;
     const n=openIn(v);if(n){toast('“'+catLabel(v)+'” still has '+plural(n,'open task')+'. Move them to another list first.');return;}
-    changeProject(p.id,{lists:cur.filter(x=>x!==v)});toast('List “'+catLabel(v)+'” removed from '+p.name+' — Ctrl+Z brings it back.');
+    changeProject(p.id,{lists:cur.filter(x=>x!==v)});toast('List “'+catLabel(v)+'” removed from '+p.name+' — '+(isPhone()?'Undo in the ⋯ menu':'Ctrl+Z')+' brings it back.');
   },
   saveProject:()=>{
     const d=ui.dialog,name=String(d.name||'').trim();
@@ -2031,7 +2261,7 @@ const ACT={
     ui.dialog=null;const now=nowIso();let eid=null;
     change(g.pid,d=>{let e=d.journal.find(x=>x.date===date);if(!e){e={id:_uid('jnl'),date,sections:[],createdAt:now,modifiedAt:now};d.journal.push(e);}e.sections.push({id:_uid('js'),title:title||'Note',content});e.modifiedAt=now;eid=e.id;});
     if(eid)openDrawer({type:'entry',pid:g.pid,id:eid});
-    toast('Saved to the journal. Ctrl+Z undoes.');
+    toast('Saved to the journal. '+undoHint());
   },
   dscrim:(el,ev)=>{if(ev.target!==el)return;const d=ui.dialog;if(d&&d.type==='feedback'&&String((d.title||'')+(d.desc||'')).trim())return;if(d&&d.type==='jwrite'&&String((d.title||'')+(d.content||'')).trim())return;if(d&&d.type==='calnew'&&String((d.title||'')+(d.location||'')+(d.description||'')).trim())return;if(d&&d.type==='elnew'&&String((d.label||'')+(d.newNode||'')+(d.desc||'')).trim())return;closeDialog();}, // angefangenes Feedback nicht per Fehlklick verlieren
   choose:el=>{const d=ui.dialog;if(d&&d.type==='choice')resolveChoice(d.options[+A(el).i]?.value??null);}
@@ -2042,8 +2272,8 @@ function archiveItem(kind,pid,id,sid,on,reason){
   else if(kind==='step'){const t=findT(pid,id),s=findS(pid,id,sid);if(!t||!s||isArch(s)===on)return;change(pid,()=>{setArchived(s,on,reason);if(on)s.focus=false;t.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.sid===sid)ui.drawer={type:'todo',pid,id};}
   else if(kind==='idea'){const i=S.data[pid]?.ideas.find(x=>x.id===id);if(!i||isArch(i)===on)return;change(pid,()=>{setArchived(i,on,reason);i.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.id===id)ui.drawer=null;}
   else if(kind==='cal'){const ev=findCalEv('own',id);if(!ev||isArch(ev)===on)return;changeCal(()=>{setArchived(ev,on,reason);ev.modifiedAt=now;});if(on&&ui.drawer&&ui.drawer.type==='cal'&&ui.drawer.id===id)ui.drawer=null;
-    render();toast(on?'Archived — “archived” at the top of the calendar keeps it. Ctrl+Z undoes.':'Restored. Ctrl+Z undoes.');return;}
-  render();toast(on?'Archived — ⋯ → Archived items keeps it. Ctrl+Z undoes.':'Restored. Ctrl+Z undoes.');
+    render();toast(on?'Archived — “archived” at the top of the calendar keeps it. '+undoHint():'Restored. '+undoHint());return;}
+  render();toast(on?'Archived — ⋯ → Archived items keeps it. '+undoHint():'Restored. '+undoHint());
 }
 function handleAdd(inp){
   const text=inp.value.trim();if(!text)return;
@@ -2067,6 +2297,7 @@ document.addEventListener('click',ev=>{
   const fn=ACT[el.dataset.act];if(!fn)return;
   if(el.dataset.act!=='menu'&&ui.menu&&!el.closest('.menu'))ui.menu=null;
   ev.preventDefault();
+  if(el.dataset.close&&ui.menu){ui.menu=null;render();} // Menuepunkt des Handy-Menues: Menue schliesst mit der Wahl
   try{const r=fn(el,ev);if(r&&r.catch)r.catch(e=>{console.error(e);toast('Something went wrong: '+e.message,'err');});}
   catch(e){console.error(e);toast('Something went wrong: '+e.message,'err');}
 });

@@ -50,6 +50,8 @@ function boot(gh,opts){
     w.crypto.randomUUID=()=>nodeCrypto.randomUUID();w.CSS=w.CSS||{escape:s=>s};
     w.__RG_TIMING=Object.assign({poll:400,push:150,cap:30},opts.timing||{});
     if(opts.seed)opts.seed(w.localStorage);
+    // Handy-Ansicht: jsdom kennt matchMedia nicht — die Abfrage der schmalen Breite beantworten wir mit Ja
+    if(opts.phone)w.matchMedia=q=>({matches:/max-width:720px/.test(q),media:q,addEventListener(){},removeEventListener(){},addListener(){},removeListener(){}});
     w.fetch=(u,i)=>gh.fetch(u,i);
     w.addEventListener('error',e=>errors.push('window.error: '+e.message));
     w.addEventListener('unhandledrejection',e=>errors.push('unhandled: '+(e.reason&&e.reason.stack||e.reason)));
@@ -1022,6 +1024,65 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     {const sc=env.doc.querySelector('[data-act="dscrim"]');sc.dispatchEvent(new env.w.MouseEvent('click',{bubbles:true}));await tick();}
     ok(env.doc.querySelector('.dlg #ent')&&env.doc.querySelector('#ent').value==='ZZ half','a stray click next to a started window does not close it');
     key(env,env.doc.querySelector('#ent'),'Escape');await tick();
+   }
+   ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
+   env.w.close();
+  }
+  // ── 24. Handy-Ansicht: anderer Aufbau, derselbe Datenweg (Layout und echtes Antippen prueft tests/rg-phone-e2e.js) ──
+  console.log('24. phone layout');
+  gh=makeGitHub(snapText);
+  env=boot(gh,{phone:true,timing:{cap:1000,wcap:1000,wcapH:100000},seed:ls=>seed(ls,snap,{rg_gh_token:'tok',rg_gh_user:'tester',rg_gh_gist:'G'})});
+  ok(await until(()=>env.doc.querySelector('.one')),'loaded');
+  {
+   const gp=id=>gh.doc().projects.find(p=>p.id===id),live=x=>!x.archived;
+   ok(env.doc.documentElement.hasAttribute('data-phone'),'the narrow screen is recognised');
+   ok(!env.doc.querySelector('.col')&&!env.doc.querySelector('.col-h')&&env.doc.querySelectorAll('.one').length===1,'one project on screen instead of columns');
+   ok(env.doc.querySelectorAll('.ptabs [data-act="pickOne"]').length===NC,'every visible project is a tab');
+   ok(env.doc.querySelectorAll('.pages.bot [data-act="page"]').length===4&&!env.doc.querySelector('.top .pages'),'the four pages stand at the bottom');
+   ok(!env.doc.querySelector('[data-act="mode"]'),'no choice between all projects and one project');
+   const pp=snap.projects.find(p=>!p.archived&&!p.frozen&&(p.todos||[]).some(t=>live(t)&&(t.status||'open')==='open'&&!t.focus&&!t.northStar));
+   ok(pp,'found a project with an open task');
+   if(pp){
+    click(env,`.ptabs [data-act="pickOne"][data-pid="${pp.id}"]`);await tick();
+    ok(env.doc.querySelector('.one').dataset.k==='one-'+pp.id&&env.doc.querySelector('.ptabs .tabs button.on').dataset.pid===pp.id,'a tab switches the project');
+    const openN=pp.todos.filter(t=>live(t)&&!['done','failed'].includes(t.status||(t.done?'done':'open'))).length;
+    ok(env.doc.querySelector('.ptabs .tabs button.on .n').textContent===String(openN),'the tab carries the number of open tasks');
+    const tp=pp.todos.find(t=>live(t)&&(t.status||'open')==='open'&&!t.focus&&!t.northStar),revs=gh.revs.length;
+    // Status: Kaestchen, darunter waehlen
+    click(env,`.one [data-act="pickSt"][data-v="c:${pp.id}|${tp.id}"]`);await tick();
+    click(env,'.stpick [data-v="in_progress"]');
+    ok(await until(()=>gp(pp.id).todos.find(t=>t.id===tp.id).status==='in_progress'),'status set on the phone reaches the gist');
+    // Prioritaet: ein Knopf statt drei Balken, Auswahl darunter
+    const pr0=typeof tp.priority==='boolean'?(tp.priority?'high':'low'):(tp.priority||'low'),pr1=pr0==='high'?'low':'high';
+    ok(env.doc.querySelector(`.one [data-k="t-${tp.id}"] .prio.pb`)&&!env.doc.querySelector(`.one [data-k="t-${tp.id}"] [data-act="setPrio"]`),'priority is one button in the row');
+    click(env,`.one [data-k="t-${tp.id}"] .prio.pb`);await tick();
+    ok(env.doc.querySelectorAll(`.stpick[data-k="pp-${tp.id}"] [data-act="setPrio"]`).length===3,'a tap opens the three priorities under the row');
+    click(env,`.stpick[data-k="pp-${tp.id}"] [data-act="setPrio"][data-v="${pr1}"]`);await tick();
+    ok(!env.doc.querySelector('.stpick'),'the choice closes it');
+    ok(await until(()=>gp(pp.id).todos.find(t=>t.id===tp.id).priority===pr1),'priority set on the phone reaches the gist');
+    // Rueckgaengig liegt im Menue (keine Tastatur)
+    click(env,'.top [data-act="menu"]');await tick();
+    ok(['undo','redo','theme','feedback','newProject','archived','openSync','help','toggleDone'].every(a=>env.doc.querySelector(`.top .menu [data-act="${a}"]`))&&env.doc.querySelectorAll('.top .menu [data-act="zoom"]').length===2,'the menu holds what has no room in the header');
+    ok(!env.doc.querySelector('.menu [data-act="resetWidths"]'),'no column widths to reset');
+    click(env,'.top .menu [data-act="undo"]');await tick();
+    ok(!env.doc.querySelector('.top .menu'),'the menu closes with the choice');
+    ok(await until(()=>gp(pp.id).todos.find(t=>t.id===tp.id).priority===pr0),'Undo from the menu takes the priority back in the gist');
+    ok(/Redo is in the/.test((env.doc.querySelector('.toast')||{}).textContent||''),'the confirmation names the menu, not a keyboard shortcut');
+    ok(gh.revs.length>revs,'changes were uploaded');
+    // Kalender: alle Projekte, ein Reiter grenzt ein
+    click(env,'.pages.bot [data-act="page"][data-v="calendar"]');await tick();
+    ok(env.doc.querySelector('.ptabs .tabs button.all.on')&&env.doc.querySelectorAll('.cal-l .ab:not(.gcab)').length===NC,'the calendar starts over all projects');
+    ok(env.doc.querySelectorAll('.cd .cdn .wd').length===env.doc.querySelectorAll('.cd').length&&!env.doc.querySelector('.cd.mt'),'every day is its own row and names its weekday');
+    click(env,`.ptabs [data-act="pickOne"][data-pid="${pp.id}"]`);await tick();
+    ok(env.doc.querySelectorAll('.cal-l .ab:not(.gcab)').length===1,'a project tab narrows the calendar to that project');
+    click(env,'.ptabs [data-act="calAll"]');await tick();
+    ok(env.doc.querySelectorAll('.cal-l .ab:not(.gcab)').length===NC,'All shows every project again');
+    // Zurueck-Taste: schliesst, was offen ist
+    click(env,'.pages.bot [data-act="page"][data-v="tasks"]');await tick();
+    click(env,`.one [data-k="t-${tp.id}"] .tt`);await tick();
+    ok(env.doc.querySelector('.drawer'),'details open');
+    env.w.dispatchEvent(new env.w.PopStateEvent('popstate'));await tick();
+    ok(!env.doc.querySelector('.drawer'),'Back closes the details');
    }
    ok(env.errors.length===0,'no errors: '+env.errors.slice(0,3).join('\n'));
    env.w.close();
