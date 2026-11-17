@@ -450,6 +450,14 @@ div.ce.gc{cursor:default}
 .stpick.sub{margin-left:20px}
 .dr-b .stpick.sub{margin-left:32px}
 .stpick .seg{background:var(--paper)}
+/* Status-Auswahl mit der Maus: kleine Liste direkt rechts neben dem Kaestchen, ueber der Zeile statt darunter — kurzer Mausweg, nichts verschiebt sich */
+.stpop-w{position:fixed;z-index:39}
+.stpop{background:var(--paper);border:1px solid var(--ink-3);border-radius:8px;box-shadow:0 8px 24px rgba(10,16,28,.28);padding:4px}
+.stpop button{display:flex;align-items:center;gap:8px;width:100%;height:28px;padding:0 12px 0 6px;border-radius:5px;font-size:13px;color:var(--ink);white-space:nowrap}
+.stpop button:hover{background:var(--hover);box-shadow:inset 0 0 0 1.5px var(--ink-3)}
+.stpop button.on{background:var(--sel);font-weight:700}
+.stpop .cb{margin:0;flex:none;pointer-events:none}
+.stpop .cb.r{margin:0 1px}
 .sec-h.cl-h{cursor:pointer}
 .t.cl{margin-top:1px}
 .t.cl::before{display:none}
@@ -1367,6 +1375,7 @@ const ui={
   folded:new Set(lsGet('rg3_folded',[])), // eingeklappte Tasks (pid|tid)
   closedOpen:new Set(lsGet('rg3_closed',[])), // Projekte, deren "Closed"-Liste aufgeklappt ist
   pick:null, // Zeile, deren Status- oder Prioritaets-Auswahl gerade offen ist (ort:pid|tid[|sid])
+  pickAt:null, // Lage des angeklickten Status-Kaestchens im Fenster {x,y,w,h} — daran haengt die Auswahl neben dem Kaestchen
   calDay:null, // Handy: oberster sichtbarer Tag der Kalender-Tagesliste
   jump:null, // Handy-Trefferliste: Projekt, dessen Block nach dem Zeichnen nach oben soll ('' = Anfang)
   calAll:true // Handy: Kalender ueber alle Projekte (true) oder nur das gewaehlte
@@ -1395,9 +1404,10 @@ function renderNow(){
   const tpl=document.createElement('template');
   const ph=isPhone(),root=document.documentElement;
   if(root.hasAttribute('data-phone')!==ph){if(ph)root.setAttribute('data-phone','');else root.removeAttribute('data-phone');}
-  tpl.innerHTML=renderTop()+renderMain()+renderBottom()+renderDrawer()+renderDialog()+renderToast();
+  tpl.innerHTML=renderTop()+renderMain()+renderBottom()+renderDrawer()+renderDialog()+renderToast()+renderPop();
   const g0=app.querySelector('.cal-g'),anc=g0&&!ui.calGo?calAnchor(g0):null;
   morphKids(app,tpl.content);
+  placePop(app);
   calPlace(app.querySelector('.cal-g'),g0,anc);
   app.querySelectorAll('textarea[data-auto]').forEach(autosize);
   if(ph){syncBack();const on=app.querySelector('.ptabs .tabs button.on'),k=on?on.dataset.pid||'all':'';if(on&&k!==_tabShown&&on.scrollIntoView)on.scrollIntoView({block:'nearest',inline:'nearest'});_tabShown=k;}
@@ -1624,14 +1634,38 @@ function closedRow(p,t,when){
   </div>${arch?'':stPick('c',pid,t.id,null,st)}`;
 }
 // Status-Auswahl statt Klick-Zyklus: jede Richtung in zwei Klicks, auch zurueck.
-// Klick auf das Kaestchen klappt direkt darunter dieselbe Auswahl auf wie in der Schublade; ein Klick setzt den Status, in jede Richtung.
+// Klick auf das Kaestchen klappt die Auswahl auf, ein Klick setzt den Status, in jede Richtung.
+// Mit der Maus: kleine Liste direkt rechts neben dem Kaestchen (renderPop). Handy: unter der Zeile (stPick), dort gibt es keinen Mausweg zu sparen.
+function popOn(){return !isPhone();}
+// Die Liste steht so, dass der aktuelle Status auf Hoehe des Kaestchens liegt; das Kaestchen bleibt frei (zweiter Klick darauf schliesst),
+// unter dem Zeiger liegt nie eine Auswahl — ein Doppelklick verstellt nichts.
+function renderPop(){
+  if(!popOn()||!ui.pick||!ui.pickAt||ui.pick.startsWith('p:'))return '';
+  const parts=ui.pick.split('|'),pid=parts[0].slice(parts[0].indexOf(':')+1),id=parts[1],sid=parts[2]||null;
+  const p=projById(pid),t=findT(pid,id),s=sid?findS(pid,id,sid):null;
+  if(!p||!t||(sid&&!s))return '';
+  const items=sid?STEP_ST:TODO_ST,cur=sid?(oddSt(s,STEP_KNOWN)?'':sSt(s)):(oddSt(t,TODO_KNOWN)?'':tSt(t));
+  const i=Math.max(0,items.findIndex(x=>x[0]===cur)),z=ui.zoom/100,at=ui.pickAt;
+  const left=at.x+at.w+3*z,top=at.y+at.h/2-(5+i*28+14)*z; // 5 = Rand + Innenabstand, 28 = Zeilenhoehe der Liste
+  const a=` data-pid="${esc(pid)}" data-id="${esc(id)}"`+(sid?` data-sid="${esc(sid)}"`:'');
+  return `<div class="stpop-w" data-k="stpop" style="left:${left.toFixed(1)}px;top:${top.toFixed(1)}px"><div class="stpop" role="menu" aria-label="Set status" style="zoom:${z};${projVars(p)}">${items.map(([v,,l])=>`<button class="${v===cur?'on':''}" data-act="${sid?'setStepStatus':'setStatus'}" data-v="${v}"${a} role="menuitemradio" aria-checked="${v===cur}"><span class="cb${sid?' r':''} s-${v}" aria-hidden="true">${CB_ICON[v]||''}</span><span>${l}</span></button>`).join('')}</div></div>`;
+}
+// Am Fensterrand ganz ins Bild schieben
+function placePop(app){
+  const w=app.querySelector('.stpop-w');if(!w)return;
+  const r=w.getBoundingClientRect(),m=6;let dx=0,dy=0;
+  if(r.right>innerWidth-m)dx=innerWidth-m-r.right;if(r.left+dx<m)dx=m-r.left;
+  if(r.bottom>innerHeight-m)dy=innerHeight-m-r.bottom;if(r.top+dy<m)dy=m-r.top;
+  if(dx||dy){w.style.left=(r.left+dx).toFixed(1)+'px';w.style.top=(r.top+dy).toFixed(1)+'px';}
+}
+function closePick(){if(!ui.pick)return false;ui.pick=null;ui.pickAt=null;render();return true;}
 function stKey(loc,pid,id,sid){return loc+':'+pid+'|'+id+(sid?'|'+sid:'');}
 function stBox(loc,pid,id,sid,st){
   const k=stKey(loc,pid,id,sid),on=ui.pick===k,lab=st.replace('_',' ');
   return `<button class="cb${sid?' r':''} s-${st}" data-act="pickSt" data-v="${esc(k)}" title="${esc(lab)} — click to change" aria-label="${sid?'Step status':'Status'} ${esc(lab)} — change" aria-expanded="${on}">${CB_ICON[st]||''}</button>`;
 }
 function stPick(loc,pid,id,sid,cur){
-  if(ui.pick!==stKey(loc,pid,id,sid))return '';
+  if(popOn()||ui.pick!==stKey(loc,pid,id,sid))return '';
   const a=` data-pid="${esc(pid)}" data-id="${esc(id)}"`+(sid?` data-sid="${esc(sid)}"`:'');
   return `<div class="stpick${sid?' sub':''}" data-k="sp-${esc(sid||id)}" role="group" aria-label="Set status">${seg(sid?STEP_ST:TODO_ST,cur,sid?'setStepStatus':'setStatus',a)}</div>`;
 }
@@ -2108,7 +2142,7 @@ const ACT={
   resetWidths:()=>{ui.colw={};lsSet('rg3_colw',{});ui.menu=null;render();},
   // Tasks
   // Kaestchen: klappt die Status-Auswahl dieser Zeile auf/zu (kein Klick-Zyklus mehr — der fuehrte nur vorwaerts und liess Tasks spurlos verschwinden)
-  pickSt:el=>{ui.pick=ui.pick===A(el).v?null:A(el).v;ui.menu=null;render();},
+  pickSt:el=>{const k=A(el).v;if(ui.pick===k){ui.pick=null;ui.pickAt=null;}else{ui.pick=k;const r=el.getBoundingClientRect();ui.pickAt={x:r.left,y:r.top,w:r.width,h:r.height};}ui.menu=null;render();},
   // ‹ › springen zum Anfang des Monats davor/danach (vom Monat im Kopf aus gerechnet), Today zur aktuellen Woche — das Band selbst laeuft durch
   calNav:el=>{const v=+A(el).v;if(!v)return calGoto(todayStr());const s=calRef(),d=new Date(+s.slice(0,4),+s.slice(5,7)-1+v,1,12);calGoto(d.toLocaleDateString('en-CA'));},
   toggleClosed:el=>{const pid=A(el).pid;if(qq())return;if(ui.closedOpen.has(pid))ui.closedOpen.delete(pid);else ui.closedOpen.add(pid);lsSet('rg3_closed',[...ui.closedOpen]);render();},
@@ -2309,11 +2343,12 @@ function handleAdd(inp){
 // 12. EREIGNISSE
 // ════════════════════════════════════════════════════════════════════════════
 // scroll steigt nicht auf — deshalb in der Capture-Phase am Dokument, das Band wird bei jedem Zeichnen gemorpht statt neu verdrahtet
-document.addEventListener('scroll',ev=>{const g=ev.target;if(g&&g.classList&&g.classList.contains('cal-g'))calScroll(g);},true);
+document.addEventListener('scroll',ev=>{if(ui.pick&&popOn())closePick(); // die Liste haengt an der Lage des Kaestchens — wandert die Zeile, schliesst sie
+  const g=ev.target;if(g&&g.classList&&g.classList.contains('cal-g'))calScroll(g);},true);
 document.addEventListener('click',ev=>{
   const el=ev.target.closest('[data-act]');
   // Offene Status-Auswahl schliesst bei jedem Klick ausserhalb von ihr
-  if(ui.pick&&!ev.target.closest('.stpick')&&!(el&&el.dataset.act==='pickSt')){ui.pick=null;render();}
+  if(ui.pick&&!ev.target.closest('.stpick,.stpop')&&!(el&&el.dataset.act==='pickSt'))closePick();
   if(!el){if(ui.menu&&!ev.target.closest('.menu')){ui.menu=null;render();}return;}
   if(el.disabled)return;
   const fn=ACT[el.dataset.act];if(!fn)return;
@@ -2363,7 +2398,7 @@ document.addEventListener('keydown',ev=>{
     if(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)return;
     ev.preventDefault();undoRedo(ev.key.toLowerCase()==='y'||ev.shiftKey?'redo':'undo');return;
   }
-  if(ev.key==='Escape'){if(ui.pick){ui.pick=null;render();}else if(ui.menu){ui.menu=null;render();}else if(ui.drawer){commitDraft();ui.drawer=null;render();}else if(k==='q'){ui.q='';t.blur();render();}return;}
+  if(ev.key==='Escape'){if(closePick()){}else if(ui.menu){ui.menu=null;render();}else if(ui.drawer){commitDraft();ui.drawer=null;render();}else if(k==='q'){ui.q='';t.blur();render();}return;}
   if(mod&&ev.key.toLowerCase()==='f'){ev.preventDefault();const s=document.querySelector('.search input');if(s){s.focus();s.select();}}
 });
 // Spaltenbreite ziehen: nur die beiden Spalten am Griff aendern sich, ihre Summe bleibt — alle anderen stehen still.
@@ -2385,6 +2420,7 @@ document.addEventListener('pointerdown',ev=>{
 document.addEventListener('dblclick',ev=>{const sp=ev.target.closest&&ev.target.closest('.split');if(!sp)return;const [a,b]=_splitCols(sp);if(!a||!b)return;_freezeWeights(ui.zoom/100);const A=sp.dataset.split,B=sp.dataset.right,m=Math.round((ui.colw[A]+ui.colw[B])/2);ui.colw[A]=m;ui.colw[B]=m;lsSet('rg3_colw',ui.colw);render();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll(true);});
 window.addEventListener('focus',()=>poll(true));
+window.addEventListener('resize',()=>{if(ui.pick&&popOn())closePick();});
 window.addEventListener('beforeunload',()=>{commitDraft();});
 // Andere offene Kopie (z.B. overview.html) hat lokal Daten geaendert -> neu einlesen
 window.addEventListener('storage',ev=>{if(ev.key&&ev.key.startsWith('rg_')&&!/^rg_(gh_|lastSync|view|panel|helpSeen|active_project|hideDone)/.test(ev.key)){loadLocal();validateSel();render();}});
