@@ -81,9 +81,10 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(gh.log.every(l=>l.startsWith('GET')),'loading writes nothing');
   ok(gh.revs.length===1,'no revision created by loading');
   // Jede offene Subtask sichtbar (Regel 7), wenn "done steps" gezeigt werden
-  const openSubs=snap.projects.reduce((n,p)=>n+p.todos.filter(t=>t.status!=='done'&&!t.archived).reduce((m,t)=>m+(t.subtasks||[]).filter(x=>!x.archived).length,0),0);
+  const closedSt=t=>t.status==='done'||t.status==='failed'; // beide liegen unter Closed, nicht in den Listen
+  const openSubs=snap.projects.reduce((n,p)=>n+p.todos.filter(t=>!closedSt(t)&&!t.archived).reduce((m,t)=>m+(t.subtasks||[]).filter(x=>!x.archived).length,0),0);
   ok(env.doc.querySelectorAll('.col .subs .s:not(.hidden-n)').length===openSubs,'all subtasks of open tasks shown ('+openSubs+')');
-  const openTodos=snap.projects.reduce((n,p)=>n+p.todos.filter(t=>t.status!=='done'&&!t.archived).length,0);
+  const openTodos=snap.projects.reduce((n,p)=>n+p.todos.filter(t=>!closedSt(t)&&!t.archived).length,0);
   ok(env.doc.querySelectorAll('.col .t').length===openTodos,'every open task shown, no done task ('+openTodos+')');
   const ideasN=snap.projects.reduce((n,p)=>n+p.ideas.filter(i=>!i.archived).length,0);
   ok(env.doc.querySelectorAll('.col .idea').length===ideasN,'all open ideas shown ('+ideasN+')');
@@ -151,7 +152,9 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   let ta=env.doc.querySelector('textarea[data-in="draft"]');typeIn(env,ta,'**bold** note\n\n| a | b |\n|---|---|\n| 1 | 2 |');key(env,ta,'Enter',{ctrlKey:true});await tick();
   ok(env.doc.querySelector('.drawer .md table'),'notes render as markdown table');
   click(env,'.drawer [data-act="setStatus"][data-v="blocked"]');await tick();
-  const bb=env.doc.querySelector('.drawer textarea[data-key^="todo.blockedBy"]');bb.value='primers ordered';bb.dispatchEvent(new env.w.Event('change',{bubbles:true}));await tick();
+  ok(env.doc.querySelector('.dlg #flr')&&env.doc.activeElement===env.doc.querySelector('#flr'),'blocked asks for the reason in the same small window as failed');
+  typeIn(env,env.doc.querySelector('#flr'),'primers ordered');key(env,env.doc.querySelector('#flr'),'Enter');await tick();
+  ok(!env.doc.querySelector('.dlg')&&env.doc.querySelector('.drawer textarea[data-key^="todo.blockedBy"]').value==='primers ordered','the reason is set and stays editable in the details');
   click(env,'.drawer [data-act="setPrio"][data-v="high"]');await tick();
   click(env,'.drawer [data-act="toggleFocus"]');await tick();
   ok(await until(()=>{const tt=gh.doc().projects[0].todos.find(t=>t.id===mine.id);return tt.status==='blocked'&&tt.blockedBy==='primers ordered'&&tt.priority==='high'&&tt.focus===true&&tt.notes.startsWith('**bold**');},6000),'drawer edits uploaded');
@@ -452,8 +455,13 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     key(env,env.doc.body,'Escape');await tick();ok(!env.doc.querySelector('.stpick'),'Esc closes the choice');
     click(env,box(ti.id));await tick();click(env,'.search input');await tick();ok(!env.doc.querySelector('.stpick'),'a click elsewhere closes the choice');
     await setSt(env,ti.id,'blocked');await tick();
-    ok(env.doc.querySelector('.drawer')&&String((env.doc.activeElement.dataset||{}).key||'').startsWith('todo.blockedBy'),'picking blocked opens the details with the cursor in "Waiting for"');
-    env.w.eval('ui.drawer=null;render()');await tick();}
+    ok(env.doc.querySelector('.dlg #flr')&&env.doc.activeElement===env.doc.querySelector('#flr')&&!env.doc.querySelector('.drawer'),'picking blocked asks for the reason in a small window, the details stay closed');
+    key(env,env.doc.querySelector('#flr'),'Escape');await tick();
+    ok(!env.doc.querySelector('.dlg')&&env.w.eval(`findT(${JSON.stringify(pp.id)},${JSON.stringify(ti.id)}).status`)==='open','Esc in the reason window leaves the status untouched');
+    await setSt(env,ti.id,'blocked');await tick();typeIn(env,env.doc.querySelector('#flr'),'waiting for the primers');click(env,'[data-act="doFail"]');await tick();
+    ok(!env.doc.querySelector('.dlg')&&!env.doc.querySelector('.drawer'),'after the reason nothing else opens');
+    ok(await until(()=>{const t=gh.doc().projects[pi].todos.find(t=>t.id===ti.id);return t.status==='blocked'&&t.blockedBy==='waiting for the primers';}),'blocked with its reason uploaded');
+    ok([...env.doc.querySelectorAll('.col .t.blocked .sl.block')].some(e=>e.textContent.includes('waiting for the primers')),'the reason shows in the row');}
    // unbekannter Status von einem zweiten Client: die Seite bleibt stehen und nennt ihn
    const P=snap.projects.find(pr=>(pr.todos||[]).some(t=>liveX(t)&&t.status==='open')),PI=snap.projects.indexOf(P),tu=P.todos.find(t=>liveX(t)&&t.status==='open');
    gh.remoteWrite(doc=>{doc.projects[PI].todos.find(t=>t.id===tu.id).status='on_hold';});

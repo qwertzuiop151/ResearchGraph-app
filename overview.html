@@ -1985,10 +1985,10 @@ function renderDialog(){
       <div class="fld"><label for="arr">Why? (optional)</label><input id="arr" type="text" data-in="dlg" data-name="reason" value="${esc(d.reason||'')}" placeholder="e.g. replaced by the Gibson route" autocomplete="off"></div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="doArchive">Archive ${what}</button></div>`;
   }else if(d.type==='fail'){
-    const what=d.kind==='todo'?'task':'step';
-    inner=`<h2>Mark this ${what} as failed?</h2><p>“${esc(snip(d.label,90))}” ${d.kind==='todo'?'moves to Closed, marked ✕ instead of ✓, with all its steps exactly as they are':'stays in its task, marked ✕ instead of ✓'}. Any other status can be set again later.</p>
-      <div class="fld"><label for="flr">Why did it fail?</label><input id="flr" type="text" data-in="dlg" data-name="reason" value="${esc(d.reason||'')}" placeholder="${d.kind==='todo'?'e.g. no colonies after two attempts':'e.g. no band on the gel'}" autocomplete="off"></div>
-      <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="doFail">Mark as failed</button></div>`;
+    const what=d.kind==='todo'?'task':'step',bl=d.st==='blocked'; // ein Fenster fuer jeden Status, der einen Grund traegt
+    inner=`<h2>Mark this ${what} as ${bl?'blocked':'failed'}?</h2><p>“${esc(snip(d.label,90))}” ${bl?'stays in its list, marked as waiting, with the reason shown in its row':d.kind==='todo'?'moves to Closed, marked ✕ instead of ✓, with all its steps exactly as they are':'stays in its task, marked ✕ instead of ✓'}. Any other status can be set again later.</p>
+      <div class="fld"><label for="flr">${bl?'What is it waiting for?':'Why did it fail?'}</label><input id="flr" type="text" data-in="dlg" data-name="reason" value="${esc(d.reason||'')}" placeholder="${bl?'e.g. primers, sequencing':d.kind==='todo'?'e.g. no colonies after two attempts':'e.g. no band on the gel'}" autocomplete="off"></div>
+      <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="doFail">Mark as ${bl?'blocked':'failed'}</button></div>`;
   }else if(d.type==='calnew'){
     // Ein Fenster, alles drin: Titel, von/bis (Tag + Uhrzeit), Ort, Beschreibung. Enter legt an, Esc bricht ab.
     inner=`<h2>New calendar entry</h2>
@@ -2067,7 +2067,7 @@ function setTodoStatus(t,st,reason){
   if(st==='done'&&was!=='done')t.completedAt=now;
   if(st!=='done')t.completedAt=null;
   if(st==='failed'){t.failedAt=now;t.failedReason=String(reason||'').trim()||null;}else{delete t.failedAt;delete t.failedReason;}
-  if(st!=='blocked')t.blockedBy=null;
+  if(st!=='blocked')t.blockedBy=null;else if(reason!==undefined)t.blockedBy=String(reason||'').trim()||null;
   t.modifiedAt=now;
 }
 // Vorlauf (Tage vor dem Datum, ab denen die Marke orange wird) an Task oder Schritt setzen
@@ -2115,12 +2115,11 @@ const ACT={
   open:el=>{const a=A(el);if(ui.dialog&&(ui.dialog.type==='parch'||ui.dialog.type==='carch')){ui.dialog=null;ui.stack=[];}openDrawer({type:a.type,pid:a.pid,id:a.id,sid:a.sid});},
   closeDrawer:()=>{commitDraft();ui.drawer=null;render();},
   setStatus:el=>{
-    const a=A(el),t=findT(a.pid,a.id),v=a.v,inRow=!!el.closest('.stpick');ui.pick=null;
+    const a=A(el),t=findT(a.pid,a.id),v=a.v;ui.pick=null;
     if(!t||rawSt(t)===v){render();return;}
-    if(v==='failed'){openDialog({type:'fail',kind:'todo',pid:a.pid,id:a.id,label:t.text,reason:''});ui.focusSel='#flr';return;} // erst nach dem Grund fragen
+    if(v==='failed'||v==='blocked'){openDialog({type:'fail',st:v,kind:'todo',pid:a.pid,id:a.id,label:t.text,reason:''});ui.focusSel='#flr';return;} // beide fragen im selben kleinen Fenster nach dem Grund, von ueberall aus
     change(a.pid,()=>setTodoStatus(t,v));
-    if(v==='blocked'){if(inRow&&!isOpen('todo',a.pid,a.id))openDrawer({type:'todo',pid:a.pid,id:a.id});ui.focusSel='textarea[data-key^="todo.blockedBy"]';render();} // der Wartegrund steht in der Schublade
-    else if(v==='done')toast('Done: “'+snip(t.text,60)+'” — now under Closed in '+(projById(a.pid)?.name||'its project')+'. '+undoHint());
+    if(v==='done')toast('Done: “'+snip(t.text,60)+'” — now under Closed in '+(projById(a.pid)?.name||'its project')+'. '+undoHint());
   },
   setPrio:el=>{if(ui.pick&&ui.pick.startsWith('p:')){ui.pick=null;render();}const t=findT(A(el).pid,A(el).id);if(!t||tPr(t)===A(el).v)return;change(A(el).pid,()=>{t.priority=A(el).v;t.modifiedAt=nowIso();});},
   setCat:el=>{const t=findT(A(el).pid,A(el).id);if(!t||tCat(t)===A(el).v)return;/* exakt: altes 'general' -> 'General' darf umschreiben */change(A(el).pid,()=>{t.category=A(el).v;t.modifiedAt=nowIso();});},
@@ -2130,6 +2129,7 @@ const ACT={
     change(A(el).pid,d=>{setStepSt(s,A(el).v);d.todos.find(x=>x.id===A(el).id).modifiedAt=nowIso();});},
   doFail:()=>{
     const g=ui.dialog;if(!g||g.type!=='fail')return;ui.dialog=null;
+    if(g.kind==='todo'&&g.st==='blocked'){const t=findT(g.pid,g.id);if(!t){render();return;}change(g.pid,()=>setTodoStatus(t,'blocked',g.reason));return;} // bleibt in seiner Liste, der Grund steht in der Zeile
     if(g.kind==='todo'){const t=findT(g.pid,g.id);if(!t){render();return;}change(g.pid,()=>setTodoStatus(t,'failed',g.reason));toast('Failed: “'+snip(t.text,60)+'” — now under Closed in '+(projById(g.pid)?.name||'its project')+'. '+undoHint());}
     else{const s=findS(g.pid,g.id,g.sid);if(!s){render();return;}change(g.pid,d=>{setStepSt(s,'failed',g.reason);d.todos.find(x=>x.id===g.id).modifiedAt=nowIso();});}
   },
