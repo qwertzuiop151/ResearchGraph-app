@@ -598,11 +598,11 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     ok(await until(()=>{const x=gh.doc().projects[FI].todos.find(t=>t.id===tS.id).subtasks.find(x=>x.id===sF.id);return x.status==='failed'&&x.failedReason==='no band on the gel'&&!!x.failedAt;}),'step stored as failed with its reason and time');
     const srow=env.doc.querySelector(box(sF.id));
     ok(srow&&srow.className.includes('s-failed')&&srow.closest('.s').textContent.includes('no band on the gel'),'the step stays in its task, marked failed, reason shown in the row');
-    // Issue #8 (12.11.2026): done und failed gleich — "Closed steps hidden" blendet den fehlgeschlagenen Schritt aus wie einen erledigten
+    // Issue #8 (12.11.2026): done und failed gleich — "Hide closed steps" blendet den fehlgeschlagenen Schritt aus wie einen erledigten
     {const tb=()=>env.doc.querySelector('[data-act="toggleDone"]'),isFs=!!(tS.focus&&sF.focus),hn=()=>env.doc.querySelector(`.subs[data-k="ss-${tS.id}"] .hidden-n`);
-     ok(tb()&&tb().textContent==='Closed steps shown','the toggle names closed steps, not only done ones (#8)');
+     ok(tb()&&tb().textContent==='Hide closed steps'&&tb().getAttribute('aria-pressed')==='false','the toggle names closed steps, not only done ones (#8); its label stays, only the pressed state changes');
      click(env,'[data-act="toggleDone"]');await tick();
-     ok(tb().textContent==='Closed steps hidden'&&(isFs||!env.doc.querySelector(box(sF.id))),'with closed steps hidden, a failed step disappears like a done one (#8)');
+     ok(tb().textContent==='Hide closed steps'&&tb().getAttribute('aria-pressed')==='true'&&(isFs||!env.doc.querySelector(box(sF.id))),'with closed steps hidden, a failed step disappears like a done one (#8)');
      ok(isFs||(hn()&&/closed steps? hidden/.test(hn().textContent)),'and the task says how many closed steps it hides');
      click(env,`${col} .t [data-act="open"][data-type="todo"][data-id="${tS.id}"]`);await tick();
      ok(isFs||!env.doc.querySelector(`.drawer [data-k="ds-${sF.id}"]`),'the details hide it too');

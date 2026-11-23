@@ -75,7 +75,7 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .sec-h .add:hover{background:var(--hover);color:var(--ink)}
 .add-in{width:100%;margin:2px 0 4px;padding:4px 8px;border:1px solid var(--ink);border-radius:6px}
 .add-in:focus{outline:none}
-.empty{padding:6px 6px;color:var(--ink-4);font-size:12px}
+.empty{padding:6px 6px;color:var(--ink-3);font-size:12px}
 
 /* Task-Zeile als festes Raster: Kaestchen | Titel (+ Statuszeile) | rechte Spalte (Prioritaet, Element, Notizen) */
 .t{display:grid;grid-template-columns:16px minmax(0,1fr) auto;column-gap:7px;align-items:start;padding:4px 5px;border-radius:5px;margin-top:1px}
@@ -162,8 +162,14 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 
 /* ── Schublade (Details auf Abruf) ── */
 .scrim{position:fixed;inset:0;background:rgba(15,22,36,.22);z-index:40}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:min(500px,94vw);background:var(--paper);z-index:41;box-shadow:-12px 0 40px rgba(10,16,28,.18);display:flex;flex-direction:column}
+/* Suchtreffer im Text */
+mark{background:#F0E442;color:#172033;border-radius:2px;padding:0 1px}
+.ib svg{width:11px;height:11px;vertical-align:-1px;margin-right:3px}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(var(--drw,500px),94vw);background:var(--paper);z-index:41;box-shadow:-12px 0 40px rgba(10,16,28,.18);display:flex;flex-direction:column}
 .dr-h{display:flex;gap:8px;align-items:flex-start;padding:12px 14px 8px;border-bottom:1px solid var(--rule)}
+/* Linker Rand der Schublade: ziehen aendert die Breite (pro Geraet gemerkt), Doppelklick setzt zurueck */
+.dr-grip{position:absolute;left:-4px;top:0;bottom:0;width:8px;cursor:col-resize;z-index:2}
+.dr-grip:hover,.dr-grip.drag{background:linear-gradient(90deg,transparent 3px,var(--rule-2) 3px,var(--rule-2) 5px,transparent 5px)}
 .dr-h .k{font-size:12px;color:var(--ink-3)}
 .dr-b{flex:1;overflow-y:auto;padding:10px 14px 40px}
 .dr-x{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--ink-3);font-size:14px;flex-shrink:0}
@@ -386,7 +392,7 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .t.focus{background:var(--paper);box-shadow:inset 4px 0 0 var(--c)}
 .t.focus .tt .star path{fill:var(--cm)}
 .s .tt{color:var(--ink)}
-.s.done .tt{color:#6F7885}
+.s.done .tt{color:var(--ink-3)} /* >= 4,5:1 auch auf der Auswahlfarbe */
 /* Status nur ueber die Form: offen = leer, in progress = Rand + Punkt, erledigt = gefuellt + Haken */
 .cb.s-in_progress{background:var(--paper);border:2px solid var(--cm,var(--prog));color:var(--cm,var(--prog))}
 .cb.s-done{background:var(--cm,var(--done));border-color:var(--cm,var(--done));color:var(--cmon,#fff)}
@@ -605,6 +611,7 @@ div.ce.gc{cursor:default}
 [data-phone] .jd .x{font-size:14px}
 [data-phone] .jd .x div{white-space:normal;overflow-wrap:anywhere}
 [data-phone] .drawer{width:100vw;box-shadow:none}
+[data-phone] .dr-grip{display:none}
 [data-phone] .dr-h{padding:10px 6px 8px 14px}
 [data-phone] .dr-h .k,[data-phone] .kv>span{font-size:13.5px}
 [data-phone] .dr-x{width:46px;height:44px;font-size:20px}
@@ -669,6 +676,8 @@ div.ce.gc{cursor:default}
 // ════════════════════════════════════════════════════════════════════════════
 function _uid(prefix){return (prefix||'id')+'_'+crypto.randomUUID().replace(/-/g,'').slice(0,12);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+// Suchtreffer im Text markieren (wie esc, Fundstellen in <mark>)
+function hl(s){s=String(s==null?'':s);const q=qq();if(!q)return esc(s);const lo=s.toLowerCase();if(lo.length!==s.length)return esc(s);let o='',i=0,j;while((j=lo.indexOf(q,i))>=0){o+=esc(s.slice(i,j))+'<mark>'+esc(s.slice(j,j+q.length))+'</mark>';i=j+q.length;}return o+esc(s.slice(i));}
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function nowIso(){return new Date().toISOString();}
 function fmtDate(iso,o){if(!iso)return '';const d=new Date(String(iso).length===10?iso+'T12:00:00':iso);return isNaN(d)?String(iso):d.toLocaleDateString('en-GB',o||{day:'numeric',month:'short',year:'numeric'});}
@@ -714,7 +723,7 @@ const IC_NOTES='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 3h8M2 6h
 const IC_STAR='<svg class="star" viewBox="0 0 12 12" aria-label="Focus"><path d="M6 .8l1.55 3.25 3.55.45-2.6 2.45.68 3.5L6 8.75 2.82 10.45l.68-3.5L.9 4.5l3.55-.45z" fill="currentColor"/></svg>';
 // Plus als Zeichnung: das Schriftzeichen ＋ sitzt je nach Schrift tiefer bzw. seitlich versetzt
 const IC_PLUS='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-const IC_IDEA='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1l1.3 3.7L11 6 7.3 7.3 6 11 4.7 7.3 1 6l3.7-1.3z" fill="currentColor"/></svg>';
+const IC_IDEA='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .7a3.7 3.7 0 0 0-2.2 6.7c.45.33.7.8.7 1.3v.3h3v-.3c0-.5.25-.97.7-1.3A3.7 3.7 0 0 0 6 .7z" fill="currentColor"/><path d="M4.5 10.3h3M5 11.4h2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>';
 const IC_LAB='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5h5M6.5 1.5v4.8L2.6 13a1.2 1.2 0 0 0 1 1.8h8.8a1.2 1.2 0 0 0 1-1.8L9.5 6.3V1.5M4.6 10h6.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
 const IC_GEN='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
 // Farbe = Projekt, Art = Form: jede Spalte traegt nur ihre Projektfarbe, Status/Abschnitt unterscheidet die Form.
@@ -730,7 +739,11 @@ function markColor(c){let v=rgbOf(c);if(!v)return '#505050';
   return '#'+v.map(x=>Math.round(x).toString(16).padStart(2,'0')).join('');}
 function mixHex(a,b,t){const x=rgbOf(a),y=rgbOf(b);return '#'+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,'0')).join('');}
 // Im Dunkeln die Flaechen (Kopfband, Kanten) um 30 % Richtung Papier daempfen, damit Gelb/Tuerkis nicht blenden
-function projVars(p){const c0=rgbOf(p&&p.color)?p.color:'#505050',c=isDark()?mixHex(c0,'#171c23',.3):c0,m=markColor(c0);return `--c:${c};--on:${onColor(c)};--cm:${m};--cmon:${onColor(m)}`;}
+// Kontrast der Kopfschrift (bessere der beiden Schriftfarben)
+function onContrast(c){const L=lumOf(...rgbOf(c)),o=onColor(c)==='#fff'?1:lumOf(23,32,51);return (Math.max(L,o)+.05)/(Math.min(L,o)+.05);}
+// Im Dunkeln nur so weit daempfen, dass die Kopfschrift noch 4,5:1 hat (Tuerkis kaeme bei 30 % auf 4,3:1)
+function darkFill(c0){let t=.3,c=mixHex(c0,'#171c23',t);while(t>0&&onContrast(c)<4.5){t=Math.max(0,+(t-.05).toFixed(2));c=mixHex(c0,'#171c23',t);}return c;}
+function projVars(p){const c0=rgbOf(p&&p.color)?p.color:'#505050',c=isDark()?darkFill(c0):c0,m=markColor(c0);return `--c:${c};--on:${onColor(c)};--cm:${m};--cmon:${onColor(m)}`;}
 const IC_BLOCK='<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.9 9.1l6.2-6.2" stroke="currentColor" stroke-width="1.5"/></svg>';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1222,7 +1235,7 @@ function dueChip(pid,t,s2){
 }
 // Dringendster offener Schritt mit Datum — fuer die Zaehlerzeile einer eingeklappten Task, damit Einklappen kein Datum versteckt
 function urgentStep(t){let best=null,bd=Infinity;(t.subtasks||[]).forEach(x=>{if(isArch(x)||closedS(x))return;const i=dueInfo(x);if(i&&i.d<bd){bd=i.d;best=x;}});return best;}
-function failNote(x){return x.failedReason?`<div class="sl fail">failed: ${esc(x.failedReason)}</div>`:'';} // der Grund steht immer bei der Zeile
+function failNote(x){return x.failedReason?`<div class="sl fail">failed: ${hl(x.failedReason)}</div>`:'';} // der Grund steht immer bei der Zeile
 function focusOf(d){return d.todos.find(t=>(t.focus||t.northStar)&&!isArch(t))||null;}
 function focusStepOf(d,t){const f=focusOf(d);return f&&f.id===t.id?(t.subtasks||[]).find(s=>s.focus)||null:null;}
 function findT(pid,id){const d=S.data[pid];return d&&d.todos.find(t=>t.id===id)||null;}
@@ -1497,9 +1510,9 @@ function renderTop(){
       :(ui.collapsed.size?`<button class="tbtn" data-act="expandAll">Expand all columns</button>`:'')}
     <span class="grow"></span>
     <span class="search"><input type="text" data-in="q" value="${esc(ui.q)}" placeholder="Search" aria-label="Search">${ui.q?'<button data-act="clearQ" aria-label="Clear search">✕</button>':''}</span>
-    ${ui.page==='tasks'?`<button class="tbtn${ui.hideDone?' on':''}" data-act="toggleDone" aria-pressed="${ui.hideDone}" title="Show or hide steps that are closed — done or failed">${ui.hideDone?'Closed steps hidden':'Closed steps shown'}</button>`:''}
-    ${frozen?`<button class="tbtn${ui.showFrozen?' on':''}" data-act="toggleFrozen" aria-pressed="${ui.showFrozen}">❄ ${ui.showFrozen?'Hide':'Show'} frozen (${frozen})</button>`:''}
-    <button class="tbtn" data-act="theme" title="Switch between light and dark">${isDark()?'☀ Light':'☾ Dark'}</button>
+    ${ui.page==='tasks'?`<button class="tbtn${ui.hideDone?' on':''}" data-act="toggleDone" aria-pressed="${ui.hideDone}" title="Pressed: steps that are closed — done or failed — are hidden">Hide closed steps</button>`:''}
+    ${frozen?`<button class="tbtn${ui.showFrozen?' on':''}" data-act="toggleFrozen" aria-pressed="${ui.showFrozen}" title="Pressed: frozen projects are shown">❄ Show frozen (${frozen})</button>`:''}
+    <button class="tbtn${isDark()?' on':''}" data-act="theme" aria-pressed="${isDark()}" title="Pressed: dark colours">☾ Dark</button>
     <span class="zoom" title="Size"><button data-act="zoom" data-v="-10" aria-label="Smaller">−</button><span>${ui.zoom}%</span><button data-act="zoom" data-v="10" aria-label="Larger">+</button></span>
     <button class="tbtn" data-act="feedback" title="Report a bug or send a wish — opens an issue on GitHub">✉ Feedback</button>
     ${sync}
@@ -1540,16 +1553,16 @@ function calEntry(e){
     const when=ev.allDay?'all day':tm(ev.start)+'–'+tm(ev.end||ev.start);
     // Klick oeffnet das Detailfeld wie bei allem anderen; ohne id (fremde Daten) bleibt es eine reine Zeile
     const tag=ev.id!=null?'button':'div',open=ev.id!=null?` data-act="open" data-type="cal" data-pid="${e.src}" data-id="${esc(ev.id)}"`:'';
-    return `<${tag} class="ce gc"${open} title="${g?'Google Calendar':'Calendar entry'} · ${esc(when)}${ev.location?' · '+esc(ev.location):''}${has?' · has a description':''}"><b class="ab gcab">${g?'G':'C'}</b><span>${ev.allDay?'':`<b>${esc(e.first?tm(ev.start):'…')}</b> `}${esc(ev.title||'(no title)')}${ev.location?`<small> · ${esc(ev.location)}</small>`:''}${has?`<i class="gcn" aria-label="has a description">${IC_NOTES}</i>`:''}</span></${tag}>`;
+    return `<${tag} class="ce gc"${open} title="${g?'Google Calendar':'Calendar entry'} · ${esc(when)}${ev.location?' · '+esc(ev.location):''}${has?' · has a description':''}"><b class="ab gcab">${g?'G':'C'}</b><span>${ev.allDay?'':`<b>${esc(e.first?tm(ev.start):'…')}</b> `}${hl(ev.title||'(no title)')}${ev.location?`<small> · ${esc(ev.location)}</small>`:''}${has?`<i class="gcn" aria-label="has a description">${IC_NOTES}</i>`:''}</span></${tag}>`;
   }
   const pid=e.p.id,ab=`<b class="ab" style="${projVars(e.p)}">${esc(projAbbr(e.p))}</b>`,pn=esc(e.p.name);
   const o=(type,id,sid)=>`data-act="open" data-type="${type}" data-pid="${esc(pid)}" data-id="${esc(id)}"${sid?` data-sid="${esc(sid)}"`:''}`;
   if(e.k==='journal'){const n=(e.e.sections||[]).length;return `<button class="ce jr" ${o('entry',e.e.id)} title="${pn} · journal · ${esc((e.e.sections||[]).map(x=>snip(x.title,60)).join(' · '))}">${ab}<span>Journal · ${plural(n,'section')}</span></button>`;}
-  if(e.k==='act')return `<button class="ce ac" ${o('element',e.el.id)} title="${pn} · ${esc(e.el.label)} · ${plural(e.n,'log entry').replace('entrys','entries')} that day">${ab}<i class="eb" style="--c:${esc(elColor(pid,e.el))}"></i><span>${esc(e.el.label)} · ${e.n}</span></button>`;
-  if(e.k==='idea')return `<button class="ce id" ${o('idea',e.i.id)} title="${pn} · new idea">${ab}<span>✦ ${esc(e.i.title||'Untitled idea')}</span></button>`;
+  if(e.k==='act')return `<button class="ce ac" ${o('element',e.el.id)} title="${pn} · ${esc(e.el.label)} · ${plural(e.n,'log entry').replace('entrys','entries')} that day">${ab}<i class="eb" style="--c:${esc(elColor(pid,e.el))}"></i><span>${hl(e.el.label)} · ${plural(e.n,'log')}</span></button>`;
+  if(e.k==='idea')return `<button class="ce id" ${o('idea',e.i.id)} title="${pn} · new idea">${ab}<span><i class="ib">${IC_IDEA}</i>${hl(e.i.title||'Untitled idea')}</span></button>`;
   const x=e.s||e.t,type=e.s?'step':'todo',par=e.s?' · step of “'+esc(snip(e.t.text,60))+'”':'';
-  if(e.k==='due'){const i=dueInfo(x);return `<button class="ce du ${i.cls}" ${o(type,e.t.id,e.s&&e.s.id)} title="${pn}${par} · due — ${esc(i.label)}">${ab}<span>${i.cls==='late'?'! ':''}${e.s?'↳ ':''}${esc(x.text||'Untitled')}</span></button>`;}
-  return `<button class="ce cl" ${o(type,e.t.id,e.s&&e.s.id)} title="${pn}${par} · ${e.k}${x.failedReason?': '+esc(x.failedReason):''}">${ab}<span>${mark(e.k)} ${e.s?'↳ ':''}${esc(x.text||'Untitled')}</span></button>`;
+  if(e.k==='due'){const i=dueInfo(x);return `<button class="ce du ${i.cls}" ${o(type,e.t.id,e.s&&e.s.id)} title="${pn}${par} · due — ${esc(i.label)}">${ab}<span>${i.cls==='late'?'! ':''}${e.s?'↳ ':''}${hl(x.text||'Untitled')}</span></button>`;}
+  return `<button class="ce cl" ${o(type,e.t.id,e.s&&e.s.id)} title="${pn}${par} · ${e.k}${x.failedReason?': '+esc(x.failedReason):''}">${ab}<span>${mark(e.k)} ${e.s?'↳ ':''}${hl(x.text||'Untitled')}</span></button>`;
 }
 function renderCalendar(){
   const r=calRange(),today=todayStr(),by={},days=[],ph=isPhone(),WD=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; // Handy: ein Tag pro Zeile statt sieben nebeneinander
@@ -1565,7 +1578,7 @@ function renderCalendar(){
   const projs=calProjects();
   return `<main class="board" data-k="main-calendar"><div class="zoomer" style="zoom:${ui.zoom/100}"><section class="calw" data-k="calw">
     <div class="cal-h"><button class="tbtn" data-act="calNav" data-v="-1" aria-label="Previous month" title="Previous month">‹</button><h2>${esc(calTitle())}</h2><button class="tbtn" data-act="calNav" data-v="1" aria-label="Next month" title="Next month">›</button><button class="tbtn" data-act="calNav" data-v="0">Today</button><button class="tbtn" data-act="calNew" title="Add a calendar entry — or use the ＋ that appears in a day"${ph?' aria-label="New calendar entry"':''}>${ph?'＋':'＋ New entry'}</button>
-      ${ph?'<div class="cal-leg">':''}<span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span>✦ idea</span><span>element · log entries</span></span>
+      ${ph?'<div class="cal-leg">':''}<span class="cal-k"><span class="ce du far"><span>due</span></span><span class="ce du soon"><span>due soon</span></span><span class="ce du today"><span>today / late</span></span><span>✓ done</span><span>✕ failed</span><span><i class="ib">${IC_IDEA}</i>idea</span><span>element · log entries</span></span>
       <span class="grow"></span><span class="cal-l">${projs.map(p=>`<span><b class="ab" style="${projVars(p)}">${esc(projAbbr(p))}</b>${esc(p.name)}</span>`).join('')}${(()=>{
         // Legende des Google-Kalenders, mit ehrlichem Alter: aelter als 36 h heisst, der Abgleich laeuft nicht mehr
         const g=S.calendar&&S.calendar.google;if(!g)return '';
@@ -1623,7 +1636,7 @@ function taskParts(p){
   const addI=ui.adding===pid+'|idea';
   parts.ideas=`<div class="sec-h" data-k="sh-ideas"><i class="sec-ic">${IC_IDEA}</i><span>Ideas</span><span class="c">${ideas.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|idea')}" title="Add an idea" aria-label="Add an idea">${IC_PLUS}</button></div>`
     +(addI?`<input class="add-in" data-k="ai-idea" data-add="idea" data-pid="${esc(pid)}" placeholder="New idea — Enter adds, Esc stops">`:'')
-    +ideas.map(i=>`<div class="idea${isOpen('idea',pid,i.id)?' sel':''}" data-k="i-${esc(i.id)}"><span class="ic">${IC_IDEA}</span><div class="tm"><button class="tt" data-act="open" data-type="idea" data-pid="${esc(pid)}" data-id="${esc(i.id)}">${esc(i.title||'Untitled idea')}</button>${i.archived?'<div class="sl">archived</div>':''}</div></div>`).join('');
+    +ideas.map(i=>`<div class="idea${isOpen('idea',pid,i.id)?' sel':''}" data-k="i-${esc(i.id)}"><span class="ic">${IC_IDEA}</span><div class="tm"><button class="tt" data-act="open" data-type="idea" data-pid="${esc(pid)}" data-id="${esc(i.id)}">${hl(i.title||'Untitled idea')}</button>${i.archived?'<div class="sl">archived</div>':''}</div></div>`).join('');
   // Closed: abgeschlossene Tasks auf Abruf, juengste zuerst. Zugeklappt eine Zeile mit der Zahl.
   // Unter der Suche immer offen und um archivierte Treffer ergaenzt, damit nichts unauffindbar bleibt.
   const closedAll=d.todos.filter(t=>closedT(t)&&!isArch(t));
@@ -1641,7 +1654,7 @@ function closedRow(p,t,when){
   const pid=p.id,st=tSt(t),arch=isArch(t);
   return `<div class="t cl${isOpen('todo',pid,t.id)?' sel':''}" style="--c:${esc(p.color||'#505050')}" data-k="c-${esc(t.id)}">
     ${arch?`<span class="cb s-${st}" aria-hidden="true">${CB_ICON[st]||''}</span>`:stBox('c',pid,t.id,null,st)}
-    <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${esc(t.text||'Untitled task')}</button>${arch?'<div class="sl">archived</div>':''}${failNote(t)}</div>
+    <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${hl(t.text||'Untitled task')}</button>${arch?'<div class="sl">archived</div>':''}${failNote(t)}</div>
     <div class="rc"><span class="when" title="${arch?'Archived':st==='failed'?'Failed':'Done'} ${esc(fmtDT(when))}">${esc(fmtDate(when,{day:'numeric',month:'short'}))}</span></div>
   </div>${arch?'':stPick('c',pid,t.id,null,st)}`;
 }
@@ -1727,10 +1740,10 @@ function renderTodo(p,t,isF){
   const pid=p.id,st=tSt(t),pr=tPr(t);
   const cls=['t',isF?'focus':'',st==='blocked'?'blocked':'',isOpen('todo',pid,t.id)?'sel':''].filter(Boolean).join(' ');
   const odd=oddSt(t,TODO_KNOWN);
-  const sl=st==='blocked'?`<div class="sl block">${IC_BLOCK}<span>${esc(t.blockedBy||'blocked')}</span></div>`:odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:'';
+  const sl=st==='blocked'?`<div class="sl block">${IC_BLOCK}<span>${hl(t.blockedBy||'blocked')}</span></div>`:odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:'';
   return `<div class="${cls}" style="--c:${esc(p.color||'#505050')}" data-k="t-${esc(t.id)}">
     ${stBox('c',pid,t.id,null,st)}
-    <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}${esc(t.text||'Untitled task')}</button>${sl}</div>
+    <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}${hl(t.text||'Untitled task')}</button>${sl}</div>
     ${(()=>{
       const chips=dueChip(pid,t)+elChip(pid,rowElement(t)),ph=isPhone();
       const ctrl=`${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">${IC_PLUS}</button>${ph?prioBtn(pr,pid,t.id):prioHTML(pr,pid,t.id)}`;
@@ -1762,7 +1775,7 @@ function renderSubs(p,t){
     const chip=s.elementId&&s.elementId!==rowElement(t)?elChip(pid,s.elementId):''; // gleicher Chip wie die Task-Zeile = Wiederholung, weglassen
     const odd=oddSt(s,STEP_KNOWN);
     return `<div class="${cls}" data-k="s-${esc(s.id)}">${stBox('c',pid,t.id,s.id,st)}
-      <div class="tm"><button class="tt" data-act="open" data-type="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s===fs?IC_STAR:''}${esc(s.text||'Untitled step')}</button>${odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:''}${failNote(s)}</div>
+      <div class="tm"><button class="tt" data-act="open" data-type="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s===fs?IC_STAR:''}${hl(s.text||'Untitled step')}</button>${odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:''}${failNote(s)}</div>
       <div class="rc">${dueChip(pid,t,s)}${chip}</div></div>${stPick('c',pid,t.id,s.id,odd?'':st)}`;
   }).join('');
   return `<div class="subs" data-k="ss-${esc(t.id)}">${rows}${hidden?`<div class="s hidden-n">${plural(hidden,'closed step')} hidden</div>`:''}</div>${inp}`;
@@ -1781,7 +1794,7 @@ function boardGroups(p,d){
       const sub=[(e.tags||[]).map(t=>d.tags[t]?.label).filter(Boolean).join(', '),nodeName(e.nodeId)].filter(Boolean).join(' — ');
       const sn=hitSnip([e.label,sub,s.label],elRest(d,e)); // Treffer nur im Log / in der Beschreibung: Fundstelle zeigen
       const m=elMeta(d,e); // Experiment-Uebersicht: letzte Aktivitaet + offene verknuepfte Tasks/Schritte
-      return `<button class="el" data-k="e-${esc(e.id)}" data-act="open" data-type="element" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><i style="--c:${esc(elColor(pid,e))}"></i><div><b>${esc(e.label)}</b><small>${esc(sub)}</small>${sn?`<small class="sn">${esc(sn)}</small>`:''}</div>${m.last||m.n?`<span class="em" title="${m.last?'Last activity '+esc(fmtDT(m.last)):'No activity logged'} · open linked tasks and steps: ${m.n}">${m.last?`<span>${esc(fmtDate(m.last,{day:'numeric',month:'short'}))}</span>`:''}${m.n?`<b>${m.n} open</b>`:''}</span>`:''}</button>`;}).join('')}</div>`;
+      return `<button class="el" data-k="e-${esc(e.id)}" data-act="open" data-type="element" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><i style="--c:${esc(elColor(pid,e))}"></i><div><b>${hl(e.label)}</b><small>${esc(sub)}</small>${sn?`<small class="sn">${hl(sn)}</small>`:''}</div>${m.last||m.n?`<span class="em" title="${m.last?'Last activity '+esc(fmtDT(m.last)):'No activity logged'} · open linked tasks and steps: ${m.n}">${m.last?`<span>${esc(fmtDate(m.last,{day:'numeric',month:'short'}))}</span>`:''}${m.n?`<b>${m.n} open</b>`:''}</span>`:''}</button>`;}).join('')}</div>`;
   }).filter(Boolean);
 }
 function elNewBtn(pid){return `<button class="md-empty" style="margin:6px 0 4px" data-k="en" data-act="elNew" data-pid="${esc(pid)}">＋ New element</button>`;}
@@ -1792,7 +1805,7 @@ function journalBody(p,d,bare){ // bare: nur die Tage, ohne den Schreiben-Knopf 
   const list=[...d.journal].filter(jHit).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   // Jeder Abschnitt eines Tages mit Titel (frueher nur die ersten drei). Unter der Suche: nur die Abschnitte mit Treffer, samt Fundstelle.
   const secs=e=>{const all=e.sections||[];if(!q)return all;const m=all.filter(secHit);return m.length?m:all;};
-  return (bare?'':`<button class="md-empty" style="margin:6px 0 4px" data-k="jw" data-act="jwrite" data-pid="${esc(pid)}">＋ Write a journal entry</button>`)+list.map(e=>`<button class="jd" data-k="j-${esc(e.id)}" data-act="open" data-type="entry" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><span class="d">${esc(fmtDate(e.date,{day:'numeric',month:'short'}))}</span><span class="x">${secs(e).map(s=>{const sn=hitSnip([s.title],[s.content]);return `<div>${esc(snip(s.title,90))}</div>${sn?`<div class="sn">${esc(sn)}</div>`:''}`;}).join('')}</span></button>`).join('')||'<div class="empty">No entries.</div>';
+  return (bare?'':`<button class="md-empty" style="margin:6px 0 4px" data-k="jw" data-act="jwrite" data-pid="${esc(pid)}">＋ Write a journal entry</button>`)+list.map(e=>`<button class="jd" data-k="j-${esc(e.id)}" data-act="open" data-type="entry" data-pid="${esc(pid)}" data-id="${esc(e.id)}"><span class="d">${esc(fmtDate(e.date,{day:'numeric',month:'short'}))}</span><span class="x">${secs(e).map(s=>{const sn=hitSnip([s.title],[s.content]);return `<div>${hl(snip(s.title,90))}</div>${sn?`<div class="sn">${hl(sn)}</div>`:''}`;}).join('')}</span></button>`).join('')||'<div class="empty">No entries.</div>';
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1866,7 +1879,7 @@ function renderDrawer(){
       <div class="dsec"><h3>Description ${editLink('cal.description|'+k,ev.description)}</h3>${mdBox('cal.description|'+k,ev.description,'Add a description')}</div>
       <div class="stamp">${[ev.createdAt&&'Created '+fmtDT(ev.createdAt),ev.modifiedAt&&'Changed '+fmtDT(ev.modifiedAt)].filter(Boolean).join(' · ')}</div>
       <div class="dz">${isArch(ev)?`<button class="btn" data-act="restore" data-kind="cal"${ia}>Restore entry</button>`:`<button class="btn" data-act="archiveAsk" data-kind="cal"${ia}>Archive entry…</button>`}</div>`;
-      return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" data-k="dr-cal${esc(dr.pid+dr.id)}" role="dialog" aria-label="Details"><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
+      return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" data-k="dr-cal${esc(dr.pid+dr.id)}" role="dialog" aria-label="Details"><div class="dr-grip" title="Drag to resize — double-click resets" aria-hidden="true"></div><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
     }
     const g=dr.pid==='google',att=(Array.isArray(ev.attendees)?ev.attendees:[]).map(a=>String(a||'').trim()).filter(Boolean),link=/^https?:\/\//i.test(String(ev.link||''))?String(ev.link):'';
     const head=`<div style="flex:1;min-width:0"><div class="k">${g?'Google Calendar':'Calendar entry'}${isArch(ev)?' · archived':''}</div><div class="ttl" style="border:0">${esc(ev.title||'(no title)')}</div></div>`;
@@ -1878,7 +1891,7 @@ function renderDrawer(){
     <div class="ro">From Google Calendar — change it in Google.</div>
     <div class="dsec"><h3>Description</h3>${String(ev.description||'').trim()?`<div class="md">${md(ev.description)}</div>`:'<div class="ro">—</div>'}</div>
     <div class="stamp">${[ev.createdAt&&'Created '+fmtDT(ev.createdAt),ev.modifiedAt&&'Changed '+fmtDT(ev.modifiedAt)].filter(Boolean).join(' · ')}</div>`;
-    return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" data-k="dr-cal${esc(dr.pid+dr.id)}" role="dialog" aria-label="Details"><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
+    return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" data-k="dr-cal${esc(dr.pid+dr.id)}" role="dialog" aria-label="Details"><div class="dr-grip" title="Drag to resize — double-click resets" aria-hidden="true"></div><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
   }
   const p=projById(dr.pid),d=S.data[dr.pid];if(!p||!d)return '';
   let head='',body='';
@@ -1948,7 +1961,7 @@ function renderDrawer(){
     head=`<div style="flex:1;min-width:0"><div class="k">Journal · ${esc(p.name)}</div><div class="ttl" style="border:0">${esc(fmtDate(e.date,{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</div></div>`;
     body=`<div class="ro"><button class="lbtn" data-act="jwrite" data-pid="${esc(dr.pid)}" data-date="${esc(e.date)}">＋ Add a section to this day</button></div>`+(e.sections||[]).map(s=>`<div class="dsec"><h3>${esc(s.title)}</h3>${(s.content||'').trim()?`<div class="md">${md(s.content)}</div>`:'<div class="ro">—</div>'}</div>`).join('');
   }
-  return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" style="${projVars(p)}" data-k="dr-${esc(dr.type+dr.pid+dr.id+(dr.sid||''))}" role="dialog" aria-label="Details"><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
+  return `<div class="scrim" data-k="scrim" data-act="closeDrawer"></div><aside class="drawer" style="${projVars(p)}" data-k="dr-${esc(dr.type+dr.pid+dr.id+(dr.sid||''))}" role="dialog" aria-label="Details"><div class="dr-grip" title="Drag to resize — double-click resets" aria-hidden="true"></div><div class="dr-h">${head}<button class="dr-x" data-act="closeDrawer" aria-label="Close" title="Close (Esc)">✕</button></div><div class="dr-b">${body}</div></aside>`;
 }
 
 // ── Dialoge + Toast ──
@@ -2428,6 +2441,20 @@ document.addEventListener('pointerdown',ev=>{
   const up=()=>{sp.classList.remove('drag');document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);lsSet('rg3_colw',ui.colw);render();};
   document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);
 });
+// Schublade breiter/schmaler ziehen; die Breite lebt als CSS-Variable am Wurzelelement, ueberlebt also jedes Neuzeichnen
+const DRW_MIN=340,DRW_DEF=500;
+function setDrw(w){document.documentElement.style.setProperty('--drw',w+'px');}
+setDrw(Math.max(DRW_MIN,+lsGet('rg3_drw',DRW_DEF)||DRW_DEF));
+document.addEventListener('pointerdown',ev=>{
+  const g=ev.target.closest&&ev.target.closest('.dr-grip');if(!g)return;
+  const dr=g.closest('.drawer');if(!dr)return;
+  ev.preventDefault();g.classList.add('drag');
+  const startX=ev.clientX,w0=dr.getBoundingClientRect().width;let w=w0;
+  const mv=e=>{w=Math.round(Math.min(innerWidth-160,Math.max(DRW_MIN,w0-(e.clientX-startX))));setDrw(w);};
+  const up=()=>{g.classList.remove('drag');document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);lsSet('rg3_drw',w);};
+  document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);
+});
+document.addEventListener('dblclick',ev=>{if(ev.target.closest&&ev.target.closest('.dr-grip')){setDrw(DRW_DEF);lsSet('rg3_drw',DRW_DEF);}});
 // Doppelklick: die beiden Nachbarn teilen sich ihren gemeinsamen Platz zu gleichen Teilen
 document.addEventListener('dblclick',ev=>{const sp=ev.target.closest&&ev.target.closest('.split');if(!sp)return;const [a,b]=_splitCols(sp);if(!a||!b)return;_freezeWeights(ui.zoom/100);const A=sp.dataset.split,B=sp.dataset.right,m=Math.round((ui.colw[A]+ui.colw[B])/2);ui.colw[A]=m;ui.colw[B]=m;lsSet('rg3_colw',ui.colw);render();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll(true);});
