@@ -7,6 +7,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>ResearchGraph</title>
+<!-- Als App installierbar: Manifest + Symbole liegen neben dieser Datei; die Farbe der Systemleiste folgt dem Thema (themeMeta) -->
+<link rel="manifest" href="researchgraph.webmanifest">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="apple-touch-icon" href="researchgraph-icon-192.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23172033'/><text x='16' y='23' text-anchor='middle' font-size='19' font-family='Segoe UI,sans-serif' font-weight='700' fill='white'>R</text></svg>">
 <style>
 /* Tinte/Papier-Neutrale + Okabe-Ito. Bedeutung immer ueber Form/Text, Farbe nur zweiter Kanal (Rot-Gruen-Schwaeche). */
@@ -512,31 +516,38 @@ div.ce.gc{cursor:default}
 [data-phone] body{font-size:15px}
 [data-phone] button{touch-action:manipulation}
 [data-phone] input,[data-phone] select,[data-phone] textarea{font-size:16px}
-[data-phone] .top{height:50px;padding:0 8px;gap:8px}
-[data-phone] .top .search{flex:1;min-width:0}
-[data-phone] .top .search input{width:100%;height:38px;font-size:16px;padding:0 36px 0 11px;border-radius:8px}
-[data-phone] .top .search button{top:4px;right:2px;width:34px;height:30px;font-size:15px;text-align:center}
-[data-phone] .top .sync{height:38px;font-size:13.5px;padding:0 10px;border-radius:8px;flex-shrink:0;max-width:48vw;overflow:hidden}
-[data-phone] .top .icon,[data-phone] .ptabs .icon{width:42px;height:38px;border-radius:8px;border:1px solid var(--rule-2);color:var(--ink)}
+[data-phone] .top{height:48px;padding:0 6px 0 8px;gap:6px;flex-wrap:nowrap}
+[data-phone] .top .icon,[data-phone] .psearch .icon{position:relative;width:42px;height:38px;border-radius:8px;border:1px solid var(--rule-2);color:var(--ink)}
+[data-phone] .top .icon.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 [data-phone] .icon svg{width:18px;height:18px}
-[data-phone] .menu{position:fixed;left:8px;right:8px;top:54px;max-height:calc(100vh - 130px);overflow-y:auto;min-width:0;padding:6px;z-index:50;font-size:15.5px}
-[data-phone] .ptabs .menu{top:100px}
-[data-phone] .menu button{padding:12px}
+/* Sync-Marke am Menue-Knopf: voller Punkt = live, offener Ring = speichert (Form, nicht nur Farbe) */
+[data-phone] .top .icon .sd{position:absolute;top:5px;right:5px;width:8px;height:8px}
+[data-phone] .sd.busy{background:transparent;border:2px solid var(--ink)}
+[data-phone] .psearch{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 8px;background:var(--paper);border-bottom:1px solid var(--rule);flex-shrink:0}
+[data-phone] .psearch .search{flex:1;min-width:0}
+[data-phone] .psearch .search input{width:100%;height:38px;font-size:16px;padding:0 11px;border-radius:8px}
+[data-phone] .psearch .icon{font-size:17px}
+[data-phone] .sync.pstrip{display:flex;justify-content:center;width:100%;min-height:36px;padding:4px 10px;border-radius:0;border-bottom:1px solid var(--rule-2);font-size:14px;flex-shrink:0;white-space:normal;text-align:center}
+[data-phone] .menu{position:fixed;left:8px;right:8px;top:52px;max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px);overflow-y:auto;min-width:0;padding:6px;z-index:50;font-size:15.5px}
+[data-phone] .menu button{padding:10px 12px}
+[data-phone] .menu .sync{display:flex;font-size:15px;gap:9px;border-radius:6px}
+[data-phone] .menu .sync .sd{width:10px;height:10px}
+[data-phone] .menu .mh{display:flex;align-items:center;gap:8px;padding:8px 12px 4px;font-weight:700;font-size:14px;color:var(--ink)}
+[data-phone] .menu .mh .dot{width:11px;height:11px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px var(--ink-3);flex-shrink:0}
 [data-phone] .menu .mrow{display:flex;align-items:center;justify-content:space-between;padding:4px 12px}
 [data-phone] .menu .zoom{height:40px}
 [data-phone] .menu .zoom button{display:inline-block;width:50px;height:100%;padding:0;text-align:center;font-size:19px;border-radius:0}
 [data-phone] .menu .zoom span{min-width:58px;font-size:14px}
-[data-phone] .ptabs{display:flex;align-items:center;gap:6px;height:48px;padding:0 8px;background:var(--paper);border-bottom:1px solid var(--rule);flex-shrink:0}
-[data-phone] .ptabs .tabs{flex:1;gap:6px;flex-wrap:nowrap;overflow-x:auto;align-items:center;padding:3px 2px;scrollbar-width:none}
-[data-phone] .ptabs .tabs::-webkit-scrollbar{display:none}
-[data-phone] .ptabs .tabs button{height:38px;padding:0 12px;border-radius:8px;border:1px solid var(--rule-2);font-size:14.5px;gap:7px;flex-shrink:0;color:var(--ink);background:var(--paper)}
-[data-phone] .ptabs .tabs button.on{background:var(--c);color:var(--on);font-weight:700;border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
-[data-phone] .ptabs .tabs button.all.on{background:var(--ink);color:var(--paper)}
-[data-phone] .ptabs .tabs .dot{width:11px;height:11px}
-[data-phone] .ptabs .tabs button.on .dot{display:none}
-[data-phone] .ptabs .tabs .n{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;padding:0 6px;border-radius:999px;border:1px solid currentColor;line-height:18px}
+[data-phone] .top .tabs{flex:1;min-width:0;gap:6px;flex-wrap:nowrap;overflow-x:auto;align-items:center;padding:3px 2px;scrollbar-width:none}
+[data-phone] .top .tabs::-webkit-scrollbar{display:none}
+[data-phone] .top .tabs button{height:38px;padding:0 12px;border-radius:8px;border:1px solid var(--rule-2);font-size:14.5px;gap:7px;flex-shrink:0;color:var(--ink);background:var(--paper)}
+[data-phone] .top .tabs button.on{background:var(--c);color:var(--on);font-weight:700;border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+[data-phone] .top .tabs button.all.on{background:var(--ink);color:var(--paper)}
+[data-phone] .top .tabs .dot{width:11px;height:11px}
+[data-phone] .top .tabs button.on .dot{display:none}
+[data-phone] .top .tabs .n{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;padding:0 6px;border-radius:999px;border:1px solid currentColor;line-height:18px}
 [data-phone] .pages.bot{display:flex;height:auto;gap:0;flex-shrink:0;background:var(--paper);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom,0px)}
-[data-phone] .pages.bot button{flex:1;height:52px;justify-content:center;padding:0 2px;font-size:14.5px;color:var(--ink-2);box-shadow:inset 0 3px 0 transparent}
+[data-phone] .pages.bot button{flex:1;height:50px;justify-content:center;padding:0 2px;font-size:14.5px;color:var(--ink-2);box-shadow:inset 0 3px 0 transparent}
 [data-phone] .pages.bot button.on{color:var(--ink);font-weight:700;box-shadow:inset 0 3px 0 var(--ink)}
 [data-phone] .board{padding:0}
 [data-phone] .one{border:0;border-radius:0}
@@ -547,15 +558,30 @@ div.ce.gc{cursor:default}
 [data-phone] .pj>.col-h+.sec-h{margin-top:0;border-top:0}
 [data-phone] .pj>.col-h+.t{margin-top:6px}
 [data-phone] .pj>.col-h+.t::before{display:none}
-[data-phone] .sec-h{margin:14px -10px 4px;height:42px;font-size:14px;padding:0 10px 0 14px}
+[data-phone] .sec-h{margin:10px -10px 2px;height:38px;font-size:13.5px;padding:0 8px 0 14px}
 [data-phone] .sec-h .c{font-size:13px;line-height:20px;padding:0 8px}
-[data-phone] .sec-h .add{width:42px;height:32px;font-size:20px}
+[data-phone] .sec-h .add{width:44px;height:30px;font-size:20px}
 [data-phone] .sec-h .add svg{width:16px;height:16px}
 [data-phone] .empty{font-size:14px;padding:12px 4px}
-[data-phone] .t{grid-template-columns:24px minmax(0,1fr);column-gap:10px;padding:9px 0 5px 4px;margin-top:9px}
-[data-phone] .t.cl{grid-template-columns:24px minmax(0,1fr) auto;padding-bottom:9px}
-[data-phone] .t::before{left:-10px;right:-10px;top:-5px}
+/* Task-Zeile: Kaestchen | Titel (+ Zeile mit Zaehler und Marken) | Aufklapp-Knopf ueber die ganze Zeilenhoehe bis zum Bildschirmrand */
+[data-phone] .t{grid-template-columns:24px minmax(0,1fr) auto;column-gap:10px;padding:7px 0 7px 4px;margin-top:5px}
+[data-phone] .t.cl{padding-bottom:9px}
+[data-phone] .t::before{left:-10px;right:-10px;top:-3px}
 [data-phone] .t.focus{padding-left:10px}
+[data-phone] .xp{display:flex;align-items:center;justify-content:flex-end;gap:7px;align-self:stretch;min-width:46px;margin:-7px -10px -7px 0;padding:0 13px 0 8px;color:var(--ink-2)}
+[data-phone] .tt .prio,[data-phone] .sfb .prio{width:16px;height:13px;gap:2px}
+[data-phone] .tt .prio{vertical-align:-1px;margin-right:7px}
+[data-phone] .tt .prio b,[data-phone] .sfb .prio b{width:4px}
+[data-phone] .tt .prio b:nth-child(1),[data-phone] .sfb .prio b:nth-child(1){height:5px}[data-phone] .tt .prio b:nth-child(2),[data-phone] .sfb .prio b:nth-child(2){height:9px}[data-phone] .tt .prio b:nth-child(3),[data-phone] .sfb .prio b:nth-child(3){height:13px}
+[data-phone] .chev{width:15px;height:15px;flex-shrink:0;transition:transform .12s}
+[data-phone] .t.open .chev{transform:rotate(90deg)}
+[data-phone] .cnt{font-size:13.5px;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+[data-phone] .nd{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink-2)}
+/* Fusszeile der aufgeklappten Task: Schritt anlegen, Prioritaet */
+[data-phone] .sf{display:flex;gap:8px;margin:2px 0 10px 34px}
+[data-phone] .sfb{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--rule-2);border-radius:8px;font-size:14px;color:var(--ink);background:var(--paper)}
+[data-phone] .sfb.on,[data-phone] .sfb[aria-expanded="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+[data-phone] .sfb svg{width:14px;height:14px}
 [data-phone] .sec-h+.t,[data-phone] .sec-h+.add-in+.t,[data-phone] .one-b>div>.t:first-child,[data-phone] .t.cl{margin-top:1px}
 [data-phone] .cb{width:24px;height:24px;border-radius:6px;position:relative;margin-top:-1px}
 [data-phone] .cb::after{content:"";position:absolute;inset:-9px}
@@ -564,25 +590,20 @@ div.ce.gc{cursor:default}
 [data-phone] .cb.r svg{width:14px;height:14px}
 [data-phone] .tm,[data-phone] .tt{line-height:22px}
 [data-phone] .tt{font-size:15px;padding:5px 0} /* Zeilenabstand bleibt, die Trefferflaeche jeder Titelzeile waechst auf 31 px */
-[data-phone] .t>.tm>.tt{font-size:16px}
+[data-phone] .t>.tm>.tt{font-size:15px}
 [data-phone] .t.cl>.tm>.tt{font-size:15px}
 [data-phone] .s .tm,[data-phone] .s .tt{line-height:21px}
 [data-phone] .s .tt{font-size:15px}
 [data-phone] .sl{font-size:13px;line-height:18px}
 [data-phone] .when{font-size:13px}
 [data-phone] .rc{gap:2px;height:auto;min-height:22px;align-items:flex-start}
-[data-phone] .rm{display:flex;flex-wrap:wrap;align-items:center;gap:6px;grid-column:2;margin-top:3px;min-height:32px}
-[data-phone] .rm .rc{margin-left:auto;gap:6px;align-items:center}
-[data-phone] .chip{height:26px;font-size:13px;max-width:62vw;padding-right:8px}
-[data-phone] .due{height:26px;font-size:13px;padding:0 8px}
-[data-phone] .fold,[data-phone] .addst{visibility:visible;width:40px;height:32px;font-size:21px;color:var(--ink-2)}
+[data-phone] .rm{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:1px}
+[data-phone] .chip{height:24px;font-size:13px;max-width:62vw;padding-right:8px}
+[data-phone] .due{height:24px;font-size:13px;padding:0 8px}
+[data-phone] .addst{visibility:visible;width:40px;height:32px;font-size:21px;color:var(--ink-2)}
 [data-phone] .addst svg{width:16px;height:16px}
-[data-phone] .fold{font-size:17px}
-[data-phone] .prio.pb{width:40px;height:32px;padding:9px 11px;gap:3px;border-radius:6px;align-items:flex-end;justify-content:center}
-[data-phone] .prio.pb b{width:4px}
-[data-phone] .prio.pb b:nth-child(1){height:6px}[data-phone] .prio.pb b:nth-child(2){height:10px}[data-phone] .prio.pb b:nth-child(3){height:14px}
-[data-phone] .subs{margin:0 0 6px 15px;padding-left:14px}
-[data-phone] .s{grid-template-columns:20px minmax(0,1fr);column-gap:10px;padding:7px 0 7px 5px;font-size:15px}
+[data-phone] .subs{margin:0 0 4px 15px;padding-left:14px}
+[data-phone] .s{grid-template-columns:20px minmax(0,1fr);column-gap:10px;padding:5px 0 5px 5px;font-size:15px}
 [data-phone] .s::before{left:-14px}
 [data-phone] .s::after{left:-14px;top:17px;width:11px}
 [data-phone] .s:last-child::before{height:18px}
@@ -722,6 +743,8 @@ const IC_MORE='<svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="3" cy="7"
 const IC_NOTES='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 3h8M2 6h8M2 9h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const IC_STAR='<svg class="star" viewBox="0 0 12 12" aria-label="Focus"><path d="M6 .8l1.55 3.25 3.55.45-2.6 2.45.68 3.5L6 8.75 2.82 10.45l.68-3.5L.9 4.5l3.55-.45z" fill="currentColor"/></svg>';
 // Plus als Zeichnung: das Schriftzeichen ＋ sitzt je nach Schrift tiefer bzw. seitlich versetzt
+const IC_SEARCH='<svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.1 9.1l3.4 3.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const IC_CHEV='<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const IC_PLUS='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const IC_IDEA='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .7a3.7 3.7 0 0 0-2.2 6.7c.45.33.7.8.7 1.3v.3h3v-.3c0-.5.25-.97.7-1.3A3.7 3.7 0 0 0 6 .7z" fill="currentColor"/><path d="M4.5 10.3h3M5 11.4h2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>';
 const IC_LAB='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5h5M6.5 1.5v4.8L2.6 13a1.2 1.2 0 0 0 1 1.8h8.8a1.2 1.2 0 0 0 1-1.8L9.5 6.3V1.5M4.6 10h6.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
@@ -733,6 +756,9 @@ function rgbOf(c){const m=/^#?([0-9a-f]{6})$/i.exec(c||'');return m?[0,2,4].map(
 // Schrift auf Farbflaeche: die der beiden Schriftfarben mit dem hoeheren Kontrast (feste Helligkeitsschwelle gab z.B. Weiss auf #00b050 = 2,9:1)
 function onColor(c){const v=rgbOf(c);if(!v)return '#fff';const L=lumOf(...v),ink=lumOf(23,32,51);return (L+.05)/(ink+.05)>1.05/(L+.05)?'#172033':'#fff';}
 function isDark(){return document.documentElement.dataset.theme==='dark';}
+// Farbe der Systemleiste (installierte App, Handy-Browser) = Papierfarbe des Themas
+function themeMeta(){const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',isDark()?'#171C23':'#FFFFFF');}
+themeMeta();
 function markColor(c){let v=rgbOf(c);if(!v)return '#505050';
   if(isDark()){const bg=lumOf(23,28,35);for(let k=0;k<14&&(lumOf(...v)+.05)/(bg+.05)<3;k++)v=v.map(x=>x+(255-x)*.15);} // dunkles Papier: aufhellen bis Kontrast 3
   else for(let k=0;k<12&&1.05/(lumOf(...v)+.05)<2.6;k++)v=v.map(x=>x*.88);
@@ -1398,6 +1424,8 @@ const ui={
   mode:localStorage.getItem('rg3_mode')==='one'?'one':'all',one:localStorage.getItem('rg3_one')||'',
   collapsed:new Set(lsGet('rg3_collapsed',[])),
   folded:new Set(lsGet('rg3_folded',[])), // eingeklappte Tasks (pid|tid)
+  unfolded:new Set(lsGet('rg3_unfolded',[])), // Handy: dort ist jede Task eingeklappt, bis man sie aufklappt — hier stehen die aufgeklappten (pid|tid)
+  search:false, // Handy: Suchzeile unter der Kopfzeile offen
   closedOpen:new Set(lsGet('rg3_closed',[])), // Projekte, deren "Closed"-Liste aufgeklappt ist
   pick:null, // Zeile, deren Status- oder Prioritaets-Auswahl gerade offen ist (ort:pid|tid[|sid])
   pickAt:null, // Lage des angeklickten Status-Kaestchens im Fenster {x,y,w,h} — daran haengt die Auswahl neben dem Kaestchen
@@ -1435,7 +1463,7 @@ function renderNow(){
   placePop(app);
   calPlace(app.querySelector('.cal-g'),g0,anc);
   app.querySelectorAll('textarea[data-auto]').forEach(autosize);
-  if(ph){syncBack();const on=app.querySelector('.ptabs .tabs button.on'),k=on?on.dataset.pid||'all':'';if(on&&k!==_tabShown&&on.scrollIntoView)on.scrollIntoView({block:'nearest',inline:'nearest'});_tabShown=k;}
+  if(ph){syncBack();const on=app.querySelector('.top .tabs button.on'),k=on?on.dataset.pid||'all':'';if(on&&k!==_tabShown&&on.scrollIntoView)on.scrollIntoView({block:'nearest',inline:'nearest'});_tabShown=k;}
   if(ui.jump!=null){const sc=app.querySelector('.one.found .one-b>div'),b=ui.jump?app.querySelector('.pj[data-pj="'+CSS.escape(ui.jump)+'"]'):null;ui.jump=null;if(sc)sc.scrollTop=b?b.offsetTop:0;} // Trefferliste: Reiter springt zum Block seines Projekts
   if(ui.focusSel){const el=document.querySelector(ui.focusSel);ui.focusSel=null;if(el){el.focus();if(el.select&&el.dataset.sel)el.select();}}
 }
@@ -1473,17 +1501,21 @@ function renderTop(){
   if(!ghToken)sync=`<button class="sync err" data-act="openSync"><i class="sd off"></i>Connect GitHub</button>`;
   else if(SY.state==='error')sync=`<button class="sync err" data-act="openSync" title="${esc(SY.msg)}"><i class="sd off"></i>Sync paused</button>`;
   else if(_inflight||PENDING.length)sync=`<button class="sync" data-act="openSync"><i class="sd busy"></i>Saving…</button>`;
-  else if(SY.state==='offline')sync=`<button class="sync err" data-act="openSync" title="${esc(SY.msg)} — you see the data from the last successful check"><i class="sd off"></i>Not live${SY.okAt?(isPhone()?' · ':' · last check OK ')+esc(_hm(SY.okAt)):''}</button>`;
+  else if(SY.state==='offline')sync=`<button class="sync err" data-act="openSync" title="${esc(SY.msg)} — you see the data from the last successful check"><i class="sd off"></i>Not live${SY.okAt?' · last check OK '+esc(_hm(SY.okAt)):''}</button>`;
   else sync=`<button class="sync" data-act="openSync" title="Checks GitHub every ${Math.round(T.poll/1000)} s. The time is when the data last changed."><i class="sd ok"></i>Live${SY.at?' · '+esc(fmtDT(SY.at).split(' ').pop()):''}</button>`;
   const pages=[['tasks','Tasks'],['board','Board'],['journal','Journal'],['calendar','Calendar']];
   const vis=visibleProjects();
   const hc=qq()?hitCounts():null; // Suche aktiv: Trefferzahl an jeder Seite, damit man sieht, wo etwas liegt
   if(isPhone()){
-    // Handy: Suche + Sync + Menue in einer Zeile, darunter die Projekte als Reiter (mit ihrer Zahl) und das Projektmenue.
-    // Was am Desktop in der Kopfzeile steht und hier keinen Platz hat, liegt im Menue; die Seiten stehen unten (renderBottom).
+    // Handy: EINE Kopfzeile — die Projekte als Reiter (mit ihrer Zahl), daneben Suche und Menue. Die Suchzeile klappt darunter auf.
+    // Der Sync-Stand steht als Marke am Menue-Knopf und als erste Zeile im Menue; stimmt etwas nicht, liegt er als eigene Zeile unter dem Kopf.
+    // Das Projektmenue ist ein Abschnitt des Menues; die Seiten stehen unten (renderBottom).
     const cur=projById(onePid()),cal=ui.page==='calendar',found=foundMode(),allOn=found||(cal&&ui.calAll);
+    const bad=/class="sync err"/.test(sync),busy=!bad&&sync.includes('sd busy'),searching=ui.search||!!ui.q;
     const mi=(act,label,extra)=>`<button data-act="${act}" data-close="1"${extra||''}>${label}</button>`;
     const menu=ui.menu==='main'?`<div class="menu" data-k="menu-main">
+      ${sync}
+      <div class="sep"></div>
       ${ui.page==='tasks'?mi('toggleDone',ui.hideDone?'Show closed steps':'Hide closed steps'):''}
       ${frozen?mi('toggleFrozen',`❄ ${ui.showFrozen?'Hide':'Show'} frozen projects (${frozen})`):''}
       ${mi('undo','↶ Undo last change')}${mi('redo','↷ Redo')}
@@ -1491,15 +1523,13 @@ function renderTop(){
       ${mi('theme',isDark()?'☀ Light':'☾ Dark')}
       <div class="mrow"><span>Size</span><span class="zoom"><button data-act="zoom" data-v="-10" aria-label="Smaller">−</button><span>${ui.zoom}%</span><button data-act="zoom" data-v="10" aria-label="Larger">+</button></span></div>
       <div class="sep"></div>
-      ${mi('feedback','✉ Feedback')}${mi('newProject','New project')}${mi('archived',`Archived projects (${S.projects.filter(p=>p.archived).length})`)}${mi('openSync','GitHub connection')}${mi('help','Help')}</div>`:'';
+      ${cur&&!allOn?`<div class="mh" style="${projVars(cur)}"><span class="dot"></span>${cur.frozen?'❄ ':''}${esc(cur.name)}</div>${projMenuItems(cur,' data-close="1"')}<div class="sep"></div>`:''}
+      ${mi('feedback','✉ Feedback')}${mi('newProject','New project')}${mi('archived',`Archived projects (${S.projects.filter(p=>p.archived).length})`)}${mi('help','Help')}${mi('reload','↻ Reload the app')}</div>`:'';
     return `<header class="top" data-k="top">
-    <span class="search"><input type="text" data-in="q" value="${esc(ui.q)}" placeholder="Search" aria-label="Search" enterkeyhint="search">${ui.q?'<button data-act="clearQ" aria-label="Clear search">✕</button>':''}</span>
-    ${sync}
-    <span class="menu-wrap"><button class="icon" data-act="menu" data-v="main" aria-label="Menu">${IC_MORE}</button>${menu}</span>
-  </header>${vis.length?`<div class="ptabs" data-k="ptabs">
-    <nav class="tabs" aria-label="Projects">${cal||found?`<button class="all${allOn?' on':''}" data-act="${found?'foundTop':'calAll'}" aria-pressed="${allOn}">All</button>`:''}${vis.map(p=>{const on=!allOn&&cur&&p.id===cur.id;return `<button class="${on?'on':''}" style="${projVars(p)}" data-act="pickOne" data-pid="${esc(p.id)}" aria-pressed="${!!on}"><span class="dot"></span>${p.frozen?'❄ ':''}${esc(p.name)}${cal?'':`<span class="n">${found?hitOf(S.data[p.id])[ui.page]:countNum(p,S.data[p.id])}</span>`}</button>`;}).join('')}</nav>
-    ${cur&&!allOn?`<span class="menu-wrap"><button class="icon" data-act="menu" data-v="p:${esc(cur.id)}" aria-label="Project menu for ${esc(cur.name)}">${IC_MORE}</button>${projMenu(cur)}</span>`:''}
-  </div>`:''}`;
+    ${vis.length?`<nav class="tabs" aria-label="Projects">${cal||found?`<button class="all${allOn?' on':''}" data-act="${found?'foundTop':'calAll'}" aria-pressed="${allOn}">All</button>`:''}${vis.map(p=>{const on=!allOn&&cur&&p.id===cur.id;return `<button class="${on?'on':''}" style="${projVars(p)}" data-act="pickOne" data-pid="${esc(p.id)}" aria-pressed="${!!on}"><span class="dot"></span>${p.frozen?'❄ ':''}${esc(p.name)}${cal?'':`<span class="n">${found?hitOf(S.data[p.id])[ui.page]:countNum(p,S.data[p.id])}</span>`}</button>`;}).join('')}</nav>`:'<span class="grow"></span>'}
+    <button class="icon${searching?' on':''}" data-act="searchToggle" aria-label="Search" aria-pressed="${searching}">${IC_SEARCH}</button>
+    <span class="menu-wrap"><button class="icon" data-act="menu" data-v="main" aria-label="Menu${bad?'':busy?' — saving':' — live'}">${IC_MORE}${bad?'':`<i class="sd ${busy?'busy':'ok'}"></i>`}</button>${menu}</span>
+  </header>${searching?`<div class="psearch" data-k="psearch"><span class="search"><input type="text" data-in="q" value="${esc(ui.q)}" placeholder="Search all projects" aria-label="Search" enterkeyhint="search"></span><button class="icon" data-act="searchToggle" aria-label="Close search">✕</button></div>`:''}${bad?sync.replace('class="sync err"','class="sync err pstrip" data-k="pstrip"'):''}`;
   }
   return `<header class="top" data-k="top">
     <span class="brand">ResearchGraph</span>
@@ -1615,7 +1645,9 @@ function colHead(p,count,inOne){
     <span class="menu-wrap"><button class="icon" data-act="menu" data-v="p:${esc(p.id)}" aria-label="Project menu">${IC_MORE}</button>
     ${projMenu(p)}</span></div>`;
 }
-function projMenu(p){return ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}"><button data-act="editProject" data-pid="${esc(p.id)}">Rename or recolour</button><button data-act="newList" data-pid="${esc(p.id)}">New list…</button><button data-act="removeList" data-pid="${esc(p.id)}">Remove a list…</button><button data-act="freeze" data-pid="${esc(p.id)}">${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}">Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}">Archive project (finished)</button></div>`:'';}
+// Punkte des Projektmenues; am Handy stehen sie als Abschnitt im Hauptmenue (x = Zusatzattribut je Knopf)
+function projMenuItems(p,x){x=x||'';return `<button data-act="editProject" data-pid="${esc(p.id)}"${x}>Rename or recolour</button><button data-act="newList" data-pid="${esc(p.id)}"${x}>New list…</button><button data-act="removeList" data-pid="${esc(p.id)}"${x}>Remove a list…</button><button data-act="freeze" data-pid="${esc(p.id)}"${x}>${p.frozen?'Unfreeze — show again':'❄ Freeze — hide until later'}</button><button data-act="projArchive" data-pid="${esc(p.id)}"${x}>Archived items (${archCount(S.data[p.id])})</button><div class="sep"></div><button data-act="archiveProject" data-pid="${esc(p.id)}"${x}>Archive project (finished)</button>`;}
+function projMenu(p){return ui.menu==='p:'+p.id?`<div class="menu" data-k="menu-${esc(p.id)}">${projMenuItems(p)}</div>`:'';}
 // Bausteine der Task-Seite: Focus, je Kategorie ein Abschnitt, dazu der Ideen-Abschnitt
 function taskParts(p){
   const d=S.data[p.id],pid=p.id,f=focusOf(d);
@@ -1741,42 +1773,67 @@ function renderTodo(p,t,isF){
   const cls=['t',isF?'focus':'',st==='blocked'?'blocked':'',isOpen('todo',pid,t.id)?'sel':''].filter(Boolean).join(' ');
   const odd=oddSt(t,TODO_KNOWN);
   const sl=st==='blocked'?`<div class="sl block">${IC_BLOCK}<span>${hl(t.blockedBy||'blocked')}</span></div>`:odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:'';
+  if(isPhone()){
+    // Handy: jede Task ist eine Zeile — Kaestchen, Titel, rechts ein Knopf (Prioritaet + Pfeil), der sie aufklappt.
+    // Die Prioritaet steht als Balken vor dem Titel, der Zaehler der Schritte (erledigt/alle) im Knopf rechts.
+    // Unter dem Titel steht nur, was es gibt: Faelligkeit (auch die des dringendsten Schritts), Element, fehlgeschlagene Schritte.
+    // Aufgeklappt folgen die Schritte und eine Zeile mit "Step" und der Prioritaet — in der Zeile selbst liegt kein Bedienelement mehr.
+    const subs=(t.subtasks||[]).filter(s=>!isArch(s)),open=phOpen(pid,t),a=` data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}"`;
+    const dn=subs.filter(s=>sSt(s)==='done').length,fl=subs.filter(s=>sSt(s)==='failed').length,u=open||closedT(t)?null:urgentStep(t),n=pr==='high'?3:pr==='medium'?2:1;
+    const meta=dueChip(pid,t)+(u?`<span class="nd">step ${dueChip(pid,t,u)}</span>`:'')+elChip(pid,rowElement(t))+(fl?`<span class="nd">${fl} failed</span>`:'');
+    return `<div class="${cls}${open?' open':''}" style="--c:${esc(p.color||'#505050')}" data-k="t-${esc(t.id)}">
+    ${stBox('c',pid,t.id,null,st)}
+    <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}<span class="prio" role="img" aria-label="Priority ${pr}"><b class="on"></b><b class="${n>1?'on':''}"></b><b class="${n>2?'on':''}"></b></span>${hl(t.text||'Untitled task')}</button>${sl}${meta?`<div class="rm">${meta}</div>`:''}</div>
+    <button class="xp"${a} aria-expanded="${open}" aria-label="${open?'Hide':'Show'} ${subs.length?`steps — ${dn} of ${subs.length} done`:'actions'}">${subs.length?`<span class="cnt">${dn}/${subs.length}</span>`:''}${IC_CHEV}</button>
+  </div>${stPick('c',pid,t.id,null,odd?'':st)}${renderSubs(p,t)}`;
+  }
   return `<div class="${cls}" style="--c:${esc(p.color||'#505050')}" data-k="t-${esc(t.id)}">
     ${stBox('c',pid,t.id,null,st)}
     <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}${hl(t.text||'Untitled task')}</button>${sl}</div>
     ${(()=>{
-      const chips=dueChip(pid,t)+elChip(pid,rowElement(t)),ph=isPhone();
-      const ctrl=`${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">${IC_PLUS}</button>${ph?prioBtn(pr,pid,t.id):prioHTML(pr,pid,t.id)}`;
-      // Handy: der Titel bekommt die ganze Breite; Marken (Faelligkeit, Element) links und die Bedienelemente rechts stehen in einer eigenen Zeile darunter
-      return ph?`<div class="rm">${chips}<div class="rc">${ctrl}</div></div>`:`<div class="rc">${chips}${ctrl}</div>`;})()}
+      const chips=dueChip(pid,t)+elChip(pid,rowElement(t));
+      const ctrl=`${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">${IC_PLUS}</button>${prioHTML(pr,pid,t.id)}`;
+      return `<div class="rc">${chips}${ctrl}</div>`;})()}
   </div>${stPick('c',pid,t.id,null,odd?'':st)}${prioPick(pr,pid,t.id)}${renderSubs(p,t)}`;
 }
-// Handy: die drei Balken sind zu schmal zum Treffen — ein Knopf zeigt die Prioritaet, ein Tipp klappt die Auswahl unter der Zeile auf (wie beim Status)
-function prioBtn(pr,pid,id){const n=pr==='high'?3:pr==='medium'?2:1,k='p:'+pid+'|'+id;return `<button class="prio pb" data-act="pickSt" data-v="${esc(k)}" aria-label="Priority ${pr} — change" aria-expanded="${ui.pick===k}"><b class="on"></b><b class="${n>1?'on':''}"></b><b class="${n>2?'on':''}"></b></button>`;}
+// Handy: eine Task ist eingeklappt, bis man sie aufklappt. Unter der Suche und solange einer ihrer Schritte offen ist, zeigt sie ihre Schritte von selbst.
+function phOpen(pid,t){return ui.unfolded.has(pid+'|'+t.id)||!!qq()||(t.subtasks||[]).some(s=>!isArch(s)&&isOpen('step',pid,t.id,s.id));}
 function prioPick(pr,pid,id){
   if(ui.pick!=='p:'+pid+'|'+id)return '';
   return `<div class="stpick" data-k="pp-${esc(id)}" role="group" aria-label="Set priority">${seg(PRIOS.map(([v,l])=>[v,'',l+' priority']),pr,'setPrio',` data-pid="${esc(pid)}" data-id="${esc(id)}"`)}</div>`;
 }
 function renderSubs(p,t){
-  const subs=(t.subtasks||[]).filter(s=>!isArch(s)),pid=p.id;
+  const subs=(t.subtasks||[]).filter(s=>!isArch(s)),pid=p.id,ph=isPhone();
   const inp=ui.adding===pid+'|step|'+t.id?`<input class="add-in sub-in" data-k="ai-st-${esc(t.id)}" data-add="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" placeholder="New step — Enter adds, Esc stops">`:'';
-  if(!subs.length)return inp;
-  if(ui.folded.has(pid+'|'+t.id)&&!qq()&&!subs.some(s=>isOpen('step',pid,t.id,s.id))){ // eingeklappt: nur Zaehler, Klick klappt auf
-    const dn=subs.filter(s=>sSt(s)==='done').length,fl=subs.filter(s=>sSt(s)==='failed').length;
-    return `<div class="subs" data-k="ss-${esc(t.id)}"><div class="s folded-n" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="Show steps">▸ ${plural(subs.length,'step')}${dn?` · ${dn} done`:''}${fl?` · ${fl} failed`:''}${(()=>{const u=closedT(t)?null:urgentStep(t);return u?' · next due '+dueChip(pid,t,u):'';})()}</div></div>${inp}`;
-  }
   const d=S.data[pid],fs=focusStepOf(d,t);
-  const list=fs?[fs,...subs.filter(s=>s!==fs)]:subs;
   let hidden=0;
-  const rows=list.map(s=>{
+  const row=s=>{
     const st=sSt(s);
-    if(ui.hideDone&&isEnd(st)&&s!==fs&&!isOpen('step',pid,t.id,s.id)&&!qq()){hidden++;return '';} // done und failed gleich
     const cls=['s',st==='done'?'done':st==='failed'?'failed':'',s===fs?'fstep':'',isOpen('step',pid,t.id,s.id)?'sel':''].filter(Boolean).join(' ');
     const chip=s.elementId&&s.elementId!==rowElement(t)?elChip(pid,s.elementId):''; // gleicher Chip wie die Task-Zeile = Wiederholung, weglassen
     const odd=oddSt(s,STEP_KNOWN);
     return `<div class="${cls}" data-k="s-${esc(s.id)}">${stBox('c',pid,t.id,s.id,st)}
       <div class="tm"><button class="tt" data-act="open" data-type="step" data-pid="${esc(pid)}" data-id="${esc(t.id)}" data-sid="${esc(s.id)}">${s===fs?IC_STAR:''}${hl(s.text||'Untitled step')}</button>${odd?`<div class="sl">status “${esc(odd)}” — unknown to this app, shown as open</div>`:''}${failNote(s)}</div>
       <div class="rc">${dueChip(pid,t,s)}${chip}</div></div>${stPick('c',pid,t.id,s.id,odd?'':st)}`;
+  };
+  if(ph){
+    if(!phOpen(pid,t))return fs&&!closedS(fs)?`<div class="subs" data-k="ss-${esc(t.id)}">${row(fs)}</div>`:''; // eingeklappt: nur der Focus-Schritt bleibt sichtbar
+    // Fusszeile nur an der von Hand aufgeklappten Task: Schritt anlegen und Prioritaet waehlen
+    const k='p:'+pid+'|'+t.id,pr=tPr(t),n=pr==='high'?3:pr==='medium'?2:1;
+    const foot=ui.unfolded.has(pid+'|'+t.id)?`<div class="sf" data-k="sf-${esc(t.id)}"><button class="sfb${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}">${IC_PLUS}<span>Step</span></button><button class="sfb" data-act="pickSt" data-v="${esc(k)}" aria-expanded="${ui.pick===k}"><span class="prio"><b class="on"></b><b class="${n>1?'on':''}"></b><b class="${n>2?'on':''}"></b></span><span>${pr.charAt(0).toUpperCase()+pr.slice(1)} priority</span></button></div>${prioPick(pr,pid,t.id)}${inp}`:'';
+    const list=fs?[fs,...subs.filter(s=>s!==fs)]:subs;
+    const rows=list.map(s=>{if(ui.hideDone&&isEnd(sSt(s))&&s!==fs&&!isOpen('step',pid,t.id,s.id)&&!qq()){hidden++;return '';}return row(s);}).join('');
+    return (subs.length?`<div class="subs" data-k="ss-${esc(t.id)}">${rows}${hidden?`<div class="s hidden-n">${plural(hidden,'closed step')} hidden</div>`:''}</div>`:'')+foot;
+  }
+  if(!subs.length)return inp;
+  if(ui.folded.has(pid+'|'+t.id)&&!qq()&&!subs.some(s=>isOpen('step',pid,t.id,s.id))){ // eingeklappt: nur Zaehler, Klick klappt auf
+    const dn=subs.filter(s=>sSt(s)==='done').length,fl=subs.filter(s=>sSt(s)==='failed').length;
+    return `<div class="subs" data-k="ss-${esc(t.id)}"><div class="s folded-n" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="Show steps">▸ ${plural(subs.length,'step')}${dn?` · ${dn} done`:''}${fl?` · ${fl} failed`:''}${(()=>{const u=closedT(t)?null:urgentStep(t);return u?' · next due '+dueChip(pid,t,u):'';})()}</div></div>${inp}`;
+  }
+  const list=fs?[fs,...subs.filter(s=>s!==fs)]:subs;
+  const rows=list.map(s=>{
+    if(ui.hideDone&&isEnd(sSt(s))&&s!==fs&&!isOpen('step',pid,t.id,s.id)&&!qq()){hidden++;return '';} // done und failed gleich
+    return row(s);
   }).join('');
   return `<div class="subs" data-k="ss-${esc(t.id)}">${rows}${hidden?`<div class="s hidden-n">${plural(hidden,'closed step')} hidden</div>`:''}</div>${inp}`;
 }
@@ -2097,17 +2154,17 @@ function renderDialog(){
   }else if(d.type==='help'){
     wide=true;const ph=isPhone();
     inner=`<h2>How ResearchGraph works</h2><ul class="hl">
-      ${ph?'<li>The projects are the tabs at the top, each with its number of open tasks; tap one to switch. Tasks, Board, Journal and Calendar are at the bottom. Everything else — closed steps, frozen projects, undo, dark mode, size — is in the ⋯ menu next to the search.</li>':'<li>Every active project is a column. Drag the thin line between two columns to change their width.</li>'}
+      ${ph?'<li>The projects are the tabs at the top, each with its number of open tasks; tap one to switch. Tasks, Board, Journal and Calendar are at the bottom. The magnifier opens the search. Everything else — the menu of the project, closed steps, frozen projects, undo, dark mode, size, the GitHub connection — is in the ⋯ menu.</li>':'<li>Every active project is a column. Drag the thin line between two columns to change their width.</li>'}
       <li>The box in front of a task or step shows its status: empty = open, dot = in progress, stroke = blocked, tick = done, cross = failed. Click it and pick the new status right below — in any direction. Blocked tasks show what they wait for.</li>
       <li>Something that did not work is set to <b>failed</b>; the app asks why, and the reason stays with it. Steps and tasks work the same way.</li>
       <li>A task you set to done or failed moves to <b>Closed</b> at the bottom of its project. Click “Closed” to see them, newest first; the box brings one back.</li>
       <li>Search looks through everything — tasks (also closed and archived ones), ideas, elements with their activity, every journal section. The numbers next to Tasks / Board / Journal show where the matches are.</li>
-      <li>The bars after a title show the priority: one bar low, two medium, three high. ${ph?'Tap the bars and pick the priority right below.':'Click the first, second or third bar to set it.'} ★ marks the focus task and the focus step.</li>
-      <li>${ph?'Tap ＋ in the row of a task to add a step right there; ▾ hides its steps.':'Hover a task and click ＋ to add a step right there.'}</li>
+      <li>The bars after a title show the priority: one bar low, two medium, three high. ${ph?'Open a task with the arrow on its right to change it.':'Click the first, second or third bar to set it.'} ★ marks the focus task and the focus step.</li>
+      <li>${ph?'Every task is one row with the number of its steps. The arrow on its right opens it: its steps, “Step” to add one, and the priority. The focus step stays visible while the task is closed.':'Hover a task and click ＋ to add a step right there.'}</li>
       <li>A task or step with a due date carries a mark in its row: the date in yellow while it is far off, “in 3 d” in orange once it comes close, “today” and “2 d late” in dark red. How many days before it turns orange you choose next to the date in the details (3 days unless you say otherwise).</li>
       <li>Click a title to open ${ph?'its details':'details on the right'}: status, priority, focus, steps, notes. The chip after a title is the linked element.</li>
       <li>${ph?'Undo in the ⋯ menu takes back your last change, again and again; Redo brings it back.':'Ctrl+Z undoes your last change, again and again; Ctrl+Y brings it back.'}</li>
-      <li>❄ Freeze a project (${ph?'the ⋯ next to the project tabs':'column menu ⋯'}) to hide it until you have time again; archive it when it is finished.</li>
+      <li>❄ Freeze a project (${ph?'in the ⋯ menu':'column menu ⋯'}) to hide it until you have time again; archive it when it is finished.</li>
       <li>Nothing is deleted. A task, step or idea you no longer need is archived (in its details, with an optional reason) and stays readable under ⋯ → Archived items, every step exactly as it was.</li>
       <li><b>Calendar</b> shows everything that has a date, ${ph?'day under day':'week under week'} without an end: what is due, what was done or failed, the days with a journal entry, which elements had activity and new ideas. Scroll up or down as far as you like; a line marks where a month begins, ‹ › jump a month and Today brings you back. Click any entry to open it. Appointments from your Google Calendar (marked G) and your own calendar entries (marked C) appear there too; click one for its details — time, place, description. Add an entry with “＋ New entry” or the ＋ in a day: one small window takes title, day, time, place and description; without a time it lasts all day. Own entries can be changed and archived here; Google entries are only shown, nothing is sent back.</li>
       <li>Board shows the elements of each project with their status and latest activity. “＋ New element” adds one: name, group, status, tags and description in one small window — pick an existing group or name a new one. In Journal you can write an entry yourself (＋ Write a journal entry); it goes next to what is already there.</li>
@@ -2147,9 +2204,11 @@ function openDrawer(dr){commitDraft();ui.drawer=dr;ui.menu=null;render();}
 const ACT={
   page:el=>{commitDraft();ui.page=A(el).v;ui.drawer=null;localStorage.setItem('rg3_page',ui.page);render();},
   clearQ:()=>{ui.q='';render();},
+  searchToggle:()=>{if(ui.search||ui.q){ui.search=false;ui.q='';if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();}else{ui.search=true;ui.focusSel='.psearch input';}render();}, // Handy: Suchzeile auf/zu; zu leert die Suche
+  reload:()=>{commitDraft();location.reload();},
   toggleDone:()=>{ui.hideDone=!ui.hideDone;localStorage.setItem('rg_hideDoneSubtasks',ui.hideDone?'1':'');render();},
   toggleFrozen:()=>{ui.showFrozen=!ui.showFrozen;render();},
-  theme:()=>{const t=isDark()?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('rg3_theme',t);}catch(e){}render();},
+  theme:()=>{const t=isDark()?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('rg3_theme',t);}catch(e){}themeMeta();render();},
   zoom:el=>{ui.zoom=Math.max(60,Math.min(160,ui.zoom+(+A(el).v)));localStorage.setItem('rg3_zoom',ui.zoom);render();},
   menu:el=>{ui.menu=ui.menu===A(el).v?null:A(el).v;render();},
   closeToast:()=>{ui.toast=null;render();},
@@ -2162,7 +2221,11 @@ const ACT={
   solo:el=>{ui.one=A(el).pid;ui.mode='one';localStorage.setItem('rg3_one',ui.one);localStorage.setItem('rg3_mode','one');render();},
   collapse:el=>{ui.collapsed.add(A(el).pid);lsSet('rg3_collapsed',[...ui.collapsed]);render();},
   expand:el=>{ui.collapsed.delete(A(el).pid);lsSet('rg3_collapsed',[...ui.collapsed]);render();},
-  fold:el=>{const a=A(el),k=a.pid+'|'+a.id;if(ui.folded.has(k))ui.folded.delete(k);else ui.folded.add(k);lsSet('rg3_folded',[...ui.folded]);render();},
+  fold:el=>{const a=A(el),k=a.pid+'|'+a.id;
+    if(isPhone()){ // Handy: eigene Liste der aufgeklappten Tasks, getrennt vom Einklapp-Zustand der breiten Ansicht
+      if(ui.unfolded.has(k)){ui.unfolded.delete(k);if(ui.adding===a.pid+'|step|'+a.id)ui.adding=null;if(ui.pick==='p:'+k)ui.pick=null;}else ui.unfolded.add(k);
+      lsSet('rg3_unfolded',[...ui.unfolded]);render();return;}
+    if(ui.folded.has(k))ui.folded.delete(k);else ui.folded.add(k);lsSet('rg3_folded',[...ui.folded]);render();},
   expandAll:()=>{ui.collapsed.clear();lsSet('rg3_collapsed',[]);render();},
   resetWidths:()=>{ui.colw={};lsSet('rg3_colw',{});ui.menu=null;render();},
   // Tasks
@@ -2471,6 +2534,8 @@ loadLocal();
 _mounted=true;
 renderNow();
 setInterval(()=>poll(false),T.poll);
+// Installierbarkeit: Browser verlangen dafuer ein registriertes Hintergrundskript. Es speichert nichts zwischen — jede Anfrage geht ans Netz.
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('researchgraph-service-worker.js').catch(()=>{});
 if(ghToken)(async()=>{try{if(!ghGistId)await discoverGist();if(ghGistId){await pull();_pollOk();if(PENDING.length)schedulePush(0);}}catch(e){if(e instanceof Halt)return;if(/token expired/.test(e.message||''))_authFail();else _syncErr('Could not load from GitHub: '+e.message+'. Showing the copy stored in this browser.',true);}})();
 
 </script>

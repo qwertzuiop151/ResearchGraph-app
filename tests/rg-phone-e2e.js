@@ -78,30 +78,37 @@ const STEP=8000; // Obergrenze je Protokollaufruf; ein haengender Schritt bricht
     ok(await ev('matchMedia("(pointer:coarse)").matches'),'emulation reports a coarse pointer');
     const nProj=await ev('visibleProjects().length');
     ok(nProj>0,'snapshot has visible projects');
-    ok(await ev('document.querySelectorAll(".ptabs .tabs button[data-act=pickOne]").length')===nProj,'one tab per visible project');
+    ok(await ev('document.querySelectorAll(".top .tabs button[data-act=pickOne]").length')===nProj,'one tab per visible project');
     ok(await ev('document.querySelectorAll(".pages.bot button").length')===4,'four pages at the bottom');
     ok(await ev('!document.querySelector(".col")&&!!document.querySelector(".one")&&!document.querySelector(".col-h")'),'one project on screen, no columns');
     ok(await ev('(()=>{const b=document.querySelector(".pages.bot").getBoundingClientRect();return Math.abs(b.bottom-innerHeight)<1;})()'),'page bar sits on the bottom edge');
-    ok(await ev('document.querySelector(".ptabs .tabs button.on .n").textContent')===String(await ev('countNum(projById(onePid()),S.data[onePid()])')),'active tab carries the number of open tasks');
+    ok(await ev('document.querySelector(".top .tabs button.on .n").textContent')===String(await ev('countNum(projById(onePid()),S.data[onePid()])')),'active tab carries the number of open tasks');
+    ok(await ev('!document.querySelector(".ptabs")&&document.querySelector(".top").getBoundingClientRect().height<=48&&!document.querySelector(".psearch")'),'one header row, the search row is closed');
+    ok(await ev('(()=>{const m=document.querySelector(".board").getBoundingClientRect();return m.height>=innerHeight-150;})()'),'the content keeps at least the screen minus 150 px');
+    ok(await ev('!!document.querySelector(".sync.pstrip")&&!document.querySelector(".top .icon .sd")'),'without a connection the sync state is a line of its own under the header');
+    ok(await ev('(()=>{const d=S.data[onePid()],f=focusOf(d),fs=f&&focusStepOf(d,f);return document.querySelectorAll(".one .s").length===(fs&&!closedS(fs)?1:0);})()'),'every task starts closed — only the focus step shows');
+    ok(await ev('(()=>{const o=document.querySelectorAll(".one .t:not(.cl)"),x=document.querySelectorAll(".one .t:not(.cl) > .xp");return o.length>0&&o.length===x.length&&!document.querySelector(".one .t .addst,.one .t .fold");})()'),'each task row has one button to open it and no other controls');
     await audit('tasks');await shot('01-tasks');
 
     // ── Projekt wechseln ──
     if(nProj>1){
       const first=await ev('onePid()');
-      await tap('.ptabs .tabs button[data-act=pickOne]:not(.on)','another project tab');
+      await tap('.top .tabs button[data-act=pickOne]:not(.on)','another project tab');
       ok(await ev('onePid()')!==first,'tapping a tab switches the project');
       ok(await ev('document.querySelector(".one").dataset.k')==='one-'+await ev('onePid()'),'the screen shows the chosen project');
-      await tap(`.ptabs .tabs button[data-pid="${first}"]`,'first project tab');
+      await tap(`.top .tabs button[data-pid="${first}"]`,'first project tab');
       ok(await ev('onePid()')===first,'and back');
     }
     // Projekt mit den meisten offenen Tasks nehmen, darin eine offene Task mit Schritten
     const pid=await ev('visibleProjects().map(p=>[p.id,S.data[p.id].todos.filter(t=>tSt(t)==="open"&&!isArch(t)&&(t.subtasks||[]).some(s=>!isArch(s))).length]).sort((a,b)=>b[1]-a[1])[0][0]');
-    await tap(`.ptabs .tabs button[data-pid="${pid}"]`,'project with open tasks');
-    await ev('(()=>{ui.folded.clear();ui.hideDone=false;ui.q="";renderNow();return 1;})()');
+    await tap(`.top .tabs button[data-pid="${pid}"]`,'project with open tasks');
+    await ev('(()=>{ui.unfolded.clear();ui.hideDone=false;ui.q="";renderNow();return 1;})()');
     const tid=await ev(`(()=>{const f=focusOf(S.data[${JSON.stringify(pid)}]);const t=S.data[${JSON.stringify(pid)}].todos.filter(t=>tSt(t)==="open"&&!isArch(t)&&(!f||f.id!==t.id)&&(t.subtasks||[]).some(s=>!isArch(s)))[0];return t?t.id:null;})()`);
     ok(!!tid,'snapshot has an open task with steps');
     const T=`[data-k="t-${tid}"]`,find=`findT(${JSON.stringify(pid)},${JSON.stringify(tid)})`;
-    ok(await ev(`(()=>{const r=document.querySelector('${T} .addst'),f=document.querySelector('${T} .fold'),v=e=>e&&getComputedStyle(e).visibility==='visible';return v(r)&&v(f);})()`),'＋ step and the fold arrow are visible without hovering');
+    const SF=`[data-k="sf-${tid}"]`,key=JSON.stringify(pid+'|'+tid);
+    ok(await ev(`(()=>{const c=document.querySelector('${T} .cnt'),t=${find},s=t.subtasks.filter(x=>!isArch(x));return !!c&&c.textContent===s.filter(x=>sSt(x)==='done').length+'/'+s.length&&!!document.querySelector('${T} .tt .prio');})()`),'a closed task shows how many of its steps are done, and its priority in front of the title');
+    ok(await ev(`(()=>{const x=document.querySelector('${T} > .xp').getBoundingClientRect(),r=document.querySelector('${T}').getBoundingClientRect();return x.width>=44&&x.height>=r.height-1&&Math.abs(x.right-innerWidth)<1;})()`),'the button that opens a task spans the row height and reaches the screen edge');
 
     // ── Status ueber die Auswahl unter der Zeile ──
     await tap(`${T} > .cb`,'status box');
@@ -115,32 +122,34 @@ const STEP=8000; // Obergrenze je Protokollaufruf; ein haengender Schritt bricht
 
     // ── Prioritaet: ein Knopf, Auswahl darunter ──
     const pr0=await ev(`tPr(${find})`),pr1=pr0==='high'?'low':'high';
-    await tap(`${T} .prio.pb`,'priority bars');
+    await tap(`${T} > .xp`,'open the task');
+    ok(await ev(`ui.unfolded.has(${key})&&document.querySelectorAll('[data-k="ss-${tid}"] .s').length===${find}.subtasks.filter(x=>!isArch(x)).length&&!!document.querySelector('${SF}')`),'opening a task shows all its steps and the row with Step and priority');
+    ok(await ev(`JSON.parse(localStorage.getItem('rg3_unfolded')).includes(${key})&&localStorage.getItem('rg3_folded')===null`),'the opened task is remembered on this device, apart from the fold state of the wide layout');
+    await audit('task opened');await shot('02b-task-opened');
+    await tap(`${SF} .sfb[data-act=pickSt]`,'priority button');
     await waitFor(`document.querySelector('.stpick[data-k="pp-${tid}"]')`,'priority picker');
     await audit('priority picker');
     await tap(`.stpick[data-k="pp-${tid}"] button[data-v="${pr1}"]`,'priority '+pr1);
     ok(await ev(`tPr(${find})`)===pr1,'priority set');
     ok(await ev('!document.querySelector(".stpick")'),'priority picker closes after the choice');
-    await tap(`${T} .prio.pb`,'priority bars');await tap(`.stpick[data-k="pp-${tid}"] button[data-v="${pr0}"]`,'priority back');
+    await tap(`${SF} .sfb[data-act=pickSt]`,'priority button');await tap(`.stpick[data-k="pp-${tid}"] button[data-v="${pr0}"]`,'priority back');
     ok(await ev(`tPr(${find})`)===pr0,'priority back');
 
     // ── Schritt anlegen, Status des Schritts, einklappen ──
     const n0=await ev(`${find}.subtasks.length`);
-    await tap(`${T} .addst`,'＋ step');
+    await tap(`${SF} .sfb[data-act=startAdd]`,'＋ Step');
     await waitFor(`document.activeElement&&document.activeElement.matches('.sub-in')`,'step input has the cursor');
     await type('Phone test step');await enter();
     ok(await ev(`${find}.subtasks.length`)===n0+1&&await ev(`${find}.subtasks.at(-1).text`)==='Phone test step','step added with the keyboard');
     await audit('step input');
-    await tap(`${T} .addst`,'＋ step again');
+    await tap(`${SF} .sfb[data-act=startAdd]`,'＋ Step again');
     ok(await ev('!document.querySelector(".sub-in")'),'second tap on ＋ puts the input away');
     const sidNew=await ev(`${find}.subtasks.at(-1).id`);
     await tap(`[data-k="s-${sidNew}"] > .cb`,'step status box');
     await tap(`[data-k="s-${sidNew}"] + .stpick button[data-v="done"]`,'step done');
     ok(await ev(`sSt(${find}.subtasks.at(-1))`)==='done','step set to done');
-    await tap(`${T} .fold`,'fold');
-    ok(await ev(`ui.folded.has(${JSON.stringify(pid+'|'+tid)})&&!!document.querySelector('[data-k="ss-${tid}"] .folded-n')`),'steps folded to one counter line');
-    await tap(`[data-k="ss-${tid}"] .folded-n`,'counter line');
-    ok(await ev(`!ui.folded.has(${JSON.stringify(pid+'|'+tid)})`),'tap on the counter line unfolds');
+    await tap(`${T} > .xp`,'close the task');
+    ok(await ev(`!ui.unfolded.has(${key})&&!document.querySelector('[data-k="ss-${tid}"]')&&!document.querySelector('${SF}')`),'closing puts the steps and the action row away');
 
     // ── Details: ganzer Bildschirm, Zurueck-Taste schliesst ──
     const hist0=await ev('history.length');
@@ -164,7 +173,7 @@ const STEP=8000; // Obergrenze je Protokollaufruf; ein haengender Schritt bricht
     await tap('.top .icon[data-act=menu]','menu');
     await waitFor('document.querySelector(".menu")','menu open');
     ok(await ev('(()=>{const r=document.querySelector(".menu").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;})()'),'menu lies inside the screen');
-    ok(await ev('["toggleDone","undo","redo","theme","feedback","newProject","archived","openSync","help"].every(a=>document.querySelector(".menu [data-act="+a+"]"))&&document.querySelectorAll(".menu .zoom button").length===2'),'menu holds everything the desktop header offers');
+    ok(await ev('["toggleDone","undo","redo","theme","feedback","newProject","archived","openSync","help","reload"].every(a=>document.querySelector(".menu [data-act="+a+"]"))&&document.querySelectorAll(".menu .zoom button").length===2'),'menu holds everything the desktop header offers');
     await audit('menu');await shot('04-menu');
     await tap('.menu [data-act=undo]','Undo');
     ok(await ev(`S.data[${JSON.stringify(pid)}].todos.length`)===nT,'Undo from the menu takes the task back');
@@ -184,44 +193,45 @@ const STEP=8000; // Obergrenze je Protokollaufruf; ein haengender Schritt bricht
     await audit('help');
     await ev('(history.back(),1)');await waitFor('!ui.dialog','back closes the dialog');
     // jedes Fenster aus den beiden Menues einmal oeffnen und vermessen
-    for(const [where,act] of [['.top','openSync'],['.top','feedback'],['.top','newProject'],['.top','archived'],['.ptabs','editProject'],['.ptabs','newList'],['.ptabs','projArchive']]){
+    for(const [where,act] of [['.top','openSync'],['.top','feedback'],['.top','newProject'],['.top','archived'],['.top','editProject'],['.top','newList'],['.top','projArchive']]){
       await tap(where+' .icon[data-act=menu]','menu for '+act);await tap(`${where} .menu [data-act=${act}]`,act);
       if(await waitFor('ui.dialog','window for '+act)){await audit('window '+act);if(act==='openSync')await shot('15-github-connection');await ev('(history.back(),1)');await waitFor('!ui.dialog','back closes '+act);}
     }
-    await tap('.ptabs .icon[data-act=menu]','project menu');
-    await waitFor('document.querySelector(".ptabs .menu")','project menu open');
-    ok(await ev('["editProject","newList","removeList","freeze","projArchive","archiveProject"].every(a=>document.querySelector(".ptabs .menu [data-act="+a+"]"))'),'project menu complete');
+    await tap('.top .icon[data-act=menu]','menu');
+    await waitFor('document.querySelector(".top .menu")','menu open');
+    ok(await ev('["editProject","newList","removeList","freeze","projArchive","archiveProject"].every(a=>document.querySelector(".top .menu [data-act="+a+"][data-pid=\\""+onePid()+"\\"]"))&&document.querySelector(".top .menu .mh").textContent.includes(projById(onePid()).name)'),'the menu holds the complete project menu under the name of the project');
     await audit('project menu');
     await ev('(history.back(),1)');await waitFor('!ui.menu','back closes the menu');
 
     // ── Suche: Trefferzahlen an den Seiten unten ──
-    await tap('.top .search input','search');
+    await tap('.top .icon[data-act=searchToggle]','magnifier');
+    await waitFor(`document.activeElement&&document.activeElement.matches('.psearch input')`,'search row open with the cursor in it');
     // ein Wort, das in den Tasks moeglichst vieler Projekte vorkommt — die Suche muss sie alle auf einmal zeigen
     const word=await ev(`(()=>{const vp=visibleProjects(),seen={};vp.forEach(p=>S.data[p.id].todos.slice(0,60).forEach(t=>(String(t.text).toLowerCase().match(/[a-z]{4,}/g)||[]).forEach(w=>{(seen[w]=seen[w]||new Set()).add(p.id);})));const best=Object.entries(seen).sort((a,b)=>b[1].size-a[1].size||a[0].length-b[0].length)[0];return best?best[0]:'a';})()`);
     await type(word);
     ok(await ev('document.querySelectorAll(".pages.bot .hc").length')===4,'search shows the number of matches on every page');
     const withHits=await ev('visibleProjects().filter(p=>hitOf(S.data[p.id]).tasks>0).map(p=>p.id)');
     ok(await ev('[...document.querySelectorAll(".one.found .pj")].map(b=>b.dataset.pj).join()')===withHits.join(),'search lists the matches of every project, one block per project ('+withHits.length+' with “'+word+'”)');
-    ok(await ev('!!document.querySelector(".ptabs .tabs button.all.on")&&[...document.querySelectorAll(".ptabs .tabs button[data-act=pickOne]")].every(b=>b.querySelector(".n").textContent===String(hitOf(S.data[b.dataset.pid]).tasks))'),'while searching the tabs carry the matches per project');
+    ok(await ev('!!document.querySelector(".top .tabs button.all.on")&&[...document.querySelectorAll(".top .tabs button[data-act=pickOne]")].every(b=>b.querySelector(".n").textContent===String(hitOf(S.data[b.dataset.pid]).tasks))'),'while searching the tabs carry the matches per project');
     ok(await ev('[...document.querySelectorAll(".one.found .pj")].every(b=>!b.querySelector(".sec-h .c")||[...b.querySelectorAll(".sec-h .c")].every(c=>c.textContent!=="0"))'),'sections without a match are left out');
     await audit('search');await shot('16-search-all-projects');
     if(withHits.length>1){const last=withHits[withHits.length-1];
-      await tap(`.ptabs .tabs button[data-pid="${last}"]`,'tab of the last project with matches');
+      await tap(`.top .tabs button[data-pid="${last}"]`,'tab of the last project with matches');
       ok(await ev(`(()=>{const sc=document.querySelector('.one.found .one-b>div'),b=document.querySelector('.pj[data-pj="${last}"]');const a=sc.getBoundingClientRect(),r=b.getBoundingClientRect();return Math.abs(r.top-a.top)<3||sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2;})()`),'a tab jumps to the block of its project');
-      await tap('.ptabs .tabs button.all','All');ok(await ev('document.querySelector(".one.found .one-b>div").scrollTop')===0,'All jumps back to the top');}
+      await tap('.top .tabs button.all','All');ok(await ev('document.querySelector(".one.found .one-b>div").scrollTop')===0,'All jumps back to the top');}
     await tap('.one.found .tt','a match');await waitFor('ui.drawer','details of a match');await ev('(history.back(),1)');await waitFor('!ui.drawer','back to the matches');
     ok(await ev('ui.q')===word&&await ev('!!document.querySelector(".one.found")'),'the search is still there after looking at a match');
     for(const pg of ['board','journal']){await tap(`.pages.bot button[data-v=${pg}]`,pg+' under search');
       ok(await ev(`[...document.querySelectorAll(".one.found .pj")].map(b=>b.dataset.pj).join()===visibleProjects().filter(p=>hitOf(S.data[p.id]).${pg}>0).map(p=>p.id).join()`),pg+': matches of every project');await audit(pg+' under search');}
     await tap('.pages.bot button[data-v=tasks]','tasks');
-    await tap('.top .search button[data-act=clearQ]','clear search');ok(await ev('ui.q')==='','search cleared');
+    await tap('.psearch [data-act=searchToggle]','close search');ok(await ev('ui.q===""&&!document.querySelector(".psearch")'),'closing the search row clears the search');
     await ev('(document.activeElement&&document.activeElement.blur(),1)');
 
     // ── Board ──
     await tap('.pages.bot button[data-v=board]','Board');
     ok(await ev('ui.page')==='board','Board page');
     const pe=await ev('visibleProjects().map(p=>[p.id,S.data[p.id].elements.filter(e=>!isArch(e)&&e.status!=="abandoned").length]).sort((a,b)=>b[1]-a[1])[0]');
-    await tap(`.ptabs .tabs button[data-pid="${pe[0]}"]`,'project with elements');
+    await tap(`.top .tabs button[data-pid="${pe[0]}"]`,'project with elements');
     await audit('board');await shot('06-board');
     if(pe[1]){await tap('.el','an element');await waitFor('ui.drawer&&ui.drawer.type==="element"','element details');await audit('element details');await shot('07-element-details');await ev('(history.back(),1)');await waitFor('!ui.drawer','back');}
     await tap('[data-act=elNew]','＋ New element');await waitFor('ui.dialog&&ui.dialog.type==="elnew"','new element window');
@@ -232,7 +242,7 @@ const STEP=8000; // Obergrenze je Protokollaufruf; ein haengender Schritt bricht
     await tap('.pages.bot button[data-v=journal]','Journal');
     ok(await ev('ui.page')==='journal','Journal page');
     const pj=await ev('visibleProjects().map(p=>[p.id,S.data[p.id].journal.length]).sort((a,b)=>b[1]-a[1])[0]');
-    await tap(`.ptabs .tabs button[data-pid="${pj[0]}"]`,'project with a journal');
+    await tap(`.top .tabs button[data-pid="${pj[0]}"]`,'project with a journal');
     await audit('journal');await shot('09-journal');
     if(pj[1]){await tap('.jd','a journal day');await waitFor('ui.drawer&&ui.drawer.type==="entry"','journal day');await audit('journal day');await shot('10-journal-day');await tap('.dr-x','close');}
     await tap('[data-act=jwrite]','＋ Write a journal entry');await waitFor('ui.dialog&&ui.dialog.type==="jwrite"','journal window');
@@ -244,12 +254,12 @@ const STEP=8000; // Obergrenze je Protokollaufruf; ein haengender Schritt bricht
     await waitFor('document.querySelector(".cal-g")','calendar');
     ok(await ev('getComputedStyle(document.querySelector(".cal-g")).gridTemplateColumns.trim().split(/\\s+/).length')===1,'one day per row');
     ok(await ev('(()=>{const g=document.querySelector(".cal-g"),c=g.querySelector(".cd.now");if(!c)return false;const a=g.getBoundingClientRect(),b=c.getBoundingClientRect();return b.top>=a.top-1&&b.top<a.top+60;})()'),'calendar opens with today at the top');
-    ok(await ev('!!document.querySelector(".ptabs .tabs button.all.on")&&calProjects().length===visibleProjects().length'),'calendar starts over all projects');
+    ok(await ev('!!document.querySelector(".top .tabs button.all.on")&&calProjects().length===visibleProjects().length'),'calendar starts over all projects');
     ok(await ev('document.querySelector(".cd.now .wd").textContent')===await ev('new Date().toLocaleDateString("en-GB",{weekday:"short"})'),'each day names its weekday');
     await audit('calendar');await shot('11-calendar');
-    await tap(`.ptabs .tabs button[data-pid="${pid}"]`,'one project in the calendar');
+    await tap(`.top .tabs button[data-pid="${pid}"]`,'one project in the calendar');
     ok(await ev('calProjects().length')===1,'a project tab narrows the calendar to that project');
-    await tap('.ptabs .tabs button.all','All');ok(await ev('calProjects().length===visibleProjects().length'),'All shows every project again');
+    await tap('.top .tabs button.all','All');ok(await ev('calProjects().length===visibleProjects().length'),'All shows every project again');
     const nEv=await ev('calEvents(true).filter(x=>x.src==="own").length');
     await tap('.cd.now .cadd','＋ in today');await waitFor('ui.dialog&&ui.dialog.type==="calnew"','new entry window');
     ok(await ev('ui.dialog.sd')===await ev('todayStr()'),'the window starts on the tapped day');
@@ -281,6 +291,12 @@ const STEP=8000; // Obergrenze je Protokollaufruf; ein haengender Schritt bricht
 
     // ── Desktop unveraendert: gleiche Daten, gleicher Zustand → gleiches HTML wie der fruehere Stand ──
     if(OLD){
+      // Handy, gleiche Daten: wie viele Task-Zeilen stehen ganz auf dem ersten Bildschirm — frueherer Stand gegen diesen
+      await metrics(360,740,true);
+      const rowsOn=async file=>{await load(file);return ev(`(()=>{ui.page='tasks';ui.q='';ui.drawer=null;ui.dialog=null;ui.menu=null;renderNow();const sc=document.querySelector('.one-b>div').getBoundingClientRect();return [...document.querySelectorAll('.one .t:not(.cl)')].filter(t=>{const r=t.getBoundingClientRect();return r.top>=sc.top&&r.bottom<=sc.bottom;}).length;})()`);};
+      await ev(`(()=>{localStorage.clear();writeLocal(${doc});return 1;})()`);
+      const r0=await rowsOn(OLD),r1=await rowsOn(APP);
+      ok(r1>r0,'more whole task rows on the first phone screen than before ('+r0+' → '+r1+')');console.log('  whole task rows on the first screen at 360x740: '+r0+' before, '+r1+' now');
       await metrics(1600,900,false);
       const grab=async file=>{await load(file);const o={};for(const mode of['all','one'])for(const page of['tasks','board','journal','calendar']){
         o[mode+'/'+page]=await ev(`(()=>{ui.mode=${JSON.stringify(mode)};ui.page=${JSON.stringify(page)};ui.q='';ui.drawer=null;ui.dialog=null;ui.menu=null;ui.toast=null;renderNow();return document.getElementById('app').innerHTML;})()`);}return o;};
@@ -288,6 +304,16 @@ const STEP=8000; // Obergrenze je Protokollaufruf; ein haengender Schritt bricht
       const a=await grab(OLD),b=await grab(APP);
       for(const k of Object.keys(a))ok(a[k]===b[k],'desktop '+k+' renders as before'+(a[k]===b[k]?'':' (differs at '+[...a[k]].findIndex((c,i)=>c!==b[k][i])+': …'+b[k].slice(Math.max(0,[...a[k]].findIndex((c,i)=>c!==b[k][i])-60),[...a[k]].findIndex((c,i)=>c!==b[k][i])+80)+'…)'));
     }
+    // ── Installierbar: Manifest, Symbole und Hintergrundskript liegen neben der App ──
+    const dir=path.dirname(APP),href=await ev('(document.querySelector("link[rel=manifest]")||{getAttribute(){return ""}}).getAttribute("href")');
+    ok(!!href&&fs.existsSync(path.join(dir,href)),'the page links a manifest that exists');
+    if(href&&fs.existsSync(path.join(dir,href))){const m=JSON.parse(fs.readFileSync(path.join(dir,href),'utf8'));
+      ok(!!m.name&&!!m.start_url&&fs.existsSync(path.join(dir,m.start_url))&&m.display==='standalone','manifest: name, start page that exists, standalone');
+      const size=f=>{const b=fs.readFileSync(path.join(dir,f));return b.readUInt32BE(16)+'x'+b.readUInt32BE(20);};
+      ok(Array.isArray(m.icons)&&m.icons.every(i=>fs.existsSync(path.join(dir,i.src))&&size(i.src)===i.sizes),'every icon exists in the size the manifest names');
+      ok(['192x192','512x512'].every(s=>m.icons.some(i=>i.sizes===s&&i.purpose!=='maskable'))&&m.icons.some(i=>i.purpose==='maskable'),'icons in 192 and 512 px plus a maskable one');}
+    const sw=(fs.readFileSync(APP,'utf8').match(/serviceWorker\.register\('([^']+)'\)/)||[])[1];
+    ok(!!sw&&fs.existsSync(path.join(dir,sw))&&/addEventListener\('fetch'/.test(fs.readFileSync(path.join(dir,sw),'utf8')),'the app registers a service worker that exists');
     console.log(`\n${pass} passed, ${fail} failed`);
     await quit(fail?1:0);
   }catch(e){console.log('  ABORT:',e.message);console.log(`\n${pass} passed, ${fail+1} failed`);await quit(1);}

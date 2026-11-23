@@ -1050,32 +1050,42 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    const gp=id=>gh.doc().projects.find(p=>p.id===id),live=x=>!x.archived;
    ok(env.doc.documentElement.hasAttribute('data-phone'),'the narrow screen is recognised');
    ok(!env.doc.querySelector('.col')&&!env.doc.querySelector('.col-h')&&env.doc.querySelectorAll('.one').length===1,'one project on screen instead of columns');
-   ok(env.doc.querySelectorAll('.ptabs [data-act="pickOne"]').length===NC,'every visible project is a tab');
+   ok(env.doc.querySelectorAll('.top .tabs [data-act="pickOne"]').length===NC,'every visible project is a tab');
    ok(env.doc.querySelectorAll('.pages.bot [data-act="page"]').length===4&&!env.doc.querySelector('.top .pages'),'the four pages stand at the bottom');
    ok(!env.doc.querySelector('[data-act="mode"]'),'no choice between all projects and one project');
+   ok(env.doc.querySelector('.top .tabs')&&env.doc.querySelector('.top [data-act="searchToggle"]')&&!env.doc.querySelector('.psearch')&&!env.doc.querySelector('.top .search'),'one header row: tabs, search button, menu — the search row is closed');
+   ok(env.doc.querySelector('.top [data-act="menu"] .sd')&&!env.doc.querySelector('.pstrip'),'while the sync is fine its state is a mark on the menu button, no line of its own');
    const pp=snap.projects.find(p=>!p.archived&&!p.frozen&&(p.todos||[]).some(t=>live(t)&&(t.status||'open')==='open'&&!t.focus&&!t.northStar));
    ok(pp,'found a project with an open task');
    if(pp){
-    click(env,`.ptabs [data-act="pickOne"][data-pid="${pp.id}"]`);await tick();
-    ok(env.doc.querySelector('.one').dataset.k==='one-'+pp.id&&env.doc.querySelector('.ptabs .tabs button.on').dataset.pid===pp.id,'a tab switches the project');
+    click(env,`.top .tabs [data-act="pickOne"][data-pid="${pp.id}"]`);await tick();
+    ok(env.doc.querySelector('.one').dataset.k==='one-'+pp.id&&env.doc.querySelector('.top .tabs button.on').dataset.pid===pp.id,'a tab switches the project');
     const openN=pp.todos.filter(t=>live(t)&&!['done','failed'].includes(t.status||(t.done?'done':'open'))).length;
-    ok(env.doc.querySelector('.ptabs .tabs button.on .n').textContent===String(openN),'the tab carries the number of open tasks');
+    ok(env.doc.querySelector('.top .tabs button.on .n').textContent===String(openN),'the tab carries the number of open tasks');
     const tp=pp.todos.find(t=>live(t)&&(t.status||'open')==='open'&&!t.focus&&!t.northStar),revs=gh.revs.length;
     // Status: Kaestchen, darunter waehlen
     click(env,`.one [data-act="pickSt"][data-v="c:${pp.id}|${tp.id}"]`);await tick();
     click(env,'.stpick [data-v="in_progress"]');
     ok(await until(()=>gp(pp.id).todos.find(t=>t.id===tp.id).status==='in_progress'),'status set on the phone reaches the gist');
-    // Prioritaet: ein Knopf statt drei Balken, Auswahl darunter
+    // Jede Task ist eingeklappt, bis man sie aufklappt; der Zustand lebt getrennt vom Einklappen der breiten Ansicht
+    {const fo=pp.todos.find(t=>live(t)&&(t.focus||t.northStar)),fs=fo&&!['done','failed'].includes(fo.status||'open')&&(fo.subtasks||[]).find(x=>x.focus&&live(x)&&!['done','failed'].includes(x.status||(x.done?'done':'open')));
+     ok(env.doc.querySelectorAll('.one .s').length===(fs?1:0),'every task starts closed — at most the focus step shows');
+     ok(env.doc.querySelectorAll('.one .t:not(.cl)').length===env.doc.querySelectorAll('.one .t:not(.cl) > .xp').length&&!env.doc.querySelector('.one .t .fold,.one .t .addst'),'each task row has exactly one button to open it');}
     const pr0=typeof tp.priority==='boolean'?(tp.priority?'high':'low'):(tp.priority||'low'),pr1=pr0==='high'?'low':'high';
-    ok(env.doc.querySelector(`.one [data-k="t-${tp.id}"] .prio.pb`)&&!env.doc.querySelector(`.one [data-k="t-${tp.id}"] [data-act="setPrio"]`),'priority is one button in the row');
-    click(env,`.one [data-k="t-${tp.id}"] .prio.pb`);await tick();
+    ok(env.doc.querySelector(`.one [data-k="t-${tp.id}"] .tt .prio`)&&!env.doc.querySelector(`.one [data-k="t-${tp.id}"] [data-act="setPrio"]`)&&!env.doc.querySelector(`[data-k="sf-${tp.id}"]`),'the closed row shows the priority and carries no controls');
+    click(env,`.one [data-k="t-${tp.id}"] > .xp`);await tick();
+    ok(env.doc.querySelector(`[data-k="sf-${tp.id}"] [data-act="startAdd"]`)&&env.doc.querySelectorAll(`[data-k="ss-${tp.id}"] .s`).length===(tp.subtasks||[]).filter(live).length,'opening a task shows all its steps and the row with Step and priority');
+    ok(JSON.parse(env.w.localStorage.getItem('rg3_unfolded')).includes(pp.id+'|'+tp.id)&&env.w.localStorage.getItem('rg3_folded')===null,'the opened task is stored on this device, apart from the fold state of the wide layout');
+    // Prioritaet: Knopf in der aufgeklappten Task, Auswahl darunter
+    click(env,`[data-k="sf-${tp.id}"] [data-act="pickSt"]`);await tick();
     ok(env.doc.querySelectorAll(`.stpick[data-k="pp-${tp.id}"] [data-act="setPrio"]`).length===3,'a tap opens the three priorities under the row');
     click(env,`.stpick[data-k="pp-${tp.id}"] [data-act="setPrio"][data-v="${pr1}"]`);await tick();
     ok(!env.doc.querySelector('.stpick'),'the choice closes it');
     ok(await until(()=>gp(pp.id).todos.find(t=>t.id===tp.id).priority===pr1),'priority set on the phone reaches the gist');
     // Rueckgaengig liegt im Menue (keine Tastatur)
     click(env,'.top [data-act="menu"]');await tick();
-    ok(['undo','redo','theme','feedback','newProject','archived','openSync','help','toggleDone'].every(a=>env.doc.querySelector(`.top .menu [data-act="${a}"]`))&&env.doc.querySelectorAll('.top .menu [data-act="zoom"]').length===2,'the menu holds what has no room in the header');
+    ok(['undo','redo','theme','feedback','newProject','archived','openSync','help','toggleDone','reload'].every(a=>env.doc.querySelector(`.top .menu [data-act="${a}"]`))&&env.doc.querySelectorAll('.top .menu [data-act="zoom"]').length===2,'the menu holds what has no room in the header');
+    ok(['editProject','newList','removeList','freeze','projArchive','archiveProject'].every(a=>env.doc.querySelector(`.top .menu [data-act="${a}"][data-pid="${pp.id}"]`))&&/Live|Saving/.test(env.doc.querySelector('.top .menu .sync').textContent),'the menu also holds the project menu and the sync state in words');
     ok(!env.doc.querySelector('.menu [data-act="resetWidths"]'),'no column widths to reset');
     click(env,'.top .menu [data-act="undo"]');await tick();
     ok(!env.doc.querySelector('.top .menu'),'the menu closes with the choice');
@@ -1083,19 +1093,22 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     ok(/Redo is in the/.test((env.doc.querySelector('.toast')||{}).textContent||''),'the confirmation names the menu, not a keyboard shortcut');
     ok(gh.revs.length>revs,'changes were uploaded');
     // Suche: Treffer aller Projekte untereinander, nicht nur des gewaehlten
-    {const inp=env.doc.querySelector('.top .search input');typeIn(env,inp,'a');await tick();
+    {click(env,'.top [data-act="searchToggle"]');await tick();
+     const inp=env.doc.querySelector('.psearch .search input');ok(!!inp,'the search button opens the search row');typeIn(env,inp,'a');await tick();
      const want=snap.projects.filter(p=>!p.archived&&!p.frozen&&((p.todos||[]).some(t=>JSON.stringify([t.text,t.notes,t.blockedBy,t.failedReason,(t.subtasks||[]).map(s=>[s.text,s.notes,s.failedReason])]).toLowerCase().includes('a'))||(p.ideas||[]).some(i=>((i.title||'')+(i.desc||'')).toLowerCase().includes('a')))).map(p=>p.id);
      ok(env.doc.querySelector('.one.found')&&[...env.doc.querySelectorAll('.one.found .pj')].map(b=>b.dataset.pj).join()===want.join()&&want.length>1,'searching on the phone lists the matches of all projects');
-     ok(env.doc.querySelector('.ptabs .tabs button.all.on'),'and the tabs say so');
+     ok(env.doc.querySelector('.top .tabs button.all.on'),'and the tabs say so');
      typeIn(env,inp,'');await tick();
-     ok(!env.doc.querySelector('.one.found')&&env.doc.querySelector('.one').dataset.k==='one-'+pp.id,'clearing the search returns to the chosen project');}
+     ok(!env.doc.querySelector('.one.found')&&env.doc.querySelector('.one').dataset.k==='one-'+pp.id,'clearing the search returns to the chosen project');
+     typeIn(env,inp,'a');await tick();click(env,'.psearch [data-act="searchToggle"]');await tick();
+     ok(!env.doc.querySelector('.psearch')&&!env.doc.querySelector('.one.found'),'closing the search row ends the search');}
     // Kalender: alle Projekte, ein Reiter grenzt ein
     click(env,'.pages.bot [data-act="page"][data-v="calendar"]');await tick();
-    ok(env.doc.querySelector('.ptabs .tabs button.all.on')&&env.doc.querySelectorAll('.cal-l .ab:not(.gcab)').length===NC,'the calendar starts over all projects');
+    ok(env.doc.querySelector('.top .tabs button.all.on')&&env.doc.querySelectorAll('.cal-l .ab:not(.gcab)').length===NC,'the calendar starts over all projects');
     ok(env.doc.querySelectorAll('.cd .cdn .wd').length===env.doc.querySelectorAll('.cd').length&&!env.doc.querySelector('.cd.mt'),'every day is its own row and names its weekday');
-    click(env,`.ptabs [data-act="pickOne"][data-pid="${pp.id}"]`);await tick();
+    click(env,`.top .tabs [data-act="pickOne"][data-pid="${pp.id}"]`);await tick();
     ok(env.doc.querySelectorAll('.cal-l .ab:not(.gcab)').length===1,'a project tab narrows the calendar to that project');
-    click(env,'.ptabs [data-act="calAll"]');await tick();
+    click(env,'.top .tabs [data-act="calAll"]');await tick();
     ok(env.doc.querySelectorAll('.cal-l .ab:not(.gcab)').length===NC,'All shows every project again');
     // Zurueck-Taste: schliesst, was offen ist
     click(env,'.pages.bot [data-act="page"][data-v="tasks"]');await tick();

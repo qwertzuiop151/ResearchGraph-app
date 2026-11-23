@@ -1,4 +1,4 @@
-# Das Repo ist public und enthaelt nur die App (overview.html, index.html) und ihre Tests.
+# Das Repo ist public und enthaelt nur die App (overview.html, index.html, Manifest, Service Worker, App-Symbole) und ihre Tests.
 # Alles andere — Projektdoku, Arbeitsdokumente, lokale Werkzeuge, Daten, Prototypen — bleibt lokal.
 CLAUDE.md
 VISION.md
@@ -8,6 +8,7 @@ thesis_data.json
 *_backup.json
 *.log
 *.png
+!researchgraph-icon-*.png
 *.xlsx
 *.docx
 *.gbk
