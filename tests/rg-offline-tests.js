@@ -346,7 +346,8 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   key(env,body,'y',{ctrlKey:true});await tick();
   ok(await until(()=>gh.doc().projects[0].todos.find(t=>t.id===tq.id).priority===prNew),'Ctrl+Y redoes the priority');
   // Versehentlich abgehakt -> Strg+Z (der gemeldete Fall)
-  const tz=snap.projects[1].todos.find(t=>(t.status==='open'||!t.status)&&!t.archived);
+  // Irgendein noch nicht abgeschlossener Task (der Datenstand hat nicht immer einen mit Status open)
+  const tz=snap.projects[1].todos.find(t=>(t.status==='open'||t.status==='in_progress'||!t.status)&&!t.archived&&!t.focus);
   await setSt(env,tz.id,'done');await tick();
   ok(await until(()=>gh.doc().projects[1].todos.find(t=>t.id===tz.id).status==='done'),'task set to done through the status choice');
   ok(!env.doc.querySelector(`.col .t:not(.cl) [data-v$="|${tz.id}"]`),'the done task left the open lists');

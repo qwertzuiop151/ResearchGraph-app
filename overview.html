@@ -328,6 +328,9 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .sec-h{height:36px;padding-top:0;padding-bottom:0}
 .sec-h+.t,.sec-h+.add-in+.t,.col-b>.t:first-child,.one-b>div>.t:first-child,.dr-b .t{margin-top:1px}
 .sec-h+.t::before,.sec-h+.add-in+.t::before,.col-b>.t:first-child::before,.one-b>div>.t:first-child::before{display:none}
+/* Klebende Koepfe halten am Innenabstand des Scroll-Containers an — top = minus dieser Abstand, sonst scheint darueber ein Streifen Inhalt durch */
+.col-b>.sec-h{top:-2px}
+.one-b>div .sec-h{top:-4px}
 @media (max-width:1300px){.top .search input{width:140px}}
 /* Direkt in der Zeile (20.10.2026): Prioritaet per Klick auf einen Balken, Schritt per ＋ — ohne Schublade */
 .prio.pe{width:auto;height:18px;gap:0;align-items:stretch;border-radius:4px}
@@ -529,6 +532,7 @@ div.ce.gc{cursor:default}
 [data-phone] .board{padding:0}
 [data-phone] .one{border:0;border-radius:0}
 [data-phone] .one-b>div{padding:0 10px 48px;position:relative}
+[data-phone] .one-b>div .sec-h{top:0}
 [data-phone] .pj>.col-h{margin:0 -10px;height:40px;padding:0 14px;border-radius:0}
 [data-phone] .pj+.pj{margin-top:22px}
 [data-phone] .pj>.col-h+.sec-h{margin-top:0;border-top:0}
@@ -546,7 +550,7 @@ div.ce.gc{cursor:default}
 [data-phone] .cb{width:24px;height:24px;border-radius:6px;position:relative;margin-top:-1px}
 [data-phone] .cb::after{content:"";position:absolute;inset:-9px}
 [data-phone] .cb svg{width:17px;height:17px}
-[data-phone] .cb.r{width:20px;height:20px;margin-top:0}
+[data-phone] .cb.r{width:20px;height:20px;margin-top:0;border-radius:50%}
 [data-phone] .cb.r svg{width:14px;height:14px}
 [data-phone] .tm,[data-phone] .tt{line-height:22px}
 [data-phone] .tt{font-size:15px;padding:5px 0} /* Zeilenabstand bleibt, die Trefferflaeche jeder Titelzeile waechst auf 31 px */
@@ -710,7 +714,8 @@ const IC_GEN='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5
 // --c Projektfarbe (Flaechen), --on Schrift darauf, --cm Marken-Farbe (zu helle Farben abgedunkelt, Kontrast >= 2,6 auf Weiss), --cmon Haken darauf
 function lumOf(r,g,b){const f=x=>{x/=255;return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4);};return .2126*f(r)+.7152*f(g)+.0722*f(b);}
 function rgbOf(c){const m=/^#?([0-9a-f]{6})$/i.exec(c||'');return m?[0,2,4].map(i=>parseInt(m[1].substr(i,2),16)):null;}
-function onColor(c){const v=rgbOf(c);return v&&lumOf(...v)>.36?'#172033':'#fff';}
+// Schrift auf Farbflaeche: die der beiden Schriftfarben mit dem hoeheren Kontrast (feste Helligkeitsschwelle gab z.B. Weiss auf #00b050 = 2,9:1)
+function onColor(c){const v=rgbOf(c);if(!v)return '#fff';const L=lumOf(...v),ink=lumOf(23,32,51);return (L+.05)/(ink+.05)>1.05/(L+.05)?'#172033':'#fff';}
 function isDark(){return document.documentElement.dataset.theme==='dark';}
 function markColor(c){let v=rgbOf(c);if(!v)return '#505050';
   if(isDark()){const bg=lumOf(23,28,35);for(let k=0;k<14&&(lumOf(...v)+.05)/(bg+.05)<3;k++)v=v.map(x=>x+(255-x)*.15);} // dunkles Papier: aufhellen bis Kontrast 3
