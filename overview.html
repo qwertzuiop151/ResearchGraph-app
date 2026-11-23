@@ -315,6 +315,8 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .sec-h .c{font-size:12px;font-weight:600;color:var(--ink-2);background:var(--paper);border:1px solid var(--rule-2);border-radius:999px;padding:0 7px;line-height:17px;font-variant-numeric:tabular-nums}
 .sec-h .add{margin-left:auto;width:24px;height:22px;font-size:16px;color:var(--ink-2);background:var(--paper);border:1px solid var(--rule-2);border-radius:5px}
 .sec-h .add:hover{border-color:var(--ink);color:var(--ink)}
+.sec-h .add{padding:0;display:grid;place-items:center}
+.sec-h .add svg{width:12px;height:12px;display:block}
 .col-h h2{font-size:15.5px}
 /* Duenne Linie zwischen den Top-Level-Tasks (nicht zwischen Subtasks); nicht direkt unter einer Abschnittsueberschrift */
 .t{position:relative;margin-top:7px}
@@ -342,6 +344,7 @@ button{cursor:pointer;background:none;border:0;text-align:left}
 .prio.pe:hover button b{background:var(--rule-2)}
 .prio.pe:hover button:hover b,.prio.pe:hover button:has(~ button:hover) b{background:var(--ink-2)}
 .addst{width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--ink-3);font-size:14px;line-height:1;padding:0;visibility:hidden}
+.addst svg{width:11px;height:11px;display:block}
 .t:hover .addst,.cd:hover .addst,.addst:focus-visible,.addst.on{visibility:visible}
 .cdn .cadd{margin-left:auto;align-self:center}
 .cn-when{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:6px 8px;align-items:center}
@@ -541,6 +544,7 @@ div.ce.gc{cursor:default}
 [data-phone] .sec-h{margin:14px -10px 4px;height:42px;font-size:14px;padding:0 10px 0 14px}
 [data-phone] .sec-h .c{font-size:13px;line-height:20px;padding:0 8px}
 [data-phone] .sec-h .add{width:42px;height:32px;font-size:20px}
+[data-phone] .sec-h .add svg{width:16px;height:16px}
 [data-phone] .empty{font-size:14px;padding:12px 4px}
 [data-phone] .t{grid-template-columns:24px minmax(0,1fr);column-gap:10px;padding:9px 0 5px 4px;margin-top:9px}
 [data-phone] .t.cl{grid-template-columns:24px minmax(0,1fr) auto;padding-bottom:9px}
@@ -566,6 +570,7 @@ div.ce.gc{cursor:default}
 [data-phone] .chip{height:26px;font-size:13px;max-width:62vw;padding-right:8px}
 [data-phone] .due{height:26px;font-size:13px;padding:0 8px}
 [data-phone] .fold,[data-phone] .addst{visibility:visible;width:40px;height:32px;font-size:21px;color:var(--ink-2)}
+[data-phone] .addst svg{width:16px;height:16px}
 [data-phone] .fold{font-size:17px}
 [data-phone] .prio.pb{width:40px;height:32px;padding:9px 11px;gap:3px;border-radius:6px;align-items:flex-end;justify-content:center}
 [data-phone] .prio.pb b{width:4px}
@@ -707,6 +712,8 @@ const IC_SOLO='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3
 const IC_MORE='<svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="3" cy="7" r="1.3" fill="currentColor"/><circle cx="7" cy="7" r="1.3" fill="currentColor"/><circle cx="11" cy="7" r="1.3" fill="currentColor"/></svg>';
 const IC_NOTES='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 3h8M2 6h8M2 9h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const IC_STAR='<svg class="star" viewBox="0 0 12 12" aria-label="Focus"><path d="M6 .8l1.55 3.25 3.55.45-2.6 2.45.68 3.5L6 8.75 2.82 10.45l.68-3.5L.9 4.5l3.55-.45z" fill="currentColor"/></svg>';
+// Plus als Zeichnung: das Schriftzeichen ＋ sitzt je nach Schrift tiefer bzw. seitlich versetzt
+const IC_PLUS='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const IC_IDEA='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1l1.3 3.7L11 6 7.3 7.3 6 11 4.7 7.3 1 6l3.7-1.3z" fill="currentColor"/></svg>';
 const IC_LAB='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5h5M6.5 1.5v4.8L2.6 13a1.2 1.2 0 0 0 1 1.8h8.8a1.2 1.2 0 0 0 1-1.8L9.5 6.3V1.5M4.6 10h6.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
 const IC_GEN='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
@@ -1551,7 +1558,7 @@ function renderCalendar(){
   const cells=days.map((day,ix)=>{
     const list=(by[day]||[]).sort((a,b)=>CAL_RANK[a.k]-CAL_RANK[b.k]||(a.k==='gcal'?_gcKey(a).localeCompare(_gcKey(b)):0));
     const dn=+day.slice(8); // Monatsgrenze: Linie ueber den Tagen 1–7 (mt) und links vom 1. (ml), der 1. traegt den Monat ausgeschrieben
-    return `<div class="cd${day===today?' now':''}${ix%7>4?' we':''}${ph?(dn===1?' m1':''):(dn<=7?' mt':'')+(dn===1&&ix%7?' ml':'')}" data-k="cd-${day}" data-day="${day}"><div class="cdn">${ph?`<i class="wd">${WD[ix%7]}</i>`:''}<b>${dn}</b>${day===today?'<span>today</span>':''}${dn===1?`<span class="mn">${esc(fmtDate(day,{month:'long',year:'numeric'}))}</span>`:''}<button class="addst cadd" data-act="calNew" data-day="${day}" title="Add a calendar entry on this day" aria-label="Add a calendar entry on ${day}">＋</button></div>${(()=>{
+    return `<div class="cd${day===today?' now':''}${ix%7>4?' we':''}${ph?(dn===1?' m1':''):(dn<=7?' mt':'')+(dn===1&&ix%7?' ml':'')}" data-k="cd-${day}" data-day="${day}"><div class="cdn">${ph?`<i class="wd">${WD[ix%7]}</i>`:''}<b>${dn}</b>${day===today?'<span>today</span>':''}${dn===1?`<span class="mn">${esc(fmtDate(day,{month:'long',year:'numeric'}))}</span>`:''}<button class="addst cadd" data-act="calNew" data-day="${day}" title="Add a calendar entry on this day" aria-label="Add a calendar entry on ${day}">${IC_PLUS}</button></div>${(()=>{
       // Element-Aktivitaet als fliessende Reihe kleiner Marken statt einer Zeile pro Element — sonst erschlaegt sie den Tag
       const act=list.filter(e=>e.k==='act'),pre=list.filter(e=>CAL_RANK[e.k]<CAL_RANK.act),post=list.filter(e=>CAL_RANK[e.k]>CAL_RANK.act);
       return pre.map(calEntry).join('')+(act.length?`<div class="cea">${act.map(calEntry).join('')}</div>`:'')+post.map(calEntry).join('');})()}</div>`;}).join('');
@@ -1606,7 +1613,7 @@ function taskParts(p){
     const list=open.filter(t=>sameCat(tCat(t),c)&&!(f&&t.id===f.id)&&todoHit(t)).sort(byPrio);
     const label=catLabel(c);
     const add=ui.adding===pid+'|'+c;cn[c]=list.length||add;
-    parts.cats[c]=`<div class="sec-h" data-k="sh-${esc(c)}"><i class="sec-ic">${c==='labor'?IC_LAB:IC_GEN}</i><span>${esc(label)}</span><span class="c">${list.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|'+c)}" title="Add a ${esc(label.toLowerCase())} task" aria-label="Add a ${esc(label.toLowerCase())} task">＋</button></div>`
+    parts.cats[c]=`<div class="sec-h" data-k="sh-${esc(c)}"><i class="sec-ic">${c==='labor'?IC_LAB:IC_GEN}</i><span>${esc(label)}</span><span class="c">${list.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|'+c)}" title="Add a ${esc(label.toLowerCase())} task" aria-label="Add a ${esc(label.toLowerCase())} task">${IC_PLUS}</button></div>`
       +(add?`<input class="add-in" data-k="ai-${esc(c)}" data-add="todo" data-pid="${esc(pid)}" data-cat="${esc(c)}" placeholder="New task — Enter adds, Esc stops">`:'')
       +list.map(t=>renderTodo(p,t,false)).join('');
   });
@@ -1614,7 +1621,7 @@ function taskParts(p){
   // Unter der Suche auch archivierte Ideen (als solche benannt) — die Suche soll alles erreichen
   const ideas=d.ideas.filter(i=>(q||!i.archived)&&hit(i.title,i.desc)).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   const addI=ui.adding===pid+'|idea';
-  parts.ideas=`<div class="sec-h" data-k="sh-ideas"><i class="sec-ic">${IC_IDEA}</i><span>Ideas</span><span class="c">${ideas.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|idea')}" title="Add an idea" aria-label="Add an idea">＋</button></div>`
+  parts.ideas=`<div class="sec-h" data-k="sh-ideas"><i class="sec-ic">${IC_IDEA}</i><span>Ideas</span><span class="c">${ideas.length}</span><button class="add" data-act="startAdd" data-v="${esc(pid+'|idea')}" title="Add an idea" aria-label="Add an idea">${IC_PLUS}</button></div>`
     +(addI?`<input class="add-in" data-k="ai-idea" data-add="idea" data-pid="${esc(pid)}" placeholder="New idea — Enter adds, Esc stops">`:'')
     +ideas.map(i=>`<div class="idea${isOpen('idea',pid,i.id)?' sel':''}" data-k="i-${esc(i.id)}"><span class="ic">${IC_IDEA}</span><div class="tm"><button class="tt" data-act="open" data-type="idea" data-pid="${esc(pid)}" data-id="${esc(i.id)}">${esc(i.title||'Untitled idea')}</button>${i.archived?'<div class="sl">archived</div>':''}</div></div>`).join('');
   // Closed: abgeschlossene Tasks auf Abruf, juengste zuerst. Zugeklappt eine Zeile mit der Zahl.
@@ -1726,7 +1733,7 @@ function renderTodo(p,t,isF){
     <div class="tm"><button class="tt" data-act="open" data-type="todo" data-pid="${esc(pid)}" data-id="${esc(t.id)}">${isF?IC_STAR:''}${esc(t.text||'Untitled task')}</button>${sl}</div>
     ${(()=>{
       const chips=dueChip(pid,t)+elChip(pid,rowElement(t)),ph=isPhone();
-      const ctrl=`${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">＋</button>${ph?prioBtn(pr,pid,t.id):prioHTML(pr,pid,t.id)}`;
+      const ctrl=`${(t.subtasks||[]).some(s=>!isArch(s))?(()=>{const f=ui.folded.has(pid+'|'+t.id);return `<button class="fold${f?' on':''}" data-act="fold" data-pid="${esc(pid)}" data-id="${esc(t.id)}" title="${f?'Show steps':'Hide steps'}" aria-label="${f?'Show steps':'Hide steps'}" aria-expanded="${f?'false':'true'}">${f?'▸':'▾'}</button>`;})():''}<button class="addst${ui.adding===pid+'|step|'+t.id?' on':''}" data-act="startAdd" data-v="${esc(pid+'|step|'+t.id)}" title="Add a step" aria-label="Add a step">${IC_PLUS}</button>${ph?prioBtn(pr,pid,t.id):prioHTML(pr,pid,t.id)}`;
       // Handy: der Titel bekommt die ganze Breite; Marken (Faelligkeit, Element) links und die Bedienelemente rechts stehen in einer eigenen Zeile darunter
       return ph?`<div class="rm">${chips}<div class="rc">${ctrl}</div></div>`:`<div class="rc">${chips}${ctrl}</div>`;})()}
   </div>${stPick('c',pid,t.id,null,odd?'':st)}${prioPick(pr,pid,t.id)}${renderSubs(p,t)}`;
