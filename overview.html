@@ -516,19 +516,26 @@ div.ce.gc{cursor:default}
 [data-phone] body{font-size:15px}
 [data-phone] button{touch-action:manipulation}
 [data-phone] input,[data-phone] select,[data-phone] textarea{font-size:16px}
-[data-phone] .top{height:48px;padding:0 6px 0 8px;gap:6px;flex-wrap:nowrap}
-[data-phone] .top .icon,[data-phone] .psearch .icon{position:relative;width:42px;height:38px;border-radius:8px;border:1px solid var(--rule-2);color:var(--ink)}
-[data-phone] .top .icon.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+[data-phone] .top{height:auto;min-height:54px;padding:4px;gap:0;flex-wrap:nowrap}
+[data-phone] .psearch .icon{position:relative;width:42px;height:38px;border-radius:8px;border:1px solid var(--rule-2);color:var(--ink)}
 [data-phone] .icon svg{width:18px;height:18px}
+/* Suche + Menue in der Seitenleiste unten */
+[data-phone] .pages.bot .icon,[data-phone] .pages.bot .menu-wrap{flex:0 0 46px}
+/* Unter der Suche steht die Trefferzahl unter dem Seitennamen, damit die Leiste samt Suche und Menue auf den Bildschirm passt */
+[data-phone] .pages.bot button{min-width:0}
+[data-phone] .pages.bot button.hcx{flex-direction:column;gap:2px;line-height:1.1}
+[data-phone] .pages.bot button.hcx .hc{margin-left:0;font-size:12px;line-height:15px}
+[data-phone] .pages.bot .icon{position:relative;width:46px;color:var(--ink)}
+[data-phone] .pages.bot .icon.on{background:var(--ink);color:var(--paper);box-shadow:none}
 /* Sync-Marke am Menue-Knopf: voller Punkt = live, offener Ring = speichert (Form, nicht nur Farbe) */
-[data-phone] .top .icon .sd{position:absolute;top:5px;right:5px;width:8px;height:8px}
+[data-phone] .pages.bot .icon .sd{position:absolute;top:11px;right:8px;width:8px;height:8px}
 [data-phone] .sd.busy{background:transparent;border:2px solid var(--ink)}
 [data-phone] .psearch{display:flex;align-items:center;gap:6px;padding:6px 6px 6px 8px;background:var(--paper);border-bottom:1px solid var(--rule);flex-shrink:0}
 [data-phone] .psearch .search{flex:1;min-width:0}
 [data-phone] .psearch .search input{width:100%;height:38px;font-size:16px;padding:0 11px;border-radius:8px}
 [data-phone] .psearch .icon{font-size:17px}
 [data-phone] .sync.pstrip{display:flex;justify-content:center;width:100%;min-height:36px;padding:4px 10px;border-radius:0;border-bottom:1px solid var(--rule-2);font-size:14px;flex-shrink:0;white-space:normal;text-align:center}
-[data-phone] .menu{position:fixed;left:8px;right:8px;top:52px;max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px);overflow-y:auto;min-width:0;padding:6px;z-index:50;font-size:15.5px}
+[data-phone] .menu{position:fixed;left:8px;right:8px;top:auto;bottom:calc(56px + env(safe-area-inset-bottom,0px));max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px);overflow-y:auto;min-width:0;padding:6px;z-index:50;font-size:15.5px}
 [data-phone] .menu button{padding:10px 12px}
 [data-phone] .menu .sync{display:flex;font-size:15px;gap:9px;border-radius:6px}
 [data-phone] .menu .sync .sd{width:10px;height:10px}
@@ -538,14 +545,15 @@ div.ce.gc{cursor:default}
 [data-phone] .menu .zoom{height:40px}
 [data-phone] .menu .zoom button{display:inline-block;width:50px;height:100%;padding:0;text-align:center;font-size:19px;border-radius:0}
 [data-phone] .menu .zoom span{min-width:58px;font-size:14px}
-[data-phone] .top .tabs{flex:1;min-width:0;gap:6px;flex-wrap:nowrap;overflow-x:auto;align-items:center;padding:3px 2px;scrollbar-width:none}
+/* Alle Projekte nebeneinander, gleich breit, Kurzname ueber der Zahl; der Farbstreifen oben zeigt das Projekt, der Name traegt die Unterscheidung */
+[data-phone] .top .tabs{flex:1;display:flex;min-width:0;gap:4px;flex-wrap:nowrap;overflow-x:auto;align-items:stretch;padding:0;scrollbar-width:none}
 [data-phone] .top .tabs::-webkit-scrollbar{display:none}
-[data-phone] .top .tabs button{height:38px;padding:0 12px;border-radius:8px;border:1px solid var(--rule-2);font-size:14.5px;gap:7px;flex-shrink:0;color:var(--ink);background:var(--paper)}
+[data-phone] .top .tabs button{flex:1 1 0;min-width:52px;height:46px;padding:2px 3px;border-radius:8px;border:1px solid var(--rule-2);flex-direction:column;justify-content:center;gap:2px;font-size:13px;line-height:1.15;color:var(--ink);background:var(--paper);box-shadow:inset 0 4px 0 var(--c,transparent)}
+[data-phone] .top .tabs .sn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 [data-phone] .top .tabs button.on{background:var(--c);color:var(--on);font-weight:700;border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+[data-phone] .top .tabs button.on .sn{font-weight:700}
 [data-phone] .top .tabs button.all.on{background:var(--ink);color:var(--paper)}
-[data-phone] .top .tabs .dot{width:11px;height:11px}
-[data-phone] .top .tabs button.on .dot{display:none}
-[data-phone] .top .tabs .n{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;padding:0 6px;border-radius:999px;border:1px solid currentColor;line-height:18px}
+[data-phone] .top .tabs .n{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;padding:0 6px;border-radius:999px;border:1px solid currentColor;line-height:16px}
 [data-phone] .pages.bot{display:flex;height:auto;gap:0;flex-shrink:0;background:var(--paper);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom,0px)}
 [data-phone] .pages.bot button{flex:1;height:50px;justify-content:center;padding:0 2px;font-size:14.5px;color:var(--ink-2);box-shadow:inset 0 3px 0 transparent}
 [data-phone] .pages.bot button.on{color:var(--ink);font-weight:700;box-shadow:inset 0 3px 0 var(--ink)}
@@ -817,7 +825,7 @@ function md(src){
 // 4. DATEN — lokale Kopie in localStorage (Keys wie overview.html), Wahrheit ist der Gist
 // ════════════════════════════════════════════════════════════════════════════
 const S={projects:[],data:{},calendar:null}; // calendar = Block `calendar` aus dem Gist (z.B. calendar.google), in der App nur lesbar
-function _arch(p){const o={};if(p&&p.archived){o.archived=true;o.archivedAt=p.archivedAt||null;}if(p&&p.frozen){o.frozen=true;o.frozenAt=p.frozenAt||null;}if(p&&Array.isArray(p.lists))o.lists=p.lists.slice();if(p&&Array.isArray(p.categories)&&p.categories.length)o.categories=p.categories.slice();return o;} // nur wenn gesetzt; `categories` nur noch Altform fuer projLists()
+function _arch(p){const o={};if(p&&p.archived){o.archived=true;o.archivedAt=p.archivedAt||null;}if(p&&p.frozen){o.frozen=true;o.frozenAt=p.frozenAt||null;}if(p&&Array.isArray(p.lists))o.lists=p.lists.slice();if(p&&Array.isArray(p.categories)&&p.categories.length)o.categories=p.categories.slice();if(p&&typeof p.short==='string'&&p.short.trim())o.short=p.short;return o;} // nur wenn gesetzt; `categories` nur noch Altform fuer projLists(); `short` = Kurzname der Handy-Reiter
 function projById(id){return S.projects.find(p=>p.id===id);}
 function liveProjects(){return S.projects.filter(p=>!p.archived);}
 function loadProject(pid){
@@ -1525,10 +1533,11 @@ function renderTop(){
       <div class="sep"></div>
       ${cur&&!allOn?`<div class="mh" style="${projVars(cur)}"><span class="dot"></span>${cur.frozen?'❄ ':''}${esc(cur.name)}</div>${projMenuItems(cur,' data-close="1"')}<div class="sep"></div>`:''}
       ${mi('feedback','✉ Feedback')}${mi('newProject','New project')}${mi('archived',`Archived projects (${S.projects.filter(p=>p.archived).length})`)}${mi('help','Help')}${mi('reload','↻ Reload the app')}</div>`:'';
+    // Suche und Menue stehen in der Seitenleiste unten (renderBottom), damit alle Projekte nebeneinander in den Kopf passen
+    _phTools=`<button class="icon${searching?' on':''}" data-act="searchToggle" aria-label="Search" aria-pressed="${searching}">${IC_SEARCH}</button>
+    <span class="menu-wrap"><button class="icon" data-act="menu" data-v="main" aria-label="Menu${bad?'':busy?' — saving':' — live'}">${IC_MORE}${bad?'':`<i class="sd ${busy?'busy':'ok'}"></i>`}</button>${menu}</span>`;
     return `<header class="top" data-k="top">
-    ${vis.length?`<nav class="tabs" aria-label="Projects">${cal||found?`<button class="all${allOn?' on':''}" data-act="${found?'foundTop':'calAll'}" aria-pressed="${allOn}">All</button>`:''}${vis.map(p=>{const on=!allOn&&cur&&p.id===cur.id;return `<button class="${on?'on':''}" style="${projVars(p)}" data-act="pickOne" data-pid="${esc(p.id)}" aria-pressed="${!!on}"><span class="dot"></span>${p.frozen?'❄ ':''}${esc(p.name)}${cal?'':`<span class="n">${found?hitOf(S.data[p.id])[ui.page]:countNum(p,S.data[p.id])}</span>`}</button>`;}).join('')}</nav>`:'<span class="grow"></span>'}
-    <button class="icon${searching?' on':''}" data-act="searchToggle" aria-label="Search" aria-pressed="${searching}">${IC_SEARCH}</button>
-    <span class="menu-wrap"><button class="icon" data-act="menu" data-v="main" aria-label="Menu${bad?'':busy?' — saving':' — live'}">${IC_MORE}${bad?'':`<i class="sd ${busy?'busy':'ok'}"></i>`}</button>${menu}</span>
+    ${vis.length?`<nav class="tabs" aria-label="Projects">${cal||found?`<button class="all${allOn?' on':''}" data-act="${found?'foundTop':'calAll'}" aria-pressed="${allOn}"><span class="sn">All</span></button>`:''}${vis.map(p=>{const on=!allOn&&cur&&p.id===cur.id;return `<button class="${on?'on':''}" style="${projVars(p)}" data-act="pickOne" data-pid="${esc(p.id)}" aria-pressed="${!!on}" aria-label="${esc(p.name)}" title="${esc(p.name)}"><span class="sn">${p.frozen?'❄ ':''}${esc(shortName(p))}</span>${cal?'':`<span class="n">${found?hitOf(S.data[p.id])[ui.page]:countNum(p,S.data[p.id])}</span>`}</button>`;}).join('')}</nav>`:''}
   </header>${searching?`<div class="psearch" data-k="psearch"><span class="search"><input type="text" data-in="q" value="${esc(ui.q)}" placeholder="Search all projects" aria-label="Search" enterkeyhint="search"></span><button class="icon" data-act="searchToggle" aria-label="Close search">✕</button></div>`:''}${bad?sync.replace('class="sync err"','class="sync err pstrip" data-k="pstrip"'):''}`;
   }
   return `<header class="top" data-k="top">
@@ -1554,8 +1563,11 @@ function renderTop(){
 function renderBottom(){
   if(!isPhone())return '';
   const hc=qq()?hitCounts():null;
-  return `<nav class="pages bot" data-k="bot" aria-label="Pages">${[['tasks','Tasks'],['board','Board'],['journal','Journal'],['calendar','Calendar']].map(([k,l])=>`<button class="${ui.page===k?'on':''}" data-act="page" data-v="${k}"${ui.page===k?' aria-current="page"':''}>${l}${hc?`<span class="hc${hc[k]?'':' zero'}">${hc[k]}</span>`:''}</button>`).join('')}</nav>`;
+  return `<nav class="pages bot" data-k="bot" aria-label="Pages">${[['tasks','Tasks'],['board','Board'],['journal','Journal'],['calendar','Calendar']].map(([k,l])=>`<button class="${[ui.page===k?'on':'',hc?'hcx':''].filter(Boolean).join(' ')}" data-act="page" data-v="${k}"${ui.page===k?' aria-current="page"':''}>${l}${hc?`<span class="hc${hc[k]?'':' zero'}">${hc[k]}</span>`:''}</button>`).join('')}${_phTools}</nav>`;
 }
+let _phTools=''; // Suche + Menue des Handys, von renderTop gebaut (dort liegen Sync-Stand und Menueinhalt), von renderBottom gezeigt
+// Kurzname fuer die Projekt-Reiter am Handy: selbst gesetzt oder das erste Wort des Namens
+function shortName(p){return String(p.short||'').trim()||String(p.name||'').trim().split(/\s+/)[0]||'?';}
 // Handy: die Zurueck-Taste schliesst, was gerade offen ist (Dialog, Details, Menue), statt die App zu verlassen.
 // Solange etwas offen ist, liegt genau ein eigener Verlaufseintrag obenauf. Wird das Offene in der App geschlossen, nimmt die App
 // den Eintrag selbst zurueck (_backSkip zaehlt diese eigenen Schritte) — so verlaesst die Zurueck-Taste danach die App beim ersten Druck.
@@ -2054,6 +2066,7 @@ function renderDialog(){
     const cols=[...PROJ_COLORS];if(d.color&&!PROJ_COLOR_NAMES[d.color])cols.unshift(d.color);
     inner=`<h2>${d.mode==='new'?'New project':'Edit project'}</h2>
       <div class="fld"><label for="pj">Name</label><input id="pj" type="text" data-in="dlg" data-name="name" value="${esc(d.name)}" autocomplete="off">${d.err?`<div class="err">${esc(d.err)}</div>`:''}</div>
+      <div class="fld"><label for="pjs">Short name on the phone</label><input id="pjs" type="text" data-in="dlg" data-name="short" value="${esc(d.short||'')}" placeholder="First word of the name" maxlength="12" autocomplete="off"></div>
       <div class="fld"><span class="k">Colour</span><div class="sws" role="radiogroup">${cols.map(c=>`<button class="sw${c===d.color?' on':''}" role="radio" aria-checked="${c===d.color}" data-act="pickColor" data-c="${esc(c)}"><i style="--c:${esc(c)};color:${_ink(c)}">${c===d.color?'✓':''}</i>${esc(PROJ_COLOR_NAMES[c]||'Current')}</button>`).join('')}</div></div>
       <div class="acts"><button class="btn" data-act="closeDialog">Cancel</button><button class="btn primary" data-act="saveProject">${d.mode==='new'?'Create project':'Save'}</button></div>`;
   }else if(d.type==='list'){
@@ -2155,7 +2168,7 @@ function renderDialog(){
   }else if(d.type==='help'){
     wide=true;const ph=isPhone();
     inner=`<h2>How ResearchGraph works</h2><ul class="hl">
-      ${ph?'<li>The projects are the tabs at the top, each with its number of open tasks; tap one to switch. Tasks, Board, Journal and Calendar are at the bottom. The magnifier opens the search. Everything else — the menu of the project, closed steps, frozen projects, undo, dark mode, size, the GitHub connection — is in the ⋯ menu.</li>':'<li>Every active project is a column. Drag the thin line between two columns to change their width.</li>'}
+      ${ph?'<li>The projects are the tabs at the top, side by side, each with its short name and its number of open tasks; tap one to switch. The short name is the first word of the project name unless you set one under ⋯ → Rename or recolour. Tasks, Board, Journal and Calendar are at the bottom, with the magnifier for the search and the ⋯ menu beside them. Everything else — the menu of the project, closed steps, frozen projects, undo, dark mode, size, the GitHub connection — is in the ⋯ menu.</li>':'<li>Every active project is a column. Drag the thin line between two columns to change their width.</li>'}
       <li>The box in front of a task or step shows its status: empty = open, dot = in progress, stroke = blocked, tick = done, cross = failed. Click it and pick the new status right below — in any direction. Blocked tasks show what they wait for.</li>
       <li>Something that did not work is set to <b>failed</b>; the app asks why, and the reason stays with it. Steps and tasks work the same way.</li>
       <li>A task you set to done or failed moves to <b>Closed</b> at the bottom of its project. Click “Closed” to see them, newest first; the box brings one back.</li>
@@ -2336,7 +2349,7 @@ const ACT={
   logAll:()=>{if(ui.drawer){ui.drawer.all=true;render();}},
   // Projekte
   newProject:()=>{openDialog({type:'project',mode:'new',name:'',color:PROJ_COLORS[S.projects.length%PROJ_COLORS.length]});ui.focusSel='#pj';},
-  editProject:el=>{const p=projById(A(el).pid);if(!p)return;openDialog({type:'project',mode:'edit',pid:p.id,name:p.name,color:p.color||PROJ_COLORS[0]});ui.focusSel='#pj';},
+  editProject:el=>{const p=projById(A(el).pid);if(!p)return;openDialog({type:'project',mode:'edit',pid:p.id,name:p.name,short:p.short||'',color:p.color||PROJ_COLORS[0]});ui.focusSel='#pj';},
   pickColor:el=>{ui.dialog.color=A(el).c;render();},
   newList:el=>{ui.menu=null;openDialog({type:'list',pid:A(el).pid,name:''});ui.focusSel='#ln';},
   saveList:()=>{
@@ -2362,8 +2375,9 @@ const ACT={
     const d=ui.dialog,name=String(d.name||'').trim();
     if(!name){d.err='Give the project a name.';ui.focusSel='#pj';render();return;}
     ui.dialog=null;
-    if(d.mode==='new'){addProject({id:_uid('proj'),name,color:d.color,created:nowIso(),lists:['labor','General']});toast('Project “'+name+'” created.');}
-    else changeProject(d.pid,{name,color:d.color});
+    const short=String(d.short||'').trim(); // leer = erstes Wort des Namens (shortName)
+    if(d.mode==='new'){addProject({id:_uid('proj'),name,color:d.color,created:nowIso(),lists:['labor','General'],...(short?{short}:{})});toast('Project “'+name+'” created.');}
+    else{const p=projById(d.pid),f={name,color:d.color};if(short!==String(p&&p.short||''))f.short=short||null;changeProject(d.pid,f);}
   },
   freeze:el=>{const p=projById(A(el).pid);if(!p)return;ui.menu=null;if(p.frozen){changeProject(p.id,{frozen:null,frozenAt:null});toast('“'+p.name+'” is shown again.');}else{changeProject(p.id,{frozen:true,frozenAt:nowIso()});toast('“'+p.name+'” frozen — “Show frozen” at the top brings it back.');}},
   archiveProject:async el=>{const p=projById(A(el).pid);if(!p)return;ui.menu=null;if(!await confirmAsk('Archive “'+p.name+'”?','Use this when the project is finished. Nothing is deleted; you can restore it from ⋯ → Archived projects. For a pause, use Freeze instead.','Archive project'))return;changeProject(p.id,{archived:true,archivedAt:nowIso()});},

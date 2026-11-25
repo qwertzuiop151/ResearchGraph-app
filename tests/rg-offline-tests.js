@@ -1061,8 +1061,8 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
    ok(env.doc.querySelectorAll('.top .tabs [data-act="pickOne"]').length===NC,'every visible project is a tab');
    ok(env.doc.querySelectorAll('.pages.bot [data-act="page"]').length===4&&!env.doc.querySelector('.top .pages'),'the four pages stand at the bottom');
    ok(!env.doc.querySelector('[data-act="mode"]'),'no choice between all projects and one project');
-   ok(env.doc.querySelector('.top .tabs')&&env.doc.querySelector('.top [data-act="searchToggle"]')&&!env.doc.querySelector('.psearch')&&!env.doc.querySelector('.top .search'),'one header row: tabs, search button, menu — the search row is closed');
-   ok(env.doc.querySelector('.top [data-act="menu"] .sd')&&!env.doc.querySelector('.pstrip'),'while the sync is fine its state is a mark on the menu button, no line of its own');
+   ok(env.doc.querySelector('.top .tabs')&&!env.doc.querySelector('.top .icon')&&env.doc.querySelector('.pages.bot [data-act="searchToggle"]')&&!env.doc.querySelector('.psearch')&&!env.doc.querySelector('.top .search'),'one header row with only the project tabs; search and menu sit in the page bar — the search row is closed');
+   ok(env.doc.querySelector('.pages.bot [data-act="menu"] .sd')&&!env.doc.querySelector('.pstrip'),'while the sync is fine its state is a mark on the menu button, no line of its own');
    const pp=snap.projects.find(p=>!p.archived&&!p.frozen&&(p.todos||[]).some(t=>live(t)&&(t.status||'open')==='open'&&!t.focus&&!t.northStar));
    ok(pp,'found a project with an open task');
    if(pp){
@@ -1091,17 +1091,30 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
     ok(!env.doc.querySelector('.stpick'),'the choice closes it');
     ok(await until(()=>gp(pp.id).todos.find(t=>t.id===tp.id).priority===pr1),'priority set on the phone reaches the gist');
     // Rueckgaengig liegt im Menue (keine Tastatur)
-    click(env,'.top [data-act="menu"]');await tick();
-    ok(['undo','redo','theme','feedback','newProject','archived','openSync','help','toggleDone','reload'].every(a=>env.doc.querySelector(`.top .menu [data-act="${a}"]`))&&env.doc.querySelectorAll('.top .menu [data-act="zoom"]').length===2,'the menu holds what has no room in the header');
-    ok(['editProject','newList','removeList','freeze','projArchive','archiveProject'].every(a=>env.doc.querySelector(`.top .menu [data-act="${a}"][data-pid="${pp.id}"]`))&&/Live|Saving/.test(env.doc.querySelector('.top .menu .sync').textContent),'the menu also holds the project menu and the sync state in words');
+    click(env,'.pages.bot [data-act="menu"]');await tick();
+    ok(['undo','redo','theme','feedback','newProject','archived','openSync','help','toggleDone','reload'].every(a=>env.doc.querySelector(`.pages.bot .menu [data-act="${a}"]`))&&env.doc.querySelectorAll('.pages.bot .menu [data-act="zoom"]').length===2,'the menu holds what has no room in the header');
+    ok(['editProject','newList','removeList','freeze','projArchive','archiveProject'].every(a=>env.doc.querySelector(`.pages.bot .menu [data-act="${a}"][data-pid="${pp.id}"]`))&&/Live|Saving/.test(env.doc.querySelector('.pages.bot .menu .sync').textContent),'the menu also holds the project menu and the sync state in words');
     ok(!env.doc.querySelector('.menu [data-act="resetWidths"]'),'no column widths to reset');
-    click(env,'.top .menu [data-act="undo"]');await tick();
-    ok(!env.doc.querySelector('.top .menu'),'the menu closes with the choice');
+    click(env,'.pages.bot .menu [data-act="undo"]');await tick();
+    ok(!env.doc.querySelector('.pages.bot .menu'),'the menu closes with the choice');
     ok(await until(()=>gp(pp.id).todos.find(t=>t.id===tp.id).priority===pr0),'Undo from the menu takes the priority back in the gist');
     ok(/Redo is in the/.test((env.doc.querySelector('.toast')||{}).textContent||''),'the confirmation names the menu, not a keyboard shortcut');
     ok(gh.revs.length>revs,'changes were uploaded');
+    // Kurzname: ohne eigenen das erste Wort, im Dialog "Rename or recolour" setzbar und wieder leerbar
+    {const tab=()=>env.doc.querySelector(`.top .tabs [data-pid="${pp.id}"] .sn`).textContent.replace(/^❄ /,'');
+     ok(tab()===(pp.short||pp.name.trim().split(/\s+/)[0]),'the tab shows the first word of the name when no short name is set');
+     click(env,'.pages.bot [data-act="menu"]');await tick();click(env,`.pages.bot .menu [data-act="editProject"][data-pid="${pp.id}"]`);await tick();
+     const si=env.doc.querySelector('#pjs');ok(!!si,'the project dialog has a field for the short name');
+     typeIn(env,si,'Zz9');click(env,'[data-act="saveProject"]');await tick();
+     ok(tab()==='Zz9','a short name set in the dialog shows on the tab at once');
+     ok(await until(()=>gp(pp.id).short==='Zz9'&&gp(pp.id).name===pp.name),'the short name reaches the gist, the name stays');
+     ok(await until(()=>env.w.eval('PENDING.length')===0)&&tab()==='Zz9'&&env.w.eval('projById('+JSON.stringify(pp.id)+').short')==='Zz9','the short name survives taking over the uploaded state');
+     click(env,'.pages.bot [data-act="menu"]');await tick();click(env,`.pages.bot .menu [data-act="editProject"][data-pid="${pp.id}"]`);await tick();
+     typeIn(env,env.doc.querySelector('#pjs'),'');click(env,'[data-act="saveProject"]');await tick();
+     ok(await until(()=>!('short' in gp(pp.id))),'clearing the field removes the short name from the gist');
+     ok(tab()===pp.name.trim().split(/\s+/)[0],'and the tab falls back to the first word');}
     // Suche: Treffer aller Projekte untereinander, nicht nur des gewaehlten
-    {click(env,'.top [data-act="searchToggle"]');await tick();
+    {click(env,'.pages.bot [data-act="searchToggle"]');await tick();
      const inp=env.doc.querySelector('.psearch .search input');ok(!!inp,'the search button opens the search row');typeIn(env,inp,'a');await tick();
      const want=snap.projects.filter(p=>!p.archived&&!p.frozen&&((p.todos||[]).some(t=>JSON.stringify([t.text,t.notes,t.blockedBy,t.failedReason,(t.subtasks||[]).map(s=>[s.text,s.notes,s.failedReason])]).toLowerCase().includes('a'))||(p.ideas||[]).some(i=>((i.title||'')+(i.desc||'')).toLowerCase().includes('a')))).map(p=>p.id);
      ok(env.doc.querySelector('.one.found')&&[...env.doc.querySelectorAll('.one.found .pj')].map(b=>b.dataset.pj).join()===want.join()&&want.length>1,'searching on the phone lists the matches of all projects');
