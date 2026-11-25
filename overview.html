@@ -1694,15 +1694,16 @@ function closedRow(p,t,when){
 // Klick auf das Kaestchen klappt die Auswahl auf, ein Klick setzt den Status, in jede Richtung.
 // Mit der Maus: kleine Liste direkt rechts neben dem Kaestchen (renderPop). Handy: unter der Zeile (stPick), dort gibt es keinen Mausweg zu sparen.
 function popOn(){return !isPhone();}
-// Die Liste steht so, dass der aktuelle Status auf Hoehe des Kaestchens liegt; das Kaestchen bleibt frei (zweiter Klick darauf schliesst),
-// unter dem Zeiger liegt nie eine Auswahl — ein Doppelklick verstellt nichts.
+// Die Liste steht so, dass der naheliegende naechste Status (ST_NEXT) direkt rechts auf Hoehe des Kaestchens liegt; die Reihenfolge der Liste bleibt immer gleich.
+// Das Kaestchen bleibt frei (zweiter Klick darauf schliesst), unter dem Zeiger liegt nie eine Auswahl — ein Doppelklick verstellt nichts.
+const ST_NEXT={'':'open',open:'in_progress',in_progress:'done',blocked:'in_progress',done:'in_progress',failed:'open'};
 function renderPop(){
   if(!popOn()||!ui.pick||!ui.pickAt||ui.pick.startsWith('p:'))return '';
   const parts=ui.pick.split('|'),pid=parts[0].slice(parts[0].indexOf(':')+1),id=parts[1],sid=parts[2]||null;
   const p=projById(pid),t=findT(pid,id),s=sid?findS(pid,id,sid):null;
   if(!p||!t||(sid&&!s))return '';
   const items=sid?STEP_ST:TODO_ST,cur=sid?(oddSt(s,STEP_KNOWN)?'':sSt(s)):(oddSt(t,TODO_KNOWN)?'':tSt(t));
-  const i=Math.max(0,items.findIndex(x=>x[0]===cur)),z=ui.zoom/100,at=ui.pickAt;
+  const i=Math.max(0,items.findIndex(x=>x[0]===ST_NEXT[cur])),z=ui.zoom/100,at=ui.pickAt;
   const left=at.x+at.w+3*z,top=at.y+at.h/2-(5+i*28+14)*z; // 5 = Rand + Innenabstand, 28 = Zeilenhoehe der Liste
   const a=` data-pid="${esc(pid)}" data-id="${esc(id)}"`+(sid?` data-sid="${esc(sid)}"`:'');
   return `<div class="stpop-w" data-k="stpop" style="left:${left.toFixed(1)}px;top:${top.toFixed(1)}px"><div class="stpop" role="menu" aria-label="Set status" style="zoom:${z};${projVars(p)}">${items.map(([v,,l])=>`<button class="${v===cur?'on':''}" data-act="${sid?'setStepStatus':'setStatus'}" data-v="${v}"${a} role="menuitemradio" aria-checked="${v===cur}"><span class="cb${sid?' r':''} s-${v}" aria-hidden="true">${CB_ICON[v]||''}</span><span>${l}</span></button>`).join('')}</div></div>`;

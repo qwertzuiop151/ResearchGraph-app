@@ -108,6 +108,14 @@ const NC=snap.projects.filter(p=>!p.archived&&!p.frozen).length;
   ok(env.doc.querySelectorAll('.stpop').length===1&&env.doc.querySelectorAll('.stpop [data-act="setStepStatus"]').length===4,'clicking the box opens the status choice beside the step (open / in progress / done / failed)');
   ok(!env.doc.querySelector('.stpick'),'nothing is inserted under the row');
   ok(env.doc.querySelectorAll('.stpop button.on').length===1&&env.doc.querySelector('.stpop button.on').dataset.v===(s0.status||'open'),'the current status is marked in the choice');
+  {// jsdom hat kein Layout: Kaestchen und Liste bekommen fuer diese Pruefung eine Lage mitten im Fenster
+   const P=env.w.Element.prototype,orig=P.getBoundingClientRect,R=(l,t,w,h)=>({left:l,top:t,width:w,height:h,right:l+w,bottom:t+h,x:l,y:t});
+   P.getBoundingClientRect=function(){if(this.matches(box(s0.id)))return R(300,400,16,16);if(this.classList.contains('stpop-w'))return R(parseFloat(this.style.left),parseFloat(this.style.top),130,130);return orig.call(this);};
+   click(env,box(s0.id));await tick();click(env,box(s0.id));await tick();
+   const w=env.doc.querySelector('.stpop-w'),z=parseFloat(env.doc.querySelector('.stpop').style.zoom)||1;
+   const row=Math.floor(((408-parseFloat(w.style.top))/z-5)/28),want={open:'in_progress',in_progress:'done',done:'in_progress',failed:'open'}[s0.status||'open'];
+   P.getBoundingClientRect=orig;
+   ok(env.doc.querySelectorAll('.stpop button')[row]?.dataset.v===want,`the row directly right of the box is the likely next status (${s0.status||'open'} -> ${want})`);}
   click(env,`.stpop [data-v="${NEXT[s0.status||'open']}"]`);await tick();
   ok(env.doc.querySelector(box(s0.id)).className.includes('s-'+NEXT[s0.status||'open']),'step takes the picked status at once on screen');
   ok(!env.doc.querySelector('.stpop'),'the choice closes after picking');
